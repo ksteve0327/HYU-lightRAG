@@ -1,0 +1,13 @@
+{
+  "backup": "experiments/rag_repro_100_seed20260609/evaluation/judge_results.backup_20260610_160921.jsonl",
+  "rows_before": 63,
+  "rows_after": 60,
+  "unique_after": 60,
+  "success_after": 60,
+  "failure_after": 0,
+  "failed_before": [
+    "lightrag_hybrid__vs__graphrag_global/F-1",
+    "lightrag_hybrid__vs__graphrag_local/AC-2"
+  ],
+  "failed_after": []
+}

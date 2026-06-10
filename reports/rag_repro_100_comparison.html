@@ -1,0 +1,1685 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>Patent-100 RAG Reproduction Report</title>
+  <style>
+    :root { color-scheme: light; --ink:#1f2937; --muted:#64748b; --line:#d9e2ec; --band:#f6f8fb; }
+    body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; color:var(--ink); background:white; line-height:1.55; }
+    main { max-width:1180px; margin:0 auto; padding:32px 28px 80px; }
+    h1 { font-size:30px; margin:0 0 8px; }
+    h2 { margin-top:42px; border-top:1px solid var(--line); padding-top:24px; font-size:22px; }
+    h3 { margin-top:26px; font-size:17px; }
+    h4 { margin:20px 0 8px; }
+    p { margin:8px 0 14px; }
+    .note, .empty { color:var(--muted); }
+    .toc { border:1px solid var(--line); border-radius:8px; padding:14px 18px; background:#fbfcfd; margin:18px 0 24px; }
+    .toc a { color:#1d4ed8; text-decoration:none; }
+    .toc ol { margin:8px 0 0 20px; padding:0; }
+    .status { display:inline-block; padding:2px 8px; border-radius:999px; background:#e7f8ee; color:#166534; font-size:12px; font-weight:650; }
+    .blank { color:var(--muted); font-style:italic; }
+    .grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin:18px 0; }
+    .metric { border:1px solid var(--line); border-radius:8px; padding:12px; background:var(--band); font-size:13px; }
+    .metric strong { display:block; font-size:22px; margin-top:4px; color:#0f172a; }
+    table { width:100%; border-collapse:collapse; margin:12px 0 20px; font-size:13px; table-layout:fixed; }
+    th,td { border:1px solid var(--line); padding:8px; vertical-align:top; word-break:break-word; }
+    th { background:#eef2f7; text-align:left; }
+    pre { background:#0f172a; color:#e2e8f0; padding:14px; border-radius:8px; overflow:auto; font-size:12px; }
+    details { margin:12px 0; }
+    summary { cursor:pointer; font-weight:650; }
+    code { background:#eef2f7; padding:1px 5px; border-radius:4px; }
+    svg { width:100%; border:1px solid var(--line); border-radius:8px; background:#fbfcfd; }
+    .edge { stroke:#94a3b8; stroke-width:1.5; opacity:.7; }
+    .edge-label { font-size:9px; fill:#334155; stroke:white; stroke-width:3px; paint-order:stroke; }
+    text { font-size:10px; fill:#0f172a; pointer-events:none; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Patent-100 RAG Reproduction Report</h1>
+  <p class="note">LightRAG, NaiveRAG(mode=naive), GraphRAG를 AI 반도체 특허 100건에서 비교한다. 기존 작업물은 보존하고 새 실험 산출물만 사용한다.</p>
+  <div class="grid">
+    <div class="metric">Seed<strong>20260609</strong></div>
+    <div class="metric">Patent docs<strong>100</strong></div>
+    <div class="metric">Graph nodes<strong>1596</strong></div>
+    <div class="metric">Graph edges<strong>2203</strong></div>
+  </div>
+
+  <section class="toc">
+    <strong>Table of Contents</strong>
+    <ol>
+      <li><a href="#models">Model Roles and Current Status</a></li>
+      <li><a href="#indexing">3.1 Graph-based Text Indexing</a></li>
+      <li><a href="#graph-viz">Graph Visualization Before 3.2</a></li>
+      <li><a href="#retrieval">3.2 Dual-level Retrieval Paradigm</a></li>
+      <li><a href="#generation">3.3 Retrieval-Augmented Answer Generation</a></li>
+      <li><a href="#complexity">3.4 Complexity Analysis</a></li>
+      <li><a href="#tables">Paper-style Evaluation Tables</a></li>
+      <li><a href="#discussion">Discussion and Conclusion</a></li>
+      <li><a href="#appendix">Appendix 7.1-7.3.4</a></li>
+    </ol>
+  </section>
+
+  <h2 id="models">Model Roles and Current Status</h2>
+  <table><thead><tr><th>Model</th><th>Role</th></tr></thead><tbody><tr><td>gpt-5.5 via codex-proxy</td><td>LightRAG indexing/query, GraphRAG indexing/query</td></tr><tr><td>text-embedding-3-large via OpenRouter</td><td>chunk/entity/relation/query embedding</td></tr><tr><td>Gemini 3.5 Flash via OpenRouter</td><td>LLM judge only</td></tr></tbody></table>
+  <table><thead><tr><th>Track</th><th>Status</th><th>Evidence</th></tr></thead><tbody><tr><td>LightRAG indexing</td><td>complete</td><td>100/100 docs processed</td></tr><tr><td>LightRAG query</td><td>complete after repair</td><td>60/60 answer records succeeded</td></tr><tr><td>GraphRAG</td><td>complete after repair</td><td>100 docs indexed, 45/45 query records succeeded</td></tr><tr><td>Gemini judge</td><td>complete after repair</td><td>60/60 pairwise judgments succeeded</td></tr></tbody></table>
+
+  <h2 id="indexing">3.1 Graph-based Text Indexing</h2>
+  <p>특허 1건을 구조화 텍스트로 변환한 뒤 chunking, R(entity/relation extraction), P(profile/key-value generation), D(deduplication)를 거쳐 graph와 vector DB를 만든다.</p>
+  <h3>Structured Patent Documents</h3>
+  <table><thead><tr><th>patent_id</th><th>category</th><th>category_name</th><th>source</th></tr></thead><tbody><tr><td>15-091413</td><td>AA/AAD</td><td>AI 코어 및 가속기 / 신경망 연산 가속기</td><td>patent://15-091413</td></tr><tr><td>13-067154</td><td>AB/ABE</td><td>제조 및 패키징 / 전극 및 배선 구조 기술</td><td>patent://13-067154</td></tr></tbody></table><details open><summary>Structured patent text: 15-091413</summary><pre>문서 유형: AI 반도체 특허
+patent_id: 15-091413
+출원번호: 15-091413
+공개번호: 2017-0169326
+등록번호: 10832120
+발명의 명칭: Systems and methods for a multi-core optimized recurrent neural network
+요약: Systems and methods for a multi-core optimized Recurrent Neural Network (RNN) architecture are disclosed. The various architectures affect communication and synchronization operations according to the Multi-Bulk-Synchronous-Parallel (MBSP) model for a given processor. The resulting family of network architectures, referred to as MBSP-RNNs, perform similarly to a conventional RNNs having the same number of parameters, but are substantially more efficient when mapped onto a modern general purpose processor. Due to the large gain in computational efficiency, for a fixed computational budget, MBSP-RNNs outperform RNNs at applications such as end-to-end speech recognition.
+AI요약(목적): 멀티-코어 최적화 순환 신경망(RNN) 아키텍처를 위한 시스템 및 방법을 제공한다.
+AI요약(솔루션): 다양한 아키텍처는 어떤 프로세서의 MBSP(Multi-Bulk Synchronization Parallel) 모델에 기반하여 통신 동작 및 동기화 동작에 영향을 준다. MBSP-RNN이라 불리는 네트워크 아키텍쳐 패밀리는 동일한 수의 파라미터를 갖는 RNN과 동일한 방식으로 실행되지만, 현대의 범용 프로세서에 맵핑될 때 그 효과가 더욱 두드러진다. 계산 효율을 실질적으로 향상시키기 위해, 계산 예산이 일정하다면, 예를 들어, 엔드-투-엔드 음성 인식과 같은 적용 측면에서, MBSP-RNN은 RNN보다 양호하다.
+AI요약(목적+솔루션): [목적] 멀티-코어 최적화 순환 신경망(RNN) 아키텍처를 위한 시스템 및 방법을 제공한다. [솔루션] 다양한 아키텍처는 어떤 프로세서의 MBSP(Multi-Bulk Synchronization Parallel) 모델에 기반하여 통신 동작 및 동기화 동작에 영향을 준다. MBSP-RNN이라 불리는 네트워크 아키텍쳐 패밀리는 동일한 수의 파라미터를 갖는 RNN과 동일한 방식으로 실행되지만, 현대의 범용 프로세서에 맵핑될 때 그 효과가 더욱 두드러진다. 계산 효율을 실질적으로 향상시키기 위해, 계산 예산이 일정하다면, 예를 들어, 엔드-투-엔드 음성 인식과 같은 적용 측면에서, MBSP-RNN은 RNN보다 양호하다.
+대표청구항: [청구항1] 1. A method to improve a computing performance of a computing device by mapping a Recurrent Neural Network (RNN) architecture to a processor&#x27;s microarchitecture of the computing device, the method comprising:associating each of two or more levels of a hierarchy of an RNN architecture with a level of memory hierarchy in a processor microarchitecture, each level of memory hierarchy being described by at least two of memory capacity, number of processor cores, bandwidth, computational bandwidth, and latency:grouping neurons into modules, each module representing a logical unit in an RNN layer within the RNN architecture; andarranging connections between the modules such that the modules satisfy conditions of the RNN architecture, the conditions being related to the at least two of memory capacity, number of processor cores, bandwidth, computational bandwidth, and latency.
+중분류: AA
+중분류명: AI 코어 및 가속기
+소분류: AAD
+소분류명: 신경망 연산 가속기
+메인 IPC: G06N-003/04
+메인 IPC 설명: neural-network architecture and topology
+전체 IPC: G06N-003/04,[G06N-003/06, G06N-003/08, G06N-003/063]
+전체 IPC 설명: G06N-003/04: neural-network architecture and topology; G06N-003/06: computer systems based on specific computational models, including neural networks and machine learning; G06N-003/08: neural-network learning methods; G06N-003/063: hardware or physical implementation of neural networks
+메인 CPC: G06N-0003/04
+전체 CPC: G06N-0003/04,G06N-0003/063, G06N-0003/0445, G06N-0003/088
+출원인정리: Baidu
+출원인정규화: Baidu
+출원인유형: Company
+현재권리자정리: Baidu
+현재권리자정규화: Baidu
+현재권리자유형: Company
+국가코드: US
+출원인 국적: US
+현재권리자 국적: US
+출원일: 2016.04.05
+출원연도: 2016
+공개일: 2017.06.15
+등록일: 2020.11.10
+법적상태: 등록</pre></details>
+<details open><summary>Structured patent text: 13-067154</summary><pre>문서 유형: AI 반도체 특허
+patent_id: 13-067154
+출원번호: 13-067154
+공개번호: 2011-0215482
+등록번호: 8508033
+발명의 명칭: Semiconductor device
+요약: The semiconductor device according to the present invention includes a semiconductor layer, an interlayer dielectric film formed on the semiconductor layer, a wire formed on the interlayer dielectric film with a metallic material to have a width of not more than 0.4 μm, and a broad portion integrally formed on the wire to extend from the wire in the width direction thereof.
+AI요약(목적): 배선의 폭이 0.4m 이하인 경우에도 응력에 의한 배선의 단선을 방지할 수 있는 반도체 소자를 제공한다.
+AI요약(솔루션): 반도체 소자는 반도체층; 반도체층 상에 형성된 층간 절연막; 층간 절연막 상에 금속 물질로 형성된 0.4m 이하의 폭을 갖는 배선; 및 배선으로부터 폭 방향으로 연장되도록 배선 상에 일체로 형성된 광부를 포함한다.
+AI요약(목적+솔루션): [목적] 배선의 폭이 0.4m 이하인 경우에도 응력에 의한 배선의 단선을 방지할 수 있는 반도체 소자를 제공한다. [솔루션] 반도체 소자는 반도체층; 반도체층 상에 형성된 층간 절연막; 층간 절연막 상에 금속 물질로 형성된 0.4m 이하의 폭을 갖는 배선; 및 배선으로부터 폭 방향으로 연장되도록 배선 상에 일체로 형성된 광부를 포함한다.
+대표청구항: [청구항1] 1. A semiconductor device comprising:a semiconductor layer;an interlayer dielectric film formed on the semiconductor layer;a wire formed on the interlayer dielectric film and configured to have a width of not more than 0.4 μm, the wire having a lower surface entirely in contact with the interlayer dielectric film; anda plurality of broad portions integrally formed with the wire and configured to extend from the wire in the width direction thereof;wherein the plurality of broad portions are provided at a prescribed interval in a direction along the wire; andwherein a length of each of the plurality of broad portions in the direction along the wire is less than a length of the wire between an adjacent pair of the plurality of broad portions.
+중분류: AB
+중분류명: 제조 및 패키징
+소분류: ABE
+소분류명: 전극 및 배선 구조 기술
+메인 IPC: H01L-023/52
+메인 IPC 설명: semiconductor devices, device structures, packaging, and integrated circuits
+전체 IPC: H01L-023/52,[H01L-023/48]
+전체 IPC 설명: H01L-023/52: semiconductor devices, device structures, packaging, and integrated circuits; H01L-023/48: semiconductor devices, device structures, packaging, and integrated circuits
+메인 CPC: H01L-0023/528
+전체 CPC: H01L-0023/528,H01L-0023/5283, H01L-0023/53238, H01L-2924/0002
+출원인정리: ROHM
+출원인정규화: ROHM
+출원인유형: Company
+현재권리자정리: ROHM
+현재권리자정규화: ROHM
+현재권리자유형: Company
+국가코드: US
+출원인 국적: JP
+현재권리자 국적: JP
+출원일: 2011.05.12
+출원연도: 2011
+공개일: 2011.09.08
+등록일: 2013.08.13
+법적상태: 등록</pre></details>
+  <h3>Patent Prompt Rules</h3>
+  <table><thead><tr><th>Rule</th><th>Items</th></tr></thead><tbody><tr><td>Do not extract as entity</td><td>특허번호, 출원번호, 공개번호, 등록번호, IPC/CPC 코드, 국가코드, 법적상태, 날짜, 청구항 번호, 중분류/소분류 코드 자체</td></tr><tr><td>Extract technical entities</td><td>회로, 메모리 구조, 아키텍처, 연산 장치, 연산 방식, 제조/패키징 공정, 인터커넥트, 성능 지표, 응용 기술</td></tr><tr><td>Relation preference</td><td>metadata relation보다 기술 구성요소 간 기능/구조/성능/공정 관계를 우선 추출</td></tr></tbody></table>
+  
+    <h3>R/P/D Function Output Examples</h3>
+    <p class="note">실제 Patent-100 storage에서 특허 <code>16-060058</code>와 graph/VDB payload를 읽어 구성했다.</p>
+    <details open><summary>R input chunk excerpt</summary><pre>문서 유형: AI 반도체 특허
+patent_id: 16-060058
+출원번호: 16-060058
+공개번호: 2018-0374939
+등록번호: 10439056
+발명의 명칭: Power semiconductor device and method of manufacturing power semiconductor device
+요약: A power semiconductor device according to the present invention has a super junction structure, and includes a low-resistance semiconductor layer, an n−-type column region, p−-type column regions, a base region, trenches, gate insulation films, gate electrodes, source regions, interlayer insulation films, contact holes, metal plugs, p+-type diffusion regions, a source electrode and a gate pad electrode. An active element part includes an n−-type column region between a predetermined p−-type column region disposed closest to a gate pad part and a predetermined n−-type column region disposed closest to the gate pad part among the n−-type column regions which are in contact with the trenches. The present invention provides a power semiconductor device which can satisfy a demand for reduction in cost and downsizing of electronic equipment, can lower ON resistance while maintaining a high withstand voltage, and can possess a large breakdown resistance.
+AI요약(목적): 전력 반도체 소자에 관한 것으로, 특히 전자 기기의 가격 절감 및 소형화 요구를 만족시킬 수 있고, 고내압을 유지하면서도 온 저항을 낮출 수 있으며, 큰 항복 저항을 가질 수 있는 전력 반도체 소자를 제공한다.
+AI요약(솔루션): 전력 반도체 소자는 금속 플러그를 포함하며, 전력 반도체 소자를 소정의 단면에서 보았을 때, 능동 소자부는 교대로 배치된 제1 도전형 컬럼 영역 중 게이트 패드부에 가장 가깝게 배치된 제2 도전형 컬럼 영역 사이에 하나 이상의 제1 도전형 컬럼 영역을 포함한다.
+AI요약(목적+솔루션): [목적] 전력 반도체 소자에 관한 것으로, 특히 전자 기기의 가격 절감 및 소형화 요구를 만족시킬 수 있고, 고내압을 유지하면서도 온 저항을 낮출 수 있으며, 큰 항복 저항을 가질 수 있는 전력 반도체 소자를 제공한다. [솔루션] 전력 반도체 소자는 금속 플러그를 포함하며, 전력 반도체 소자를 소정의 단면에서 보았을 때, 능동 소자부는 교대로 배치된 제1 도전형 컬럼 영역 중 게이트 패드부에 가장 가깝게 배치된 제2 도전형 컬럼 영역 사이에 하나 이상의 제1 도전형 컬럼 영역을 포함한다.
+대표청구항: [청구항1] 1. A power semiconductor device having a super junction structure  ...[truncated]</pre></details>
+    <table><thead><tr><th>R output</th><th>count</th><th>sample</th></tr></thead><tbody><tr><td>entities</td><td>29</td><td>베이스 영역, 소스 영역, 고내압, 온 저항, 항복 저항, 게이트 절연막, 전력 반도체 소자, 전력 반도체 소자 제조 방법, 제2 도전형 고농도 확산 영역, 제2 도전형 컬럼 영역</td></tr><tr><td>relations</td><td>49</td><td>층간 절연막 -&gt; 활성 소자부; 능동 소자 전극 -&gt; 제2 도전형 고농도 확산 영역; 능동 소자부 -&gt; 제2 도전형 컬럼 영역; 게이트 패드부 -&gt; 저저항 반도체층; 고내압 -&gt; 전력 반도체 소자; 베이스 영역 -&gt; 제2 도전형 컬럼 영역; 능동 소자 전극 -&gt; 제1 도전형 고농도 확산 영역; 능동 소자부 -&gt; 제1 도전형 컬럼 영역</td></tr></tbody></table>
+    <details open><summary>P entity key-value profile</summary><pre>{
+  &quot;__id__&quot;: &quot;ent-5d4c53e0341a9e7a7a588ff1d12835fc&quot;,
+  &quot;__created_at__&quot;: 1781017535,
+  &quot;entity_name&quot;: &quot;반도체층&quot;,
+  &quot;content&quot;: &quot;반도체층\n반도체층은 단위 시냅스 소자에 포함되며 반도체 물질로 구성되는 층이다.&lt;SEP&gt;반도체층은 활성 소자부와 공통으로 사용되는 반도체 장치의 층 구조이다.&lt;SEP&gt;반도체층은 반도체 소자의 기반 층으로, 층간 절연막이 형성되는 대상이다.&quot;,
+  &quot;source_id&quot;: &quot;2024-0020571-chunk-000&lt;SEP&gt;16-060058-chunk-001&lt;SEP&gt;13-067154-chunk-000&quot;,
+  &quot;file_path&quot;: &quot;2024-0020571&lt;SEP&gt;16-060058&lt;SEP&gt;13-067154&quot;,
+  &quot;vector&quot;: &quot;eJwNl4lDFGUfx8P7BAQW9piZfWbmmWMh7yMVRM0rNc2DUhMjlUzN61XTVFTSRFFJhAV22ZmdZ2aeORYRrbzQ1CSPzIO0LPLIK+Xt9ajMW8nXP+F3fX+fz3L8LTMatTUgf5McTrehJ8AhOMIcpZfQA8MxVI3wGM4CBqmg1OSR1F6Uzz4oqudcMk/1jizSLuE1+JLRVmciLdhG/DQ7FyGzf+Ic30OLIz4EnDiWa2SvlP9hN4kbBBkQgf1mUKyB+1IqrW/UFHYnGhVBTk2jidn2SPwbk1o+yc63D6fMMpbSp1K+FHuzCoyxdxcsSp5rLcrbiGqZjz1LlBeYT0riPvakwa8lry89pY9vE93S9xfXBG5jfWacI5sLiBFqt2+vfoxtZf2tHSTytJmrO9vvGmLyRLV9wk4uXT9YdskeWtaDTi1/HHmIMqUOGmV24Y9xTGmv4MnkX2Hylj3hRYlL/deNYa63mW3aWKEp1dDiNXODGOf7iD6rrS7vI4gVPeTB8cMl22qp/aCvFtsa63y74Kv0PttbcjGZTy4zpzpvoL91xH8uZMBS2sc/DNQVJGPOmIezzX5Wqh0tfMH9ETnd4f3S42JW5HmosfNdYa1ZIP8jNAf5XFtIcExYiVxSd+Bf3YXhZuEab5bXb3HiAjwSXSMzqNm4QVxgNqH7m9/a6/EXxkA9lt3p+dgZHXkFDZX+J9wVd+MLodHc5OSm+jErys6W74cD7bZze/SNNhuYB2+BC+6f+UH0NutfszrxLHybW6N30n30NG0g/SA4KPwO3TRZxLnqTKGKzQPrjGPcdb0nV26s14bYI1APZbenNTOc+UDIDDB2y4o4+GdpVMpE+Veaq5wgVEUGuc/Z7dXtXMtgPq9L/wXTPNvDC5PTtNTPboPbZqr8xD5i53mHRs7hxka36Awe0vf4aeKfZj9jHVnPpfOgkpFbgbmOpmhhaQofLO/CfWck2kPlGNRLKTH+stJDTbx3YseHHTCeHpVM2hIfAZO1XvgxB+z77jnG85BbWMy85ukEG+FebHPhQmljrRvc6+LAQLoK0nw++7kvn+9bUQxzJQZu5Q9HTP4OiI6rAyLuxnsCqmdF+N+4ZlxzMNaK1X6w7zGGNUrbV9GBjJEXi2n2D6RfLhJzARd5Tj8say+2SABKDX6ubgP1ZJZ3fEWRcIzWAoPcn+Db7bxyJzgDilImHhz5GH/sH2WfiUnHVThduq4XUbH6W8bH8JfKg2Ux3C4gw1K2mK8V3yNHiKXgw8gxPS1xv9nbuBnsZmQSl02PEBD3WWHAiMWRIjAc2KFuWr6RAltzb3HToq96LOaJtQcuBP9qD4z5KMu6nX9PerOkyltntqCKiorpDKllkIf3mMzNPyZ/S3xpfSDcEu9Ic5oOV4+7Z+JI+aeMvzgWMWY137GCEicZH3HnJMV8rKXxDzjKsOnEYIjdCw5xtdyK5Cr2BLG8TQ691rdaPIsKfPPp7hW5n1/Rg2X+cAHN0qeVjaiDtw0uNV+ruEKE9Lfsa1pM+KKvqXgPu9FScTSUeY9axPZBsVa2a4d9mq8Gv+vD6SLf3cQvAqfQPi4s9Sq4zAxj84UJ3FFtLU3rq4QY8ylFuVcIY8UscQ3h0X5Qr/GLuCIhl40NjOQrhfFohtiI7ar6jGyG4Pris5XL2NeZEUkpiZf5OBwnXbHKCUNeBG9r/T1nrHqyJSZZpxVRj/Cz6GTVZ6ZWdOZe6O2R4QG+LKk1m5+MhfaoGizCjcnfrZiKLd7OXIV/OLpOH7dD+gFfPttZz9QPRozgESE6uW2EhEs4E1zVX9OveP7Bi3E1rLd7kvfUGWUZ8DeUxkQ5R6IWcdEp5+gdyl/WQA8pRpEp+mXyuPwFjBU2qEeZo+QG6Zlxyz4UyRdTAsPgQ6OrtzXI8A1ndC6OiXWx9CZQj3LMsUlZxuyEePc7bJIF8ERNYjbJ46VLuBtT72lAExO3M2v0wvIWZjXMKmZwGfzFO1iMYTLBfeGAvhrdQpPxA1MB7cjXfeGykYEvXY7Ewxy0/bEXhI7UFnI5riCDdoPn6ZZa33mV4C+TQ3yC8IvaQDxXK53XsAOsotsWn0yer7zCnBJ4HuhjjQx7vPmMZtnFpog+4w+xq+BibML/UqO4PYwHJvJ9mc3kpEA+/7nXIQ6AF+UmUr4PepcUSnyeuVa+YJ4MX4ep4RR+o7HCOsjHwwy9Q7Kmd3K+buTQm5i71u98jPqfyAljstHc/jR8SRztC3N9fSB0gMaypUGTLWvwjlaTWcX8QT5pOhQVDDHTuHHaU/NjXwm4ULxeTU1eyK2iy8zB9ItwrAKNFkSmtWULR1FJg+xt/HEzwRjpG8OfVS0jlx0ocEGsxJgncDX2SJ2JfkiG9/gPGVF/2+wKhlPDuR/0953vCyMUSO4Fd0SCqTW1pCK6Ce7jektpsfmx6NeC/AxuqN4fZ5S9KnawhzC6fcezSPhRHxBcq80B6wnT/XPFTVyLXidHm6Xe7aVnwlMivDoBr/Neo36GPe0YxmFPTb5HRxPIGIi3+9KYk8xO5m64xgwFePZrLYecAt1Cf/9kOEA9H6m0J4rpfG86RRyiNmGzV
+...[truncated]</pre></details>
+    <details open><summary>P relation key-value profile</summary><pre>{
+  &quot;__id__&quot;: &quot;rel-e018a03af3eacde4fa277129969521d4&quot;,
+  &quot;__created_at__&quot;: 1781003522,
+  &quot;src_id&quot;: &quot;디스플레이 장치&quot;,
+  &quot;tgt_id&quot;: &quot;영상 처리 방법&quot;,
+  &quot;source_id&quot;: &quot;16-632673-chunk-000&quot;,
+  &quot;content&quot;: &quot;영상 데이터 생성,표시\t디스플레이 장치\n영상 처리 방법\n영상 처리 방법은 디스플레이 장치에 표시될 영상 데이터를 생성한다.&quot;,
+  &quot;file_path&quot;: &quot;16-632673&quot;,
+  &quot;vector&quot;: &quot;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
+...[truncated]</pre></details>
+    <h4>D deduplication examples</h4>
+    <table><thead><tr><th>entity</th><th>chunk_count</th><th>chunk_ids</th></tr></thead><tbody><tr><td>프로세서</td><td>16</td><td>[&#x27;2021-0024247-chunk-000&#x27;, &#x27;17-511417-chunk-000&#x27;, &#x27;18-163916-chunk-000&#x27;, &#x27;16-400562-chunk-000&#x27;, &#x27;17-887145-chunk-000&#x27;]</td></tr><tr><td>메모리</td><td>13</td><td>[&#x27;2021-0024247-chunk-000&#x27;, &#x27;2021-0024247-chunk-001&#x27;, &#x27;18-334262-chunk-000&#x27;, &#x27;18-163916-chunk-000&#x27;, &#x27;18-493616-chunk-000&#x27;]</td></tr><tr><td>신경망</td><td>7</td><td>[&#x27;17-459782-chunk-000&#x27;, &#x27;17-511417-chunk-000&#x27;, &#x27;18-462872-chunk-000&#x27;, &#x27;17-196922-chunk-000&#x27;, &#x27;17-291315-chunk-000&#x27;]</td></tr><tr><td>메모리 셀 어레이</td><td>6</td><td>[&#x27;2023-0008349-chunk-000&#x27;, &#x27;2017-0093014-chunk-000&#x27;, &#x27;17-694184-chunk-000&#x27;, &#x27;16-823443-chunk-000&#x27;, &#x27;16-507493-chunk-000&#x27;]</td></tr><tr><td>반도체 기판</td><td>5</td><td>[&#x27;16-551328-chunk-000&#x27;, &#x27;17-326095-chunk-000&#x27;, &#x27;13-925471-chunk-000&#x27;, &#x27;15-173995-chunk-000&#x27;, &#x27;13-096297-chunk-000&#x27;]</td></tr></tbody></table>
+    <table><thead><tr><th>relation</th><th>chunk_count</th><th>chunk_ids</th></tr></thead><tbody><tr><td>메모리&lt;SEP&gt;학습된 딥러닝 모델</td><td>2</td><td>[&#x27;2021-0024247-chunk-000&#x27;, &#x27;2021-0024247-chunk-001&#x27;]</td></tr><tr><td>인공지능 가속기&lt;SEP&gt;제1 데이터 버퍼</td><td>2</td><td>[&#x27;17-459782-chunk-000&#x27;, &#x27;17-196922-chunk-000&#x27;]</td></tr><tr><td>인공지능 가속기&lt;SEP&gt;제2 데이터 버퍼</td><td>2</td><td>[&#x27;17-459782-chunk-000&#x27;, &#x27;17-196922-chunk-000&#x27;]</td></tr><tr><td>제1 데이터 버퍼&lt;SEP&gt;제1 입력 시프트 레지스터</td><td>2</td><td>[&#x27;17-459782-chunk-000&#x27;, &#x27;17-196922-chunk-000&#x27;]</td></tr><tr><td>제2 데이터 버퍼&lt;SEP&gt;제2 입력 시프트 레지스터</td><td>2</td><td>[&#x27;17-459782-chunk-000&#x27;, &#x27;17-196922-chunk-000&#x27;]</td></tr></tbody></table>
+    
+  <details open><summary>Patent-specific entity extraction prompt excerpt</summary><pre>entity_types_guidance: |
+  Extract only technical knowledge graph entities and relationships from AI semiconductor patent text.
+  Use Korean descriptions unless an entity name is a technical English term.
+
+  Do not extract administrative metadata as entities:
+  - patent_id, application number, publication number, registration number
+  - IPC/CPC classification codes
+  - country codes and nationalities such as US, KR, JP, CN, EP, WO
+  - legal status values such as 등록, 공개, 거절, 소멸
+  - application/publication/registration dates and years
+  - claim numbers such as 청구항1
+  - category/subcategory codes such as AA, AB, AC, AD, AAA, AAD, ACC
+
+  Also avoid making broad document labels into entities, such as &quot;AI 반도체 특허&quot; or &quot;특허 문서&quot;.
+  If a category name is only administrative classification, do not extract it.
+
+  Classify each extracted entity using one of these types:
+  - TechComponent: hardware components, circuits, units, devices, memory blocks, processing elements, buses, interfaces
+  - Architecture: system, processor, memory, packaging, interconnect, accelerator, or in-memory computing architecture
+  - Operation: neural-network operation, matrix operation, data movement, scheduling, control, read/write, update, fusion, compilation
+  - Method: algorithm, procedure, manufacturing process, optimization method, execution method
+  - Material: semiconductor, device, packaging, wiring, electrode, memory cell, or process material when technically central
+  - PerformanceMetric: throughput, latency, power consumption, bandwidth, efficiency, accuracy, density, timing parameter
+  - ApplicationDomain: neural network, artificial intelligence processor, transformer workload, object detection, recommendation, inference
+  - Organization: applicant or owner only when it is technically relevant to the narrative; otherwise skip
+  - Other: use only when the entity is clearly technical but no type fits
+
+  Extract relationships only between extracted technical entities.
+  Prefer concise technical relationship keywords such as:
+  - 구성요소, 포함, 연결, 저장, 판독, 제어, 생성, 수행, 최적화, 가속, 융합, 컴파일, 데이터 전송, 아키텍처 활용
+
+entity_extraction_examples:
+  - |
+    ---Entity Types---
+    - TechComponent: hardware components, circuits, units, devices, memory blocks, processing elements, buses, interfaces
+    - Architecture: system, processor, memory, packaging, interconnect, accelerator, or in-memory computing architecture
+    - Operation: neural-network operation, matrix operation, data movement, scheduling, control, read/write, update, fusion, compilation
+    - Method: algorithm, procedure, manufacturing process, optimization method, execution method
+    - PerformanceMetric: throughput, latency, power consumption, bandwidth, efficiency, accuracy, density, timing parameter
+    - ApplicationDomain: neural network, artificial intelligence processor, transformer workload, object detection, recommendation, inference
+
+    ---Input Text---
+    ```
+    발명의 명칭: Circuit for cmos based resistive processing unit
+    요약: A CMOS-based resistive processing unit (RPU) for a neural network. The RPU includes a capacitor device configured to store a charge representing a weight value associated with a neural network circuit operation. A current source Field Effect Transistor (FET) device is operatively connected to the capacitor device for increasing a charge on the capacitor. A current sink FET device operatively connected to the capacitor device is configured for decreasing the stored capacitor charge. An analog weight update circuit receives one or more update signals generated in conjunction with the neural network circuit operation, the analog weight update circuit controlling the current source FET device and the current sink FET device.
+    AI요약(목적): 아날로그 웨이트 업데이트를 이용하는 심층 신경망을 위한 커패시터 기반의 CMOS 저항 처리 유닛(RPU)을 제공한다.
+    ```
+
+    ---Output---
+    entity{tuple_delimiter}CMOS 저항 처리 유닛{tuple_delimiter}Architecture{tuple_delimiter}CMOS 기반 RPU는 신경망 회로 동작에서 가중치 값을 전하로 표현하고 갱신하는 처리 유닛이다.
+    entity{tuple_delimiter}커패시터 장치{tuple_delimiter}TechComponent{tuple_delimiter}커패시터 장치는 신경망 가중치 값을 나타내는 전하를 저장하는 구성요소이다.
+    entity{tuple_delimiter}전류원 FET{tuple_delimiter}TechComponent{tuple_delimiter}전류원 FET는 커패시터 장치에 연결되어 저장 전하를 증가시키는 트랜지스터 장치이다.
+    entity{tuple_delimiter}전류 싱크 FET{tuple_delimiter}TechComponent{tuple_delimiter}전류 싱크 FET는 커패시터 장치에서 방전 전류를 받아 저장 전하를 감소시키는 트랜지스터 장치이다.
+    entity{tuple_delimiter}아날로그 웨이트 업데이트 회로{tuple_delimiter}TechComponent{tuple_delimiter}아날로그 웨이트 업데이트 회로는 업데이트 신호에 따라 전류원 FET와 전류 싱크 FET를 제어한다.
+    entity{tuple_delimiter}신경망 회로 동작{tuple_delimiter}Operation{tuple_delimiter}신경망 회로 동작은 저장된 전하를 가중치 값으로 사용하는 연산 맥락이다.
+    relation{tuple_delimiter}CMOS 저항 처리 유닛{tuple_delimiter}커패시터 장치{tuple_delimiter}구성요소, 전하 저장{tuple_delimiter}CMOS 저항 처리 유닛은 가중치 값을 나타내는 전하를 저장하기 위해 커패시터 장치를 포함한다.
+    relation{tuple_delimiter}전류원 FET{tuple_delimiter}커패시터 장치{tuple_delimiter}연결, 전하 증가{tuple_delimiter}전류원 FET는 커패시터 장치에 연결되어 저장 전하를 증가시키는 전류를 제공한다.
+    relation{tuple_delimiter}전류 싱크 FET{tuple_delimiter}커패시터 장치{tuple_delimiter}연결, 전하 감소{tuple_delimiter}전류 싱크 FET는 커패시터 장치에서 방전되는 전류를 받아 저장 전하를 감소시킨다.
+    relation{tuple_delimiter}아날로그 웨이트 업데이트 회로{tuple_delimiter}전류원 FET{tuple_delimiter}제어, 가중치 업데이트{tuple_delimiter}아날로그 웨이트 업데이트 회로는 업데이트 신호에 따라 전류원 FET를 제어한다.
+    relation{tuple_delimiter}아날로그 웨이트 업데이트 회로{tuple_delimiter}전류 싱크 FET{tuple_delimiter}제어, 가중치 업데이트{tuple_delimiter}아날로그 웨이트 업데이트 회로는 업데이트 신호에 따라 전류 싱크 FET를 제어한다.
+    {completion_delimiter}
+  - |
+    ---Entity Types---
+    - TechComponent: hardware components, circuits, units, devices, memory blocks, processing elements, buses, interfaces
+    - Architecture: system, processor, memory, packaging, interconnect, accelerator, or in-memory computing architecture
+    - Operation: neural-network operation, matrix operation, data movement, scheduling, control, read/write, update, fusion, compilation
+    - Method: algorithm, procedure, manufacturing process, optimization method, execution method
+    - PerformanceMetric: throughput, latency, power consumption, bandwidth, efficiency, accuracy, density, timing parameter
+    - ApplicationDomain: neural network, artificial intelligence processor, transformer workload, object detection, recommendation, inference
+
+    ---Input Text---
+    ```
+    발명의 명칭: Performing hardware operator fusion
+    요약: A method of generating executable instructions for a computing system is provided. The method comprises receiving a first set of instructions including a kernel of a first operator and a kernel of a second operator. The kernel of the first operator includes write instructions to a virtual data node, and the kernel of the second operator includes read instructions to the virtual data node. The method determines data transfer operations between the first operator and the second operator and generates a second set of instructions representing a fused operator.
+    대표청구항: A method of generating executable instructions for a hardware accelerator includes converting off-chip read inst</pre></details>
+
+  <h2 id="graph-viz">Graph Visualization Before 3.2</h2>
+  <table><thead><tr><th>Metric</th><th>Value</th><th>Target</th><th>Interpretation</th></tr></thead><tbody><tr><td>metadata relation ratio</td><td>0.01</td><td>&lt;= 0.25</td><td>프롬프트 적용 후 메타데이터 relation이 크게 억제됨</td></tr><tr><td>technical relation ratio</td><td>0.9401</td><td>&gt;= 0.40</td><td>기술 relation 중심 graph로 전환됨</td></tr><tr><td>excluded entity ratio</td><td>0.0044</td><td>&lt;= 0.10</td><td>특허번호/코드/국가/날짜류 entity가 낮은 비율로 남음</td></tr><tr><td>degree &gt;= 50 hub count</td><td>0</td><td>lower is better</td><td>US/등록 같은 메타 hub가 top hub에서 사라졌는지 확인</td></tr></tbody></table>
+  
+    <section class="viz">
+      <h3>Patent-100 전체 LightRAG graph visualization</h3>
+      <p>전체 graph 중 degree가 높은 node를 중심으로 제한 렌더링했다. node color는 entity type, node size는 degree 기준이다.</p>
+      <svg viewBox="0 0 1120 720" role="img" aria-label="Patent-100 전체 LightRAG graph visualization">
+        <rect x="0" y="0" width="1120" height="720" rx="8" fill="#fbfcfd"/>
+        <line class='edge' x1='560.0' y1='150.0' x2='423.3' y2='643.8'><title>메모리 -&gt; 신경망 활성화 로직 구현 장치
+keywords: 구성요소,저장
+신경망 활성화 로직 구현 장치는 실행 가능 프로그램 명령을 저장하도록 구성된 메모리를 포함한다.
+source: 17-291315-chunk-000</title></line><text class='edge-label' x='491.7' y='396.9' text-anchor='middle'><title>메모리 -&gt; 신경망 활성화 로직 구현 장치
+keywords: 구성요소,저장
+신경망 활성화 로직 구현 장치는 실행 가능 프로그램 명령을 저장하도록 구성된 메모리를 포함한다.
+source: 17-291315-chunk-000</title>구성요소,저장</text><line class='edge' x1='560.0' y1='150.0' x2='560.0' y2='360.0'><title>메모리 -&gt; 프로세서
+keywords: 구성요소,시스템 구성
+프로세서와 메모리는 중간 모듈 신경 아키텍처 검색 시스템의 구성요소이다.
+source: 18-530101-chunk-000</title></line><text class='edge-label' x='560.0' y='255.0' text-anchor='middle'><title>메모리 -&gt; 프로세서
+keywords: 구성요소,시스템 구성
+프로세서와 메모리는 중간 모듈 신경 아키텍처 검색 시스템의 구성요소이다.
+source: 18-530101-chunk-000</title>구성요소,시스템 구성</text><line class='edge' x1='560.0' y1='360.0' x2='423.3' y2='643.8'><title>프로세서 -&gt; 신경망 활성화 로직 구현 장치
+keywords: 구성요소,실행
+신경망 활성화 로직 구현 장치는 실행 가능 프로그램 명령을 실행하도록 구성된 프로세서를 포함한다.
+source: 17-291315-chunk-000</title></line><text class='edge-label' x='491.7' y='501.9' text-anchor='middle'><title>프로세서 -&gt; 신경망 활성화 로직 구현 장치
+keywords: 구성요소,실행
+신경망 활성화 로직 구현 장치는 실행 가능 프로그램 명령을 실행하도록 구성된 프로세서를 포함한다.
+source: 17-291315-chunk-000</title>구성요소,실행</text><line class='edge' x1='560.0' y1='360.0' x2='345.7' y2='590.9'><title>프로세서 -&gt; 프로세서 회로
+keywords: 구성요소,포함
+프로세서는 데이터 흐름 분석과 인공 의존성 적용을 수행하는 하나 이상의 프로세서 회로를 포함한다.
+source: 18-300955-chunk-000</title></line><text class='edge-label' x='452.9' y='475.5' text-anchor='middle'><title>프로세서 -&gt; 프로세서 회로
+keywords: 구성요소,포함
+프로세서는 데이터 흐름 분석과 인공 의존성 적용을 수행하는 하나 이상의 프로세서 회로를 포함한다.
+source: 18-300955-chunk-000</title>구성요소,포함</text><line class='edge' x1='806.3' y1='163.6' x2='683.4' y2='529.9'><title>메모리 모듈 -&gt; 메모리 장치
+keywords: 구성요소,포함
+메모리 모듈은 메모리 장치를 포함한다.
+source: 2017-0093014-chunk-000</title></line><text class='edge-label' x='744.9' y='346.7' text-anchor='middle'><title>메모리 모듈 -&gt; 메모리 장치
+keywords: 구성요소,포함
+메모리 모듈은 메모리 장치를 포함한다.
+source: 2017-0093014-chunk-000</title>구성요소,포함</text><line class='edge' x1='806.3' y1='163.6' x2='287.2' y2='517.5'><title>메모리 모듈 -&gt; 프로세싱 데이터 버퍼
+keywords: 구성요소,포함
+메모리 모듈은 프로세싱 데이터 버퍼를 포함한다.
+source: 2017-0093014-chunk-000</title></line><text class='edge-label' x='546.7' y='340.6' text-anchor='middle'><title>메모리 모듈 -&gt; 프로세싱 데이터 버퍼
+keywords: 구성요소,포함
+메모리 모듈은 프로세싱 데이터 버퍼를 포함한다.
+source: 2017-0093014-chunk-000</title>구성요소,포함</text><line class='edge' x1='683.4' y1='190.1' x2='683.4' y2='529.9'><title>메모리 셀 어레이 -&gt; 메모리 장치
+keywords: 구성요소,저장
+메모리 장치는 메모리 셀 어레이를 포함한다.
+source: 2017-0093014-chunk-000</title></line><text class='edge-label' x='683.4' y='360.0' text-anchor='middle'><title>메모리 셀 어레이 -&gt; 메모리 장치
+keywords: 구성요소,저장
+메모리 장치는 메모리 셀 어레이를 포함한다.
+source: 2017-0093014-chunk-000</title>구성요소,저장</text><line class='edge' x1='266.8' y1='244.9' x2='560.0' y2='45.0'><title>입력 회로 -&gt; 레지스터
+keywords: 데이터 전달,연결
+입력 회로는 레지스터와 통신 가능하게 결합된다.
+source: 17-560950-chunk-000</title></line><text class='edge-label' x='413.4' y='145.0' text-anchor='middle'><title>입력 회로 -&gt; 레지스터
+keywords: 데이터 전달,연결
+입력 회로는 레지스터와 통신 가능하게 결합된다.
+source: 17-560950-chunk-000</title>데이터 전달,연결</text><line class='edge' x1='266.8' y1='244.9' x2='423.3' y2='643.8'><title>입력 회로 -&gt; 신경망 활성화 로직 구현 장치
+keywords: 구성요소,입력 저장
+신경망 활성화 로직 구현 장치는 n비트 입력 데이터 값을 저장하는 입력 회로를 포함한다.
+source: 17-291315-chunk-000</title></line><text class='edge-label' x='345.1' y='444.4' text-anchor='middle'><title>입력 회로 -&gt; 신경망 활성화 로직 구현 장치
+keywords: 구성요소,입력 저장
+신경망 활성화 로직 구현 장치는 n비트 입력 데이터 값을 저장하는 입력 회로를 포함한다.
+source: 17-291315-chunk-000</title>구성요소,입력 저장</text><line class='edge' x1='560.0' y1='45.0' x2='874.1' y2='336.5'><title>레지스터 -&gt; 다중 프로세서
+keywords: 저장,포함
+다중 프로세서는 packed floating-point operand value를 저장하는 레지스터를 포함한다.
+source: 17-115989-chunk-000</title></line><text class='edge-label' x='717.1' y='190.7' text-anchor='middle'><title>레지스터 -&gt; 다중 프로세서
+keywords: 저장,포함
+다중 프로세서는 packed floating-point operand value를 저장하는 레지스터를 포함한다.
+source: 17-115989-chunk-000</title>저장,포함</text><line class='edge' x1='382.6' y1='99.7' x2='360.3' y2='424.9'><title>디바이스 스택 -&gt; 호스트
+keywords: 데이터 로딩,제어
+호스트는 데이터와 명령으로 디바이스 스택을 초기화하고 로딩한다.
+source: 18-230375-chunk-000</title></line><text class='edge-label' x='371.4' y='262.3' text-anchor='middle'><title>디바이스 스택 -&gt; 호스트
+keywords: 데이터 로딩,제어
+호스트는 데이터와 명령으로 디바이스 스택을 초기화하고 로딩한다.
+source: 18-230375-chunk-000</title>데이터 로딩,제어</text><line class='edge' x1='759.7' y1='295.1' x2='867.1' y2='430.1'><title>반도체 패키지 -&gt; 인터포저
+keywords: 구성요소,패키징
+반도체 패키지는 인터포저를 포함한다.
+source: 17-829552-chunk-000</title></line><text class='edge-label' x='813.4' y='362.6' text-anchor='middle'><title>반도체 패키지 -&gt; 인터포저
+keywords: 구성요소,패키징
+반도체 패키지는 인터포저를 포함한다.
+source: 17-829552-chunk-000</title>구성요소,패키징</text>
+        <g transform='translate(560.0,360.0)'><circle r='42' fill='#2563eb' opacity='0.9'><title>프로세서 | degree=42 | type=techcomponent</title></circle><text text-anchor='middle' y='56'><tspan x='0' dy='0'>프로세서</tspan></text></g><g transform='translate(560.0,150.0)'><circle r='42' fill='#2563eb' opacity='0.9'><title>메모리 | degree=22 | type=techcomponent</title></circle><text text-anchor='middle' y='56'><tspan x='0' dy='0'>메모리</tspan></text></g><g transform='translate(683.4,190.1)'><circle r='42' fill='#2563eb' opacity='0.9'><title>메모리 셀 어레이 | degree=22 | type=techcomponent</title></circle><text text-anchor='middle' y='56'><tspan x='0' dy='0'>메모리 셀 어레이</tspan></text></g><g transform='translate(759.7,295.1)'><circle r='38.0' fill='#0f766e' opacity='0.9'><title>반도체 패키지 | degree=16 | type=architecture</title></circle><text text-anchor='middle' y='52.0'><tspan x='0' dy='0'>반도체 패키지</tspan></text></g><g transform='translate(759.7,424.9)'><circle r='35.0' fill='#2563eb' opacity='0.9'><title>제어 로직 회로 | degree=14 | type=techcomponent</title></circle><text text-anchor='middle' y='49.0'><tspan x='0' dy='0'>제어 로직 회로</tspan></text></g><g transform='translate(683.4,529.9)'><circle r='35.0' fill='#0f766e' opacity='0.9'><title>메모리 장치 | degree=14 | type=architecture</title></circle><text text-anchor='middle' y='49.0'><tspan x='0' dy='0'>메모리 장치</tspan></text></g><g transform='translate(560.0,570.0)'><circle r='33.5' fill='#16a34a' opacity='0.9'><title>반도체 기판 | degree=13 | type=material</title></circle><text text-anchor='middle' y='47.5'><tspan x='0' dy='0'>반도체 기판</tspan></text></g><g transform='translate(436.6,529.9)'><circle r='32.0' fill='#9333ea' opacity='0.9'><title>목적 함수 | degree=12 | type=operation</title></circle><text text-anchor='middle' y='46.0'><tspan x='0' dy='0'>목적 함수</tspan></text></g><g transform='translate(360.3,424.9)'><circle r='30.5' fill='#2563eb' opacity='0.9'><title>호스트 | degree=11 | type=techcomponent</title></circle><text text-anchor='middle' y='44.5'><tspan x='0' dy='0'>호스트</tspan></text></g><g transform='translate(360.3,295.1)'><circle r='30.5' fill='#0f766e' opacity='0.9'><title>벡터 처리 유닛(VPU) | degree=11 | type=architecture</title></circle><text text-anchor='middle' y='44.5'><tspan x='0' dy='0'>벡터 처리</tspan><tspan x='0' dy='13'>유닛(VPU)</tspan></text></g><g transform='translate(436.6,190.1)'><circle r='29.0' fill='#7c3aed' opacity='0.9'><title>입력 데이터 | degree=10 | type=other</title></circle><text text-anchor='middle' y='43.0'><tspan x='0' dy='0'>입력 데이터</tspan></text></g><g transform='translate(560.0,45.0)'><circle r='29.0' fill='#2563eb' opacity='0.9'><title>레지스터 | degree=10 | type=techcomponent</title></circle><text text-anchor='middle' y='43.0'><tspan x='0' dy='0'>레지스터</tspan></text></g><g transform='translate(652.8,59.0)'><circle r='27.5' fill='#2563eb' opacity='0.9'><title>곱셈 블록 회로 | degree=9 | type=techcomponent</title></circle><text text-anchor='middle' y='41.5'><tspan x='0' dy='0'>곱셈 블록 회로</tspan></text></g><g transform='translate(737.4,99.7)'><circle r='27.5' fill='#2563eb' opacity='0.9'><title>게이트 | degree=9 | type=techcomponent</title></circle><text text-anchor='middle' y='41.5'><tspan x='0' dy='0'>게이트</tspan></text></g><g transform='translate(806.3,163.6)'><circle r='27.5' fill='#2563eb' opacity='0.9'><title>메모리 모듈 | degree=9 | type=techcomponent</title></circle><text text-anchor='middle' y='41.5'><tspan x='0' dy='0'>메모리 모듈</tspan></text></g><g transform='translate(853.2,244.9)'><circle r='27.5' fill='#2563eb' opacity='0.9'><title>기능 블록 | degree=9 | type=techcomponent</title></circle><text text-anchor='middle' y='41.5'><tspan x='0' dy='0'>기능 블록</tspan></text></g><g transform='translate(874.1,336.5)'><circle r='27.5' fill='#2563eb' opacity='0.9'><title>다중 프로세서 | degree=9 | type=techcomponent</title></circle><text text-anchor='middle' y='41.5'><tspan x='0' dy='0'>다중 프로세서</tspan></text></g><g transform='translate(867.1,430.1)'><circle r='27.5' fill='#0f766e' opacity='0.9'><title>인터포저 | degree=9 | type=architecture</title></circle><text text-anchor='middle' y='41.5'><tspan x='0' dy='0'>인터포저</tspan></text></g><g transform='translate(832.8,517.5)'><circle r='27.5' fill='#2563eb' opacity='0.9'><title>채널 영역 | degree=9 | type=techcomponent</title></circle><text text-anchor='middle' y='41.5'><tspan x='0' dy='0'>채널 영역</tspan></text></g><g transform='translate(774.3,590.9)'><circle r='27.5' fill='#0f766e' opacity='0.9'><title>플래시 메모리 장치 | degree=9 | type=architecture</title></circle><text text-anchor='middle' y='41.5'><tspan x='0' dy='0'>플래시 메모리 장치</tspan></text></g><g transform='translate(696.7,643.8)'><circle r='27.5' fill='#0f766e' opacity='0.9'><title>노이즈추출 네트워크 | degree=9 | type=architecture</title></circle><text text-anchor='middle' y='41.5'><tspan x='0' dy='0'>노이즈추출 네트워크</tspan></text></g><g transform='translate(606.9,671.5)'><circle r='26.0' fill='#9333ea' opacity='0.9'><title>업컨버전 처리 | degree=8 | type=operation</title></circle><text text-anchor='middle' y='40.0'><tspan x='0' dy='0'>업컨버전 처리</tspan></text></g><g transform='translate(513.1,671.5)'><circle r='26.0' fill='#2563eb' opacity='0.9'><title>수신 신호 | degree=8 | type=techcomponent</title></circle><text text-anchor='middle' y='40.0'><tspan x='0' dy='0'>수신 신호</tspan></text></g><g transform='translate(423.3,643.8)'><circle r='26.0' fill='#0f766e' opacity='0.9'><title>신경망 활성화 로직 구현 장치 | degree=8 | type=architecture</title></circle><text text-anchor='middle' y='40.0'><tspan x='0' dy='0'>신경망 활성화 로직</tspan><tspan x='0' dy='13'>구현 장치</tspan></text></g><g transform='translate(345.7,590.9)'><circle r='26.0' fill='#2563eb' opacity='0.9'><title>프로세서 회로 | degree=8 | type=techcomponent</title></circle><text text-anchor='middle' y='40.0'><tspan x='0' dy='0'>프로세서 회로</tspan></text></g><g transform='translate(287.2,517.5)'><circle r='26.0' fill='#2563eb' opacity='0.9'><title>프로세싱 데이터 버퍼 | degree=8 | type=techcomponent</title></circle><text text-anchor='middle' y='40.0'><tspan x='0' dy='0'>프로세싱 데이터 버퍼</tspan></text></g><g transform='translate(252.9,430.1)'><circle r='26.0' fill='#0f766e' opacity='0.9'><title>하드웨어 가속 회로 | degree=8 | type=architecture</title></circle><text text-anchor='middle' y='40.0'><tspan x='0' dy='0'>하드웨어 가속 회로</tspan></text></g><g transform='translate(245.9,336.5)'><circle r='26.0' fill='#2563eb' opacity='0.9'><title>ECC 엔진 | degree=8 | type=techcomponent</title></circle><text text-anchor='middle' y='40.0'><tspan x='0' dy='0'>ECC 엔진</tspan></text></g><g transform='translate(266.8,244.9)'><circle r='26.0' fill='#2563eb' opacity='0.9'><title>입력 회로 | degree=8 | type=techcomponent</title></circle><text text-anchor='middle' y='40.0'><tspan x='0' dy='0'>입력 회로</tspan></text></g><g transform='translate(313.7,163.6)'><circle r='26.0' fill='#16a34a' opacity='0.9'><title>층간 절연막 | degree=8 | type=material</title></circle><text text-anchor='middle' y='40.0'><tspan x='0' dy='0'>층간 절연막</tspan></text></g><g transform='translate(382.6,99.7)'><circle r='26.0' fill='#2563eb' opacity='0.9'><title>디바이스 스택 | degree=8 | type=techcomponent</title></circle><text text-anchor='middle' y='40.0'><tspan x='0' dy='0'>디바이스 스택</tspan></text></g><g transform='translate(467.2,59.0)'><circle r='26.0' fill='#2563eb' opacity='0.9'><title>베이스 영역 | degree=8 | type=techcomponent</title></circle><text text-anchor='middle' y='40.0'><tspan x='0' dy='0'>베이스 영역</tspan></text></g>
+      </svg>
+    </section>
+    <h4>Relation samples shown in the graph</h4><table><thead><tr><th>source</th><th>relation</th><th>target</th><th>description</th><th>source_patent</th></tr></thead><tbody><tr><td>메모리</td><td>구성요소,저장</td><td>신경망 활성화 로직 구현 장치</td><td>신경망 활성화 로직 구현 장치는 실행 가능 프로그램 명령을 저장하도록 구성된 메모리를 포함한다.</td><td>17-291315</td></tr><tr><td>메모리</td><td>구성요소,시스템 구성</td><td>프로세서</td><td>프로세서와 메모리는 중간 모듈 신경 아키텍처 검색 시스템의 구성요소이다.</td><td>18-530101</td></tr><tr><td>프로세서</td><td>구성요소,실행</td><td>신경망 활성화 로직 구현 장치</td><td>신경망 활성화 로직 구현 장치는 실행 가능 프로그램 명령을 실행하도록 구성된 프로세서를 포함한다.</td><td>17-291315</td></tr><tr><td>프로세서</td><td>구성요소,포함</td><td>프로세서 회로</td><td>프로세서는 데이터 흐름 분석과 인공 의존성 적용을 수행하는 하나 이상의 프로세서 회로를 포함한다.</td><td>18-300955</td></tr><tr><td>메모리 모듈</td><td>구성요소,포함</td><td>메모리 장치</td><td>메모리 모듈은 메모리 장치를 포함한다.</td><td>2017-0093014</td></tr><tr><td>메모리 모듈</td><td>구성요소,포함</td><td>프로세싱 데이터 버퍼</td><td>메모리 모듈은 프로세싱 데이터 버퍼를 포함한다.</td><td>2017-0093014</td></tr><tr><td>메모리 셀 어레이</td><td>구성요소,저장</td><td>메모리 장치</td><td>메모리 장치는 메모리 셀 어레이를 포함한다.</td><td>2017-0093014</td></tr><tr><td>입력 회로</td><td>데이터 전달,연결</td><td>레지스터</td><td>입력 회로는 레지스터와 통신 가능하게 결합된다.</td><td>17-560950</td></tr><tr><td>입력 회로</td><td>구성요소,입력 저장</td><td>신경망 활성화 로직 구현 장치</td><td>신경망 활성화 로직 구현 장치는 n비트 입력 데이터 값을 저장하는 입력 회로를 포함한다.</td><td>17-291315</td></tr><tr><td>레지스터</td><td>저장,포함</td><td>다중 프로세서</td><td>다중 프로세서는 packed floating-point operand value를 저장하는 레지스터를 포함한다.</td><td>17-115989</td></tr><tr><td>디바이스 스택</td><td>데이터 로딩,제어</td><td>호스트</td><td>호스트는 데이터와 명령으로 디바이스 스택을 초기화하고 로딩한다.</td><td>18-230375</td></tr><tr><td>반도체 패키지</td><td>구성요소,패키징</td><td>인터포저</td><td>반도체 패키지는 인터포저를 포함한다.</td><td>17-829552</td></tr></tbody></table>
+  
+    <section class="viz">
+      <h3>Single patent graph example: 13-976413</h3>
+      <p>임의 특허 13-976413에서 source chunk 기준으로 추출된 기술 entity/relation만 렌더링했다. patent_id는 source/reference로 남고 entity node로 쓰지 않는다.</p>
+      <svg viewBox="0 0 1120 720" role="img" aria-label="Single patent graph example: 13-976413">
+        <rect x="0" y="0" width="1120" height="720" rx="8" fill="#fbfcfd"/>
+        <line class='edge' x1='683.4' y1='529.9' x2='560.0' y2='360.0'><title>소스 영역 -&gt; III-N족 나노와이어
+keywords: 구성요소,길이 방향 영역
+III-N족 나노와이어의 길이 방향 부분은 소스 영역을 포함한다.
+source: 13-976413-chunk-000</title></line><text class='edge-label' x='621.7' y='444.9' text-anchor='middle'><title>소스 영역 -&gt; III-N족 나노와이어
+keywords: 구성요소,길이 방향 영역
+III-N족 나노와이어의 길이 방향 부분은 소스 영역을 포함한다.
+source: 13-976413-chunk-000</title>구성요소,길이 방향 영역</text><line class='edge' x1='683.4' y1='529.9' x2='560.0' y2='150.0'><title>소스 영역 -&gt; 채널 영역
+keywords: 소스 연결,전기적 결합
+소스 영역은 채널 영역의 제1 단부에 전기적으로 결합된다.
+source: 13-976413-chunk-000</title></line><text class='edge-label' x='621.7' y='339.9' text-anchor='middle'><title>소스 영역 -&gt; 채널 영역
+keywords: 소스 연결,전기적 결합
+소스 영역은 채널 영역의 제1 단부에 전기적으로 결합된다.
+source: 13-976413-chunk-000</title>소스 연결,전기적 결합</text><line class='edge' x1='683.4' y1='529.9' x2='745.2' y2='614.8'><title>소스 영역 -&gt; 소스 콘택
+keywords: 동축 래핑,전기 접촉
+소스 콘택은 소스 영역 주위를 동축으로 완전히 감쌀 수 있다.
+source: 13-976413-chunk-000</title></line><text class='edge-label' x='714.3' y='572.4' text-anchor='middle'><title>소스 영역 -&gt; 소스 콘택
+keywords: 동축 래핑,전기 접촉
+소스 콘택은 소스 영역 주위를 동축으로 완전히 감쌀 수 있다.
+source: 13-976413-chunk-000</title>동축 래핑,전기 접촉</text><line class='edge' x1='759.7' y1='424.9' x2='560.0' y2='360.0'><title>드레인 영역 -&gt; III-N족 나노와이어
+keywords: 구성요소,길이 방향 영역
+III-N족 나노와이어의 길이 방향 부분은 드레인 영역을 포함한다.
+source: 13-976413-chunk-000</title></line><text class='edge-label' x='659.9' y='392.4' text-anchor='middle'><title>드레인 영역 -&gt; III-N족 나노와이어
+keywords: 구성요소,길이 방향 영역
+III-N족 나노와이어의 길이 방향 부분은 드레인 영역을 포함한다.
+source: 13-976413-chunk-000</title>구성요소,길이 방향 영역</text><line class='edge' x1='759.7' y1='424.9' x2='560.0' y2='150.0'><title>드레인 영역 -&gt; 채널 영역
+keywords: 드레인 연결,전기적 결합
+드레인 영역은 채널 영역의 제2 단부에 전기적으로 결합된다.
+source: 13-976413-chunk-000</title></line><text class='edge-label' x='659.9' y='287.4' text-anchor='middle'><title>드레인 영역 -&gt; 채널 영역
+keywords: 드레인 연결,전기적 결합
+드레인 영역은 채널 영역의 제2 단부에 전기적으로 결합된다.
+source: 13-976413-chunk-000</title>드레인 연결,전기적 결합</text><line class='edge' x1='759.7' y1='424.9' x2='859.6' y2='262.7'><title>드레인 영역 -&gt; 드레인 콘택
+keywords: 동축 래핑,전기 접촉
+드레인 콘택은 드레인 영역 주위를 동축으로 완전히 감쌀 수 있다.
+source: 13-976413-chunk-000</title></line><text class='edge-label' x='809.7' y='343.8' text-anchor='middle'><title>드레인 영역 -&gt; 드레인 콘택
+keywords: 동축 래핑,전기 접촉
+드레인 콘택은 드레인 영역 주위를 동축으로 완전히 감쌀 수 있다.
+source: 13-976413-chunk-000</title>동축 래핑,전기 접촉</text><line class='edge' x1='560.0' y1='150.0' x2='560.0' y2='360.0'><title>채널 영역 -&gt; III-N족 나노와이어
+keywords: 구성요소,길이 방향 영역
+III-N족 나노와이어의 길이 방향 부분은 채널 영역을 포함한다.
+source: 13-976413-chunk-000</title></line><text class='edge-label' x='560.0' y='255.0' text-anchor='middle'><title>채널 영역 -&gt; III-N족 나노와이어
+keywords: 구성요소,길이 방향 영역
+III-N족 나노와이어의 길이 방향 부분은 채널 영역을 포함한다.
+source: 13-976413-chunk-000</title>구성요소,길이 방향 영역</text><line class='edge' x1='560.0' y1='150.0' x2='436.6' y2='529.9'><title>채널 영역 -&gt; 제1 III-N족 물질
+keywords: 구성,물질 형성
+채널 영역은 제1 III-N족 물질로 형성된다.
+source: 13-976413-chunk-000</title></line><text class='edge-label' x='498.3' y='339.9' text-anchor='middle'><title>채널 영역 -&gt; 제1 III-N족 물질
+keywords: 구성,물질 형성
+채널 영역은 제1 III-N족 물질로 형성된다.
+source: 13-976413-chunk-000</title>구성,물질 형성</text><line class='edge' x1='560.0' y1='150.0' x2='683.4' y2='190.1'><title>채널 영역 -&gt; 게이트 스택
+keywords: 게이트 형성,동축 래핑
+게이트 스택은 채널 영역 주위를 동축으로 완전히 감싼다.
+source: 13-976413-chunk-000</title></line><text class='edge-label' x='621.7' y='170.1' text-anchor='middle'><title>채널 영역 -&gt; 게이트 스택
+keywords: 게이트 형성,동축 래핑
+게이트 스택은 채널 영역 주위를 동축으로 완전히 감싼다.
+source: 13-976413-chunk-000</title>게이트 형성,동축 래핑</text><line class='edge' x1='560.0' y1='570.0' x2='560.0' y2='360.0'><title>III-N족 나노와이어 트랜지스터 -&gt; III-N족 나노와이어
+keywords: 구성요소,나노와이어 구조
+III-N족 나노와이어 트랜지스터는 기판 위에 배치된 III-N족 나노와이어를 포함한다.
+source: 13-976413-chunk-000</title></line><text class='edge-label' x='560.0' y='465.0' text-anchor='middle'><title>III-N족 나노와이어 트랜지스터 -&gt; III-N족 나노와이어
+keywords: 구성요소,나노와이어 구조
+III-N족 나노와이어 트랜지스터는 기판 위에 배치된 III-N족 나노와이어를 포함한다.
+source: 13-976413-chunk-000</title>구성요소,나노와이어 구조</text><line class='edge' x1='560.0' y1='570.0' x2='360.3' y2='424.9'><title>III-N족 나노와이어 트랜지스터 -&gt; III-N족 트랜지스터 제조 방법
+keywords: 반도체 소자,제조
+III-N족 트랜지스터 제조 방법은 III-N족 나노와이어 트랜지스터를 제공하기 위한 방법이다.
+source: 13-976413-chunk-000</title></line><text class='edge-label' x='460.1' y='497.4' text-anchor='middle'><title>III-N족 나노와이어 트랜지스터 -&gt; III-N족 트랜지스터 제조 방법
+keywords: 반도체 소자,제조
+III-N족 트랜지스터 제조 방법은 III-N족 나노와이어 트랜지스터를 제공하기 위한 방법이다.
+source: 13-976413-chunk-000</title>반도체 소자,제조</text><line class='edge' x1='560.0' y1='360.0' x2='560.0' y2='45.0'><title>III-N족 나노와이어 -&gt; 기판
+keywords: 배치,지지 구조
+III-N족 나노와이어는 기판 위에 배치된다.
+source: 13-976413-chunk-000</title></line><text class='edge-label' x='560.0' y='202.5' text-anchor='middle'><title>III-N족 나노와이어 -&gt; 기판
+keywords: 배치,지지 구조
+III-N족 나노와이어는 기판 위에 배치된다.
+source: 13-976413-chunk-000</title>배치,지지 구조</text><line class='edge' x1='436.6' y1='529.9' x2='759.7' y2='295.1'><title>제1 III-N족 물질 -&gt; 제2 III-N족 물질
+keywords: 배치,층 형성
+제2 III-N족 물질은 제1 III-N족 물질 위에 배치된다.
+source: 13-976413-chunk-000</title></line><text class='edge-label' x='598.1' y='412.5' text-anchor='middle'><title>제1 III-N족 물질 -&gt; 제2 III-N족 물질
+keywords: 배치,층 형성
+제2 III-N족 물질은 제1 III-N족 물질 위에 배치된다.
+source: 13-976413-chunk-000</title>배치,층 형성</text><line class='edge' x1='759.7' y1='295.1' x2='260.4' y2='262.7'><title>제2 III-N족 물질 -&gt; 전하 유도층
+keywords: 기능,전하 유도
+제2 III-N족 물질은 전하 유도층으로 작용한다.
+source: 13-976413-chunk-000</title></line><text class='edge-label' x='510.1' y='278.9' text-anchor='middle'><title>제2 III-N족 물질 -&gt; 전하 유도층
+keywords: 기능,전하 유도
+제2 III-N족 물질은 전하 유도층으로 작용한다.
+source: 13-976413-chunk-000</title>기능,전하 유도</text><line class='edge' x1='759.7' y1='295.1' x2='374.8' y2='614.8'><title>제2 III-N족 물질 -&gt; 장벽층
+keywords: 기능,장벽 형성
+제2 III-N족 물질은 나노와이어 표면에서 장벽층으로 작용할 수 있다.
+source: 13-976413-chunk-000</title></line><text class='edge-label' x='567.3' y='455.0' text-anchor='middle'><title>제2 III-N족 물질 -&gt; 장벽층
+keywords: 기능,장벽 형성
+제2 III-N족 물질은 나노와이어 표면에서 장벽층으로 작용할 수 있다.
+source: 13-976413-chunk-000</title>기능,장벽 형성</text><line class='edge' x1='759.7' y1='295.1' x2='683.4' y2='190.1'><title>제2 III-N족 물질 -&gt; 게이트 스택
+keywords: 게이트 계면,중간 배치
+제2 III-N족 물질은 채널 영역의 적어도 일부를 따라 제1 III-N족 물질과 게이트 스택 사이에 배치된다.
+source: 13-976413-chunk-000</title></line><text class='edge-label' x='721.6' y='242.6' text-anchor='middle'><title>제2 III-N족 물질 -&gt; 게이트 스택
+keywords: 게이트 계면,중간 배치
+제2 III-N족 물질은 채널 영역의 적어도 일부를 따라 제1 III-N족 물질과 게이트 스택 사이에 배치된다.
+source: 13-976413-chunk-000</title>게이트 계면,중간 배치</text><line class='edge' x1='683.4' y1='190.1' x2='436.6' y2='190.1'><title>게이트 스택 -&gt; 게이트 절연체
+keywords: 게이트 구조,구성요소
+게이트 스택은 게이트 절연체를 포함한다.
+source: 13-976413-chunk-000</title></line><text class='edge-label' x='560.0' y='190.1' text-anchor='middle'><title>게이트 스택 -&gt; 게이트 절연체
+keywords: 게이트 구조,구성요소
+게이트 스택은 게이트 절연체를 포함한다.
+source: 13-976413-chunk-000</title>게이트 구조,구성요소</text><line class='edge' x1='683.4' y1='190.1' x2='360.3' y2='295.1'><title>게이트 스택 -&gt; 게이트 전도체
+keywords: 게이트 구조,구성요소
+게이트 스택은 게이트 전도체를 포함한다.
+source: 13-976413-chunk-000</title></line><text class='edge-label' x='521.9' y='242.6' text-anchor='middle'><title>게이트 스택 -&gt; 게이트 전도체
+keywords: 게이트 구조,구성요소
+게이트 스택은 게이트 전도체를 포함한다.
+source: 13-976413-chunk-000</title>게이트 구조,구성요소</text>
+        <g transform='translate(560.0,360.0)'><circle r='21.5' fill='#2563eb' opacity='0.9'><title>III-N족 나노와이어 | degree=5 | type=techcomponent</title></circle><text text-anchor='middle' y='35.5'><tspan x='0' dy='0'>III-N족 나노와이어</tspan></text></g><g transform='translate(560.0,150.0)'><circle r='21.5' fill='#2563eb' opacity='0.9'><title>채널 영역 | degree=5 | type=techcomponent</title></circle><text text-anchor='middle' y='35.5'><tspan x='0' dy='0'>채널 영역</tspan></text></g><g transform='translate(683.4,190.1)'><circle r='20.0' fill='#2563eb' opacity='0.9'><title>게이트 스택 | degree=4 | type=techcomponent</title></circle><text text-anchor='middle' y='34.0'><tspan x='0' dy='0'>게이트 스택</tspan></text></g><g transform='translate(759.7,295.1)'><circle r='20.0' fill='#16a34a' opacity='0.9'><title>제2 III-N족 물질 | degree=4 | type=material</title></circle><text text-anchor='middle' y='34.0'><tspan x='0' dy='0'>제2 III-N족 물질</tspan></text></g><g transform='translate(759.7,424.9)'><circle r='18.5' fill='#2563eb' opacity='0.9'><title>드레인 영역 | degree=3 | type=techcomponent</title></circle><text text-anchor='middle' y='32.5'><tspan x='0' dy='0'>드레인 영역</tspan></text></g><g transform='translate(683.4,529.9)'><circle r='18.5' fill='#2563eb' opacity='0.9'><title>소스 영역 | degree=3 | type=techcomponent</title></circle><text text-anchor='middle' y='32.5'><tspan x='0' dy='0'>소스 영역</tspan></text></g><g transform='translate(560.0,570.0)'><circle r='18' fill='#2563eb' opacity='0.9'><title>III-N족 나노와이어 트랜지스터 | degree=2 | type=techcomponent</title></circle><text text-anchor='middle' y='32'><tspan x='0' dy='0'>III-N족 나노와이어</tspan><tspan x='0' dy='13'>트랜지스터</tspan></text></g><g transform='translate(436.6,529.9)'><circle r='18' fill='#16a34a' opacity='0.9'><title>제1 III-N족 물질 | degree=2 | type=material</title></circle><text text-anchor='middle' y='32'><tspan x='0' dy='0'>제1 III-N족 물질</tspan></text></g><g transform='translate(360.3,424.9)'><circle r='18' fill='#d97706' opacity='0.9'><title>III-N족 트랜지스터 제조 방법 | degree=1 | type=method</title></circle><text text-anchor='middle' y='32'><tspan x='0' dy='0'>III-N족 트랜지스터</tspan><tspan x='0' dy='13'>제조 방법</tspan></text></g><g transform='translate(360.3,295.1)'><circle r='18' fill='#2563eb' opacity='0.9'><title>게이트 전도체 | degree=1 | type=techcomponent</title></circle><text text-anchor='middle' y='32'><tspan x='0' dy='0'>게이트 전도체</tspan></text></g><g transform='translate(436.6,190.1)'><circle r='18' fill='#2563eb' opacity='0.9'><title>게이트 절연체 | degree=1 | type=techcomponent</title></circle><text text-anchor='middle' y='32'><tspan x='0' dy='0'>게이트 절연체</tspan></text></g><g transform='translate(560.0,45.0)'><circle r='18' fill='#16a34a' opacity='0.9'><title>기판 | degree=1 | type=material</title></circle><text text-anchor='middle' y='32'><tspan x='0' dy='0'>기판</tspan></text></g><g transform='translate(859.6,262.7)'><circle r='18' fill='#2563eb' opacity='0.9'><title>드레인 콘택 | degree=1 | type=techcomponent</title></circle><text text-anchor='middle' y='32'><tspan x='0' dy='0'>드레인 콘택</tspan></text></g><g transform='translate(745.2,614.8)'><circle r='18' fill='#2563eb' opacity='0.9'><title>소스 콘택 | degree=1 | type=techcomponent</title></circle><text text-anchor='middle' y='32'><tspan x='0' dy='0'>소스 콘택</tspan></text></g><g transform='translate(374.8,614.8)'><circle r='18' fill='#2563eb' opacity='0.9'><title>장벽층 | degree=1 | type=techcomponent</title></circle><text text-anchor='middle' y='32'><tspan x='0' dy='0'>장벽층</tspan></text></g><g transform='translate(260.4,262.7)'><circle r='18' fill='#2563eb' opacity='0.9'><title>전하 유도층 | degree=1 | type=techcomponent</title></circle><text text-anchor='middle' y='32'><tspan x='0' dy='0'>전하 유도층</tspan></text></g>
+      </svg>
+    </section>
+    <h4>Single patent relation details</h4><table><thead><tr><th>source</th><th>relation</th><th>target</th><th>description</th><th>source_patent</th></tr></thead><tbody><tr><td>소스 영역</td><td>구성요소,길이 방향 영역</td><td>III-N족 나노와이어</td><td>III-N족 나노와이어의 길이 방향 부분은 소스 영역을 포함한다.</td><td>13-976413</td></tr><tr><td>소스 영역</td><td>소스 연결,전기적 결합</td><td>채널 영역</td><td>소스 영역은 채널 영역의 제1 단부에 전기적으로 결합된다.</td><td>13-976413</td></tr><tr><td>소스 영역</td><td>동축 래핑,전기 접촉</td><td>소스 콘택</td><td>소스 콘택은 소스 영역 주위를 동축으로 완전히 감쌀 수 있다.</td><td>13-976413</td></tr><tr><td>드레인 영역</td><td>구성요소,길이 방향 영역</td><td>III-N족 나노와이어</td><td>III-N족 나노와이어의 길이 방향 부분은 드레인 영역을 포함한다.</td><td>13-976413</td></tr><tr><td>드레인 영역</td><td>드레인 연결,전기적 결합</td><td>채널 영역</td><td>드레인 영역은 채널 영역의 제2 단부에 전기적으로 결합된다.</td><td>13-976413</td></tr><tr><td>드레인 영역</td><td>동축 래핑,전기 접촉</td><td>드레인 콘택</td><td>드레인 콘택은 드레인 영역 주위를 동축으로 완전히 감쌀 수 있다.</td><td>13-976413</td></tr><tr><td>채널 영역</td><td>구성요소,길이 방향 영역</td><td>III-N족 나노와이어</td><td>III-N족 나노와이어의 길이 방향 부분은 채널 영역을 포함한다.</td><td>13-976413</td></tr><tr><td>채널 영역</td><td>구성,물질 형성</td><td>제1 III-N족 물질</td><td>채널 영역은 제1 III-N족 물질로 형성된다.</td><td>13-976413</td></tr><tr><td>채널 영역</td><td>게이트 형성,동축 래핑</td><td>게이트 스택</td><td>게이트 스택은 채널 영역 주위를 동축으로 완전히 감싼다.</td><td>13-976413</td></tr><tr><td>III-N족 나노와이어 트랜지스터</td><td>구성요소,나노와이어 구조</td><td>III-N족 나노와이어</td><td>III-N족 나노와이어 트랜지스터는 기판 위에 배치된 III-N족 나노와이어를 포함한다.</td><td>13-976413</td></tr><tr><td>III-N족 나노와이어 트랜지스터</td><td>반도체 소자,제조</td><td>III-N족 트랜지스터 제조 방법</td><td>III-N족 트랜지스터 제조 방법은 III-N족 나노와이어 트랜지스터를 제공하기 위한 방법이다.</td><td>13-976413</td></tr><tr><td>III-N족 나노와이어</td><td>배치,지지 구조</td><td>기판</td><td>III-N족 나노와이어는 기판 위에 배치된다.</td><td>13-976413</td></tr><tr><td>제1 III-N족 물질</td><td>배치,층 형성</td><td>제2 III-N족 물질</td><td>제2 III-N족 물질은 제1 III-N족 물질 위에 배치된다.</td><td>13-976413</td></tr><tr><td>제2 III-N족 물질</td><td>기능,전하 유도</td><td>전하 유도층</td><td>제2 III-N족 물질은 전하 유도층으로 작용한다.</td><td>13-976413</td></tr><tr><td>제2 III-N족 물질</td><td>기능,장벽 형성</td><td>장벽층</td><td>제2 III-N족 물질은 나노와이어 표면에서 장벽층으로 작용할 수 있다.</td><td>13-976413</td></tr><tr><td>제2 III-N족 물질</td><td>게이트 계면,중간 배치</td><td>게이트 스택</td><td>제2 III-N족 물질은 채널 영역의 적어도 일부를 따라 제1 III-N족 물질과 게이트 스택 사이에 배치된다.</td><td>13-976413</td></tr><tr><td>게이트 스택</td><td>게이트 구조,구성요소</td><td>게이트 절연체</td><td>게이트 스택은 게이트 절연체를 포함한다.</td><td>13-976413</td></tr><tr><td>게이트 스택</td><td>게이트 구조,구성요소</td><td>게이트 전도체</td><td>게이트 스택은 게이트 전도체를 포함한다.</td><td>13-976413</td></tr></tbody></table>
+
+  <h2 id="retrieval">3.2 Dual-level Retrieval Paradigm</h2>
+  <p><code>local</code>은 entity 중심 low-level retrieval, <code>global</code>은 relation/theme 중심 high-level retrieval, <code>hybrid</code>는 둘을 병합한다.</p>
+  
+    <h3>Keyword Extraction and Retrieved Context</h3>
+    <table><thead><tr><th>query_id</th><th>mode</th><th>question</th><th>elapsed</th><th>source_patents</th></tr></thead><tbody><tr><td>AA-1</td><td>hybrid</td><td>AI 코어 및 가속기 특허에서 신경망 연산 가속기 구조는 어떤 방식으로 연산 병렬성을 높이는가?</td><td>119.0s</td><td>20</td></tr></tbody></table>
+    <details open><summary>Query metadata</summary><pre>{
+  &quot;query_mode&quot;: &quot;hybrid&quot;,
+  &quot;keywords&quot;: {
+    &quot;high_level&quot;: [
+      &quot;AI 코어&quot;,
+      &quot;가속기 특허&quot;,
+      &quot;신경망 연산 가속기 구조&quot;,
+      &quot;연산 병렬성 향상 방식&quot;
+    ],
+    &quot;low_level&quot;: [
+      &quot;신경망 연산&quot;,
+      &quot;가속기 구조&quot;,
+      &quot;연산 병렬성&quot;
+    ]
+  },
+  &quot;processing_info&quot;: {
+    &quot;total_entities_found&quot;: 24,
+    &quot;total_relations_found&quot;: 36,
+    &quot;entities_after_truncation&quot;: 24,
+    &quot;relations_after_truncation&quot;: 36,
+    &quot;merged_chunks_count&quot;: 20,
+    &quot;final_chunks_count&quot;: 10
+  }
+}</pre></details>
+    <table><thead><tr><th>context</th><th>count</th><th>sample</th></tr></thead><tbody><tr><td>entities</td><td>24</td><td>[{&quot;entity_name&quot;: &quot;신경망 가속기&quot;, &quot;entity_type&quot;: &quot;architecture&quot;, &quot;description&quot;: &quot;신경망 가속기는 하드웨어 시스템에서 신경망 계층을 실행하도록 구성되는 하드웨어 구조이다.&quot;, &quot;source_id&quot;: &quot;15-786452-chunk-000&quot;, &quot;file_path&quot;: &quot;15-786452&quot;, &quot;created_at&quot;: 1781007654}, {&quot;entity_name&quot;: &quot;AI 하드웨어 가속기&quot;, &quot;entity_type&quot;: &quot;architecture&quot;, &quot;description&quot;: &quot;AI 하드웨어 가속기는 원본 텐서의 희소 값 정보, 형상 데이터, 이진 맵을 활용해 고밀도 텐서에 대한 신경망 연산을 수행하는 구조이다.&quot;, &quot;source_id&quot;: &quot;18-207755-chunk-000&quot;, &quot;file_path&quot;: &quot;18-207755&quot;, &quot;created_at&quot;: 1781020594}, {&quot;entity_name&quot;: &quot;신경망 프로세서&quot;, &quot;entity_type&quot;: &quot;architecture&quot;, &quot;description&quot;: &quot;신경망 프로세서는 신경망 연산을 수행하는 프로세서이다.&quot;, &quot;source_id&quot;: &quot;18-212648-chunk-000&quot;, &quot;file_path&quot;: &quot;18-212648&quot;, &quot;created_at&quot;: 1781018005}]</td></tr><tr><td>relationships</td><td>36</td><td>[{&quot;src_id&quot;: &quot;신경망&quot;, &quot;tgt_id&quot;: &quot;신경망 활성화 로직 구현 장치&quot;, &quot;description&quot;: &quot;신경망 활성화 로직 구현 장치는 신경망을 위한 활성화 로직을 구현한다.&quot;, &quot;keywords&quot;: &quot;적용,활성화 로직&quot;, &quot;weight&quot;: 1.0, &quot;source_id&quot;: &quot;17-291315-chunk-000&quot;, &quot;file_path&quot;: &quot;17-291315&quot;, &quot;created_at&quot;: 1781016186}, {&quot;src_id&quot;: &quot;AI 하드웨어 가속기&quot;, &quot;tgt_id&quot;: &quot;회로 구성요소&quot;, &quot;description&quot;: &quot;AI 하드웨어 가속기는 텐서 처리와 신경망 연산 수행을 위한 하나 이상의 회로 구성요소를 포함한다.&quot;, &quot;keywords&quot;: &quot;구성요소,포함&quot;, &quot;weight&quot;: 1.0, &quot;source_id&quot;: &quot;18-207755-chunk-000&quot;, &quot;file_path&quot;: &quot;18-207755&quot;, &quot;created_at&quot;: 1781020594}, {&quot;src_id&quot;: &quot;신경망&quot;, &quot;tgt_id&quot;: &quot;컨볼루션 연산&quot;, &quot;description&quot;: &quot;컨볼루션 연산은 신경망에 관련된 계산으로 수행된다.&lt;SEP&gt;컨볼루션 연산은 신경망 계층의 입력 데이터와 커널 데이터를 대상으로 수행된다.&quot;, &quot;keywords&quot;: &quot;수행,신경망 연산,적용&quot;, &quot;weight&quot;: 2.0, &quot;source_id&quot;: &quot;17-459782-chunk-000&lt;SEP&gt;17-196922-chunk-000&quot;, &quot;file_path&quot;: &quot;17-459782&lt;SEP&gt;17-196922&quot;, &quot;created_at&quot;: 1781015678}]</td></tr><tr><td>chunks</td><td>10</td><td>[{&quot;reference_id&quot;: &quot;1&quot;, &quot;content&quot;: &quot;문서 유형: AI 반도체 특허\npatent_id: 17-511417\n출원번호: 17-511417\n공개번호: 2022-0050683\n발명의 명칭: Apparatuses, methods, and systems for neural networks\n요약: Methods and apparatuses relating to processing neural networks are described. In one embodiment, an apparatus to process a neural network includes a plurality of fully connected layer chips coupled by an interconnect; a plurality of convolutional layer chips each coupled by an interconnect to a respective fully connected layer chip of the plurality of fully connected layer chips and each of the plurality of fully connected layer chips and the plurality of convolutional layer chips including an interconnect to couple each of a forward propagation compute intensive tile, a back propagation compute intensive tile, and a weight gradient compute intensive tile of a column of compute intensive tiles between a first memory intensive tile and a second memory intensive tile.\nAI요약(목적): 공유 메모리에서 액세스 동기화를 제공한다.\nAI요약(솔루션 ...[truncated]</td></tr></tbody></table>
+    
+
+  <h2 id="generation">3.3 Retrieval-Augmented Answer Generation</h2>
+  <p>retrieved entities, relationships, chunks, references가 answer prompt에 합쳐지고, 같은 query에 대해 mode별 답변이 달라진다.</p>
+  <table><thead><tr><th>mode</th><th>status</th><th>elapsed</th><th>retrieved</th><th>answer_excerpt</th></tr></thead><tbody><tr><td>naive</td><td>success</td><td>58.8s</td><td>E=0, R=0, C=10</td><td>AI 코어 및 가속기 분야의 **신경망 연산 가속기 구조**는 주로 **데이터 배치, 메모리 접근 최적화, 다중 코어 매핑, 비트 단위 분할 누적**을 통해 연산 병렬성과 처리 효율을 높입니다.
+
+첫째, **희소 행렬 곱셈 가속 구조**는 CNN 추론에서 필터 가중치를 ReRAM 또는 위상 변화 메모리 같은 저장 클래스 메모리에 저장하고, 모든 값이 0인 행이나 열을 나타내는 **제로 행/열 인덱스**를 사용합니다. 행 또는 열이 모두 0이면 해당 비트 라인이나 워드 라인 접근을 건너뛰므로, 불필요한 곱셈과 메모리 접근을 줄여 실제 유효 연산에 자원을 집중할 수 있습니다. 이는 인메모리 행렬 곱셈의 처리 효율을 높이는 방식입니다.
+
+둘째, **멀티코어 최적화 RNN 구조**는 RNN 계층의 계층 구조를 프로세서의 메모리 계층 구조와 대응시키고, 뉴런을 모듈 단위로 그룹화합니다. 각 모듈 간 연결은 메모리 용량, 코어 수, 대역폭, 연산 대역폭, 지연시간 조건을 고려해 배치됩니다. 이를 통해 RNN 연산이 현대적 범용 프로세서의 멀티코어 구조에 더 효율적으로 매핑되며, 통신 및 동기화도 MBSP 모델에 따라 조정됩니다.
+
+셋째, **분할 누적기 구조**는 컨볼루션 신경망 가속기에서 가중치를 계산 순서에 맞춰 비트 단위로 정렬하고, 슬랙 비트와 널 행을 제거해 더 조밀한 가중치 행렬을 만듭니다. 이후 가중치를 여러 비트 세그먼트로 나누고, 각 세그먼트와 대응 활성값의 합산 결과를 가산기 트리로 전달하여 shift-and-add 방식으로 출력 특징 맵을 생성합니다. 즉, 비트 단위 분할과 가산기 트리 처리를 통해 누적 연산을 병렬화하는 구조입니다.
+
+넷째, **데이터 처리 장치 구조**는 명령 캐시, 명령 처리 유닛, 저장 큐를 포함하는 제어 모듈을 사용합니다. 명령 캐시는 인공 신경망 연 ...[truncated]</td></tr><tr><td>local</td><td>success</td><td>145.5s</td><td>E=10, R=69, C=10</td><td>AI 코어 및 가속기 특허의 **신경망 연산 가속기 구조**는 주로 **복수의 연산 소자(PE)를 배열하고, 데이터 공유 및 필터 적용을 하드웨어적으로 제어하는 방식**으로 연산 효율과 병렬 처리성을 높입니다.
+
+첫째, 머신러닝 수행 전자 장치는 **기설정된 패턴으로 배열된 복수의 연산 소자**를 포함하는 연산 모듈을 사용합니다. 이 연산 소자들은 서로 인접한 소자 간에 데이터를 공유하면서 연산을 수행하므로, 입력 데이터에 대한 연산을 여러 연산 소자에 분산해 처리할 수 있는 구조를 가집니다.
+
+둘째, 프로세서는 입력 데이터에 필터를 적용해 **콘볼루션 연산**을 수행하도록 연산 모듈을 제어합니다. 특히 2차원 필터를 구성하는 복수의 엘리먼트를 기설정된 순서대로 복수의 연산 소자에 입력하고, 입력 데이터에 순차적으로 적용하도록 제어합니다. 이를 통해 CNN 연산과 PE 기반 연산을 함께 활용하여 연산 효율을 높이는 구조로 설명됩니다.
+
+셋째, 데이터 처리 장치 측면에서는 **명령 캐시 유닛, 명령 처리 유닛, 저장 큐 유닛**을 포함하는 제어 모듈을 사용합니다. 명령 캐시는 인공 신경망 연산과 관련된 계산 명령을 저장하고, 명령 처리 유닛은 이를 복수의 연산 명령으로 해석하며, 저장 큐는 실행 순서에 따라 명령을 관리합니다. 이 구조는 데이터 액세스 복잡도를 줄이고 신경망 모델 연산 시 연산 효율을 향상시키는 방식으로 작동합니다.
+
+정리하면, 해당 특허군의 신경망 연산 가속기 구조는 **다수의 연산 소자 배열**, **인접 PE 간 데이터 공유**, **2차원 필터 엘리먼트의 순차적 투입**, **명령 분해 및 큐 기반 실행 관리**를 통해 CNN 및 신경망 연산을 더 효율적으로 수행하도록 설계되어 있습니다.
+
+### References
+
+* [7] 2020-7036316
+* [8]  ...[truncated]</td></tr><tr><td>global</td><td>success</td><td>130.8s</td><td>E=18, R=10, C=10</td><td>## 연산 병렬성 향상 방식
+
+AI 코어 및 가속기 특허의 **신경망 연산 가속기 구조**는 주로 **멀티-코어 최적화 RNN 아키텍처**를 프로세서 마이크로아키텍처에 맞게 매핑함으로써 연산 효율과 병렬성을 높인다.
+
+핵심 방식은 RNN 구조의 여러 계층을 **프로세서의 메모리 계층 구조**와 대응시키는 것이다. 이때 각 메모리 계층은 메모리 용량, 프로세서 코어 수, 대역폭, 계산 대역폭, 지연시간 같은 조건을 기준으로 설명된다. 즉, 신경망 구조를 하드웨어의 코어 및 메모리 특성에 맞게 재배치하여 병렬 실행에 유리한 형태로 만든다.
+
+또한 뉴런들을 **모듈 단위**로 그룹화하고, 이 모듈들이 RNN 계층 안에서 논리적 처리 단위가 되도록 구성한다. 이후 모듈 간 연결을 메모리 용량, 코어 수, 대역폭, 계산 대역폭, 지연시간 조건에 맞게 배열하여 통신과 동기화 부담을 줄이고, 여러 코어에서 계산을 더 효율적으로 나누어 수행할 수 있게 한다.
+
+이 구조는 **MBSP-RNN**으로 설명되며, Multi-Bulk-Synchronous-Parallel 모델에 기반해 통신 및 동기화 동작을 조정한다. 그 결과 동일한 수의 파라미터를 가진 일반 RNN과 유사하게 동작하면서도, 현대 범용 프로세서에 매핑될 때 계산 효율이 더 높아진다. 문맥상 이는 고정된 계산 예산에서 RNN보다 더 나은 성능을 내도록 병렬성을 활용하는 구조로 제시된다.
+
+### References
+
+- [1] 15-091413</td></tr><tr><td>hybrid</td><td>success</td><td>119.0s</td><td>E=24, R=36, C=10</td><td>## 신경망 연산 가속기 구조의 연산 병렬성 향상 방식
+
+제공된 문맥에서 **AI 코어 및 가속기 특허의 신경망 연산 가속기 구조**는 주로 **명령 처리 구조화**, **데이터 슬라이스 단위 처리**, **행렬 연산 병렬화**, **다중 처리 요소 활용**을 통해 연산 효율과 병렬성을 높인다.
+
+첫째, **데이터 처리 장치**는 제어 모듈 안에 **명령 캐시 유닛, 명령 처리 유닛, 저장 큐 유닛**을 두어 인공 신경망 연산과 관련된 계산 명령을 저장하고, 이를 해석해 **복수의 연산 명령**으로 분해한다. 저장 큐는 실행할 연산 명령 또는 계산 명령을 큐 순서에 따라 저장하므로, 신경망 모델 연산 시 명령 흐름을 체계화해 연산 효율을 높이는 구조로 설명된다.
+
+둘째, 컨볼루션 기반 인공지능 가속기 구조에서는 **입력 데이터와 커널 데이터를 각각 별도의 데이터 버퍼에서 수신**하고, 이를 **슬라이스 단위로 이동**시킨다. 입력 데이터는 제1 데이터 버퍼와 2차원 시프트 레지스터를 통해 이동하고, 커널 데이터는 제2 데이터 버퍼와 입력 시프트 레지스터를 통해 전달된다. 이후 곱셈 블록 회로가 입력 데이터 슬라이스와 커널 데이터 슬라이스 사이의 컨볼루션 연산을 수행한다. 즉, 데이터를 작은 슬라이스로 나누고 버퍼·시프트 레지스터를 통해 공급함으로써 컨볼루션 연산을 효율적으로 처리한다.
+
+셋째, 행렬 연산 중심 구조에서는 **N차원 논리 회로 배열**, 입력 데이터 라인, 가중치 행렬 입력 라인, 출력 데이터 라인을 갖춘 장치를 통해 신경망 프로세서에서 신경망 연산을 수행한다. 인공지능은 신경망 구현을 위해 많은 행렬 연산을 필요로 하며, 이러한 계산은 병렬 처리될 수 있기 때문에 특수 행렬 프로세서 회로가 성능 향상에 기여한다.
+
+넷째, 더 직접적인 병렬 연산 구조로는 **처리 요소  ...[truncated]</td></tr></tbody></table>
+
+  <h2 id="complexity">3.4 Complexity Analysis</h2>
+  <table><thead><tr><th>System</th><th>Index elapsed</th><th>Query elapsed</th><th>Query records</th><th>Empty/failed</th><th>Modes</th><th>Notes</th></tr></thead><tbody><tr><td>LightRAG</td><td>19,519.8s (5.42h)</td><td>5,576.9s (1.55h)</td><td>60</td><td>0</td><td>naive/local/global/hybrid</td><td>100건 indexing 완료, 15개 query x 4 mode 실행 완료</td></tr><tr><td>GraphRAG</td><td>4,340.1s (1.21h)</td><td>4,489.2s (1.25h)</td><td>45</td><td>0</td><td>basic/local/global</td><td>100건 full fresh index 완료; standard-update가 20건 output에 머물러 fallback; repair 후 15개 query x 3 mode 완료</td></tr></tbody></table>
+  <h3>LightRAG Query Recovery Audit</h3>
+  <table><thead><tr><th>Audit</th><th>Value</th></tr></thead><tbody><tr><td>Repaired keys</td><td>X-1/global, X-1/hybrid</td></tr><tr><td>After repair current</td><td>60/60 success, empty/failed=0</td></tr><tr><td>Backup preserved</td><td>experiments/rag_repro_100_seed20260609/lightrag_patent_prompt_100/query_results_15_modes.backup_20260610_155528.jsonl</td></tr></tbody></table>
+  <h3>GraphRAG Query Recovery Audit</h3>
+  <table><thead><tr><th>Audit</th><th>Value</th></tr></thead><tbody><tr><td>Before repair backup</td><td>34/45 unique expected keys, failures=1, missing=11, duplicates=0</td></tr><tr><td>After repair current</td><td>45/45 unique expected keys, failures=0, missing=0, duplicates=0</td></tr><tr><td>Recovered failed keys</td><td>AA-2/global</td></tr><tr><td>Recovered missing keys</td><td>11 keys: C-1/basic, C-1/global, C-1/local, E-1/basic, E-1/global, E-1/local, F-1/global, F-1/local, F-2/basic, F-2/global, F-2/local</td></tr><tr><td>Backup preserved</td><td>experiments/rag_repro_100_seed20260609/graphrag_full_100_fresh/query_results_15_methods.backup_20260610_152952.jsonl</td></tr></tbody></table>
+  <h3>GraphRAG Query Mode Summary</h3>
+  <table><thead><tr><th>Method</th><th>Queries</th><th>Success answers</th><th>Empty/failed</th><th>Avg latency</th><th>Max latency</th><th>Total latency</th><th>Avg answer chars</th></tr></thead><tbody><tr><td>basic</td><td>15</td><td>15</td><td>0</td><td>50.4s</td><td>260.2s</td><td>756.4s</td><td>1545</td></tr><tr><td>local</td><td>15</td><td>15</td><td>0</td><td>33.3s</td><td>42.6s</td><td>499.0s</td><td>1879</td></tr><tr><td>global</td><td>15</td><td>15</td><td>0</td><td>215.6s</td><td>734.1s</td><td>3,233.8s</td><td>3218</td></tr></tbody></table>
+  <h3>Gemini Judge Recovery Audit</h3>
+  <table><thead><tr><th>Audit</th><th>Value</th></tr></thead><tbody><tr><td>Rows before normalization</td><td>63</td></tr><tr><td>Rows after normalization</td><td>60</td></tr><tr><td>Success after repair</td><td>60/60</td></tr><tr><td>Recovered failed keys</td><td>lightrag_hybrid__vs__graphrag_global/F-1, lightrag_hybrid__vs__graphrag_local/AC-2</td></tr><tr><td>Backup preserved</td><td>experiments/rag_repro_100_seed20260609/evaluation/judge_results.backup_20260610_160921.jsonl</td></tr></tbody></table>
+
+  <h2 id="tables">Paper-style Evaluation Tables</h2>
+  <h3>Table 4: Statistical information of the patent datasets</h3>
+  <table><thead><tr><th>Category</th><th>Documents</th><th>Smoke docs</th><th>Remaining docs</th></tr></thead><tbody><tr><td>AA</td><td>25</td><td>5</td><td>20</td></tr><tr><td>AB</td><td>25</td><td>5</td><td>20</td></tr><tr><td>AC</td><td>25</td><td>5</td><td>20</td></tr><tr><td>AD</td><td>25</td><td>5</td><td>20</td></tr><tr><td>Overall</td><td>100</td><td>20</td><td>80</td></tr></tbody></table>
+  <h3>Table 1: Win rates (%) of baselines vs LightRAG</h3>
+  <p class="note">Gemini judge 결과 60/60건을 사용해 win-rate를 계산했다.</p>
+  <table><thead><tr><th>Comparison</th><th>Metric</th><th>Left system</th><th>Left win-rate</th><th>Right system</th><th>Right win-rate</th><th>Tie</th></tr></thead><tbody><tr><td>lightrag_hybrid vs lightrag_naive</td><td>Comprehensiveness</td><td>lightrag_hybrid</td><td>40.0%</td><td>lightrag_naive</td><td>33.3%</td><td>26.7%</td></tr><tr><td>lightrag_hybrid vs lightrag_naive</td><td>Diversity</td><td>lightrag_hybrid</td><td>26.7%</td><td>lightrag_naive</td><td>46.7%</td><td>26.7%</td></tr><tr><td>lightrag_hybrid vs lightrag_naive</td><td>Empowerment</td><td>lightrag_hybrid</td><td>53.3%</td><td>lightrag_naive</td><td>46.7%</td><td>0.0%</td></tr><tr><td>lightrag_hybrid vs lightrag_naive</td><td>Technical correctness</td><td>lightrag_hybrid</td><td>6.7%</td><td>lightrag_naive</td><td>26.7%</td><td>66.7%</td></tr><tr><td>lightrag_hybrid vs lightrag_naive</td><td>Hallucination risk</td><td>lightrag_hybrid</td><td>6.7%</td><td>lightrag_naive</td><td>6.7%</td><td>86.7%</td></tr><tr><td>lightrag_hybrid vs lightrag_naive</td><td>Overall</td><td>lightrag_hybrid</td><td>53.3%</td><td>lightrag_naive</td><td>46.7%</td><td>0.0%</td></tr><tr><td>lightrag_hybrid vs graphrag_global</td><td>Comprehensiveness</td><td>lightrag_hybrid</td><td>6.7%</td><td>graphrag_global</td><td>93.3%</td><td>0.0%</td></tr><tr><td>lightrag_hybrid vs graphrag_global</td><td>Diversity</td><td>lightrag_hybrid</td><td>6.7%</td><td>graphrag_global</td><td>93.3%</td><td>0.0%</td></tr><tr><td>lightrag_hybrid vs graphrag_global</td><td>Empowerment</td><td>lightrag_hybrid</td><td>6.7%</td><td>graphrag_global</td><td>93.3%</td><td>0.0%</td></tr><tr><td>lightrag_hybrid vs graphrag_global</td><td>Technical correctness</td><td>lightrag_hybrid</td><td>20.0%</td><td>graphrag_global</td><td>53.3%</td><td>26.7%</td></tr><tr><td>lightrag_hybrid vs graphrag_global</td><td>Hallucination risk</td><td>lightrag_hybrid</td><td>20.0%</td><td>graphrag_global</td><td>33.3%</td><td>46.7%</td></tr><tr><td>lightrag_hybrid vs graphrag_global</td><td>Overall</td><td>lightrag_hybrid</td><td>13.3%</td><td>graphrag_global</td><td>86.7%</td><td>0.0%</td></tr><tr><td>lightrag_hybrid vs graphrag_local</td><td>Comprehensiveness</td><td>lightrag_hybrid</td><td>86.7%</td><td>graphrag_local</td><td>6.7%</td><td>6.7%</td></tr><tr><td>lightrag_hybrid vs graphrag_local</td><td>Diversity</td><td>lightrag_hybrid</td><td>93.3%</td><td>graphrag_local</td><td>6.7%</td><td>0.0%</td></tr><tr><td>lightrag_hybrid vs graphrag_local</td><td>Empowerment</td><td>lightrag_hybrid</td><td>93.3%</td><td>graphrag_local</td><td>6.7%</td><td>0.0%</td></tr><tr><td>lightrag_hybrid vs graphrag_local</td><td>Technical correctness</td><td>lightrag_hybrid</td><td>73.3%</td><td>graphrag_local</td><td>0.0%</td><td>26.7%</td></tr><tr><td>lightrag_hybrid vs graphrag_local</td><td>Hallucination risk</td><td>lightrag_hybrid</td><td>20.0%</td><td>graphrag_local</td><td>0.0%</td><td>80.0%</td></tr><tr><td>lightrag_hybrid vs graphrag_local</td><td>Overall</td><td>lightrag_hybrid</td><td>93.3%</td><td>graphrag_local</td><td>6.7%</td><td>0.0%</td></tr><tr><td>graphrag_global vs lightrag_naive</td><td>Comprehensiveness</td><td>graphrag_global</td><td>93.3%</td><td>lightrag_naive</td><td>6.7%</td><td>0.0%</td></tr><tr><td>graphrag_global vs lightrag_naive</td><td>Diversity</td><td>graphrag_global</td><td>80.0%</td><td>lightrag_naive</td><td>13.3%</td><td>6.7%</td></tr><tr><td>graphrag_global vs lightrag_naive</td><td>Empowerment</td><td>graphrag_global</td><td>73.3%</td><td>lightrag_naive</td><td>26.7%</td><td>0.0%</td></tr><tr><td>graphrag_global vs lightrag_naive</td><td>Technical correctness</td><td>graphrag_global</td><td>46.7%</td><td>lightrag_naive</td><td>20.0%</td><td>33.3%</td></tr><tr><td>graphrag_global vs lightrag_naive</td><td>Hallucination risk</td><td>graphrag_global</td><td>40.0%</td><td>lightrag_naive</td><td>13.3%</td><td>46.7%</td></tr><tr><td>graphrag_global vs lightrag_naive</td><td>Overall</td><td>graphrag_global</td><td>80.0%</td><td>lightrag_naive</td><td>20.0%</td><td>0.0%</td></tr></tbody></table>
+  <h3>Answer Length Statistics for Table 1 Interpretation</h3>
+  <p class="note">GraphRAG 답변에 섞인 런타임 warning 문구를 제거한 cleaned answer 기준이다. 이 표는 LLM-as-judge의 verbosity bias 가능성을 해석하기 위한 보조 지표다.</p>
+  <table><thead><tr><th>System</th><th>Queries</th><th>Avg answer chars</th><th>Median answer chars</th><th>Avg token estimate</th><th>Avg latency</th><th>Length vs LightRAG hybrid</th></tr></thead><tbody><tr><td>lightrag_naive</td><td>15</td><td>1405</td><td>1381</td><td>351</td><td>51.5s</td><td>1.06x</td></tr><tr><td>lightrag_local</td><td>15</td><td>1134</td><td>1200</td><td>283</td><td>111.9s</td><td>0.86x</td></tr><tr><td>lightrag_global</td><td>15</td><td>1194</td><td>1371</td><td>298</td><td>104.8s</td><td>0.90x</td></tr><tr><td>lightrag_hybrid</td><td>15</td><td>1325</td><td>1396</td><td>331</td><td>103.6s</td><td>1.00x</td></tr><tr><td>graphrag_basic</td><td>15</td><td>1545</td><td>1458</td><td>386</td><td>50.4s</td><td>1.17x</td></tr><tr><td>graphrag_local</td><td>15</td><td>1879</td><td>1896</td><td>469</td><td>33.3s</td><td>1.42x</td></tr><tr><td>graphrag_global</td><td>15</td><td>3218</td><td>3018</td><td>804</td><td>215.6s</td><td>2.43x</td></tr></tbody></table>
+  <h3>Table 2: Performance of ablated LightRAG retrieval modes</h3>
+  <table><thead><tr><th>system</th><th>queries</th><th>success</th><th>empty_answers</th><th>avg_answer_chars</th><th>avg_retrieved_entities</th><th>avg_retrieved_relations</th><th>avg_retrieved_chunks</th><th>avg_unique_source_patents</th><th>avg_latency_seconds</th></tr></thead><tbody><tr><td>graphrag_basic</td><td>15</td><td>15</td><td>0</td><td>1972.4</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.133</td><td>50.426</td></tr><tr><td>graphrag_global</td><td>15</td><td>15</td><td>0</td><td>3644.933</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.133</td><td>215.587</td></tr><tr><td>graphrag_local</td><td>15</td><td>15</td><td>0</td><td>2305.667</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.267</td><td>33.264</td></tr><tr><td>lightrag_global</td><td>15</td><td>15</td><td>0</td><td>1194.0</td><td>17.2</td><td>10.0</td><td>9.533</td><td>21.667</td><td>104.758</td></tr><tr><td>lightrag_hybrid</td><td>15</td><td>15</td><td>0</td><td>1324.533</td><td>24.667</td><td>41.467</td><td>10.0</td><td>29.8</td><td>103.627</td></tr><tr><td>lightrag_local</td><td>15</td><td>15</td><td>0</td><td>1133.533</td><td>10.0</td><td>30.8</td><td>8.6</td><td>19.4</td><td>111.931</td></tr><tr><td>lightrag_naive</td><td>15</td><td>15</td><td>0</td><td>1404.6</td><td>0.0</td><td>0.0</td><td>10.0</td><td>17.667</td><td>51.479</td></tr></tbody></table>
+  <h3>Table 3: Case Study: GraphRAG vs LightRAG</h3>
+  <p class="note">GraphRAG global 결과를 LightRAG hybrid와 비교한 사례다. Gemini judge decision도 함께 표시한다.</p>
+  <table><thead><tr><th>Query</th><th>GraphRAG/Naive</th><th>LightRAG</th><th>LLM Decision</th></tr></thead><tbody><tr><td>X-1</td><td>**요약**
+
+AI 반도체에서 연산 가속기, 메모리 아키텍처, 패키징 기술은 분리된 독립 계층이라기보다 **워크로드 실행 → 데이터·명령 공급 → 물리적 통합**으로 이어지는 의존 구조를 갖는다. 다만 제공 데이터에는 세 요소를 하나의 완전한 제품 수준 end-to-end 체계로 직접 설명하는 단일 기록은 없으며, 여러 기록을 종합하면 이 구조가 도출된다 [Data: Reports (57, 310, 161, 498, 244)].
+
+**연산 가속기 → 메모리 아키텍처 의존**
+
+연산 가속기는 AI 반도체의 중심 계산 계층이지만, 독립 회로라기보다 메모리 인터페이스, 칩렛, in-memory compute device, dispatch hardware, SIMD 처리, host communication interface가 결합된 시스템 아키텍처로 제시된다 [Data: Reports (322, 45, 34)]. Transformer, CNN, RNN, DNN 추론, sparse tensor 처리 같은 워크로드는 행렬·벡터 연산, softmax, multiply-accumulate, fused multiply-accumulate, systolic array, processing element array에 의존한다 [Data: Reports (107, 446, 321, 51, 1, +more)].
+
+이 계산은 메모리 없이는 실행 경로가 성립하지 않는다. RAM은 신경망 행렬, 실행 명령, 입력 데이터, 출력 데이터, 실행을 트리거하는 indication을 저장하고, 가속기는 저장된 입력을 인공신경망에 적용한 뒤 출력을 다시 RAM에 기록한다 [Data: Reports (122, 10, 123)]. CNN 가속기에서도 register-file memory, buffer, shift register, multiplication block circuit, output buffer가 입력 데이터와 커널 데이터를 slice 단위로 공급하며 컨볼루션 연산을 가능하게 한다 [Data: Reports (17, 440, 163, 103, 559, +more)].
+
+따라서 메모리 아키텍처는 단순 저장소가 아니라 연산 가속기의 데이터 공급, 데이터 이동, 실행 제 ...[truncated]</td><td>## 기술적 의존 관계
+
+AI 반도체에서 **연산 가속기, 메모리 아키텍처, 패키징 기술**은 독립된 요소라기보다, **데이터가 어디에 저장되고, 어디에서 연산되며, 어떤 물리적 연결로 이동하는지**를 중심으로 연결된다.
+
+첫째, **연산 가속기**는 AI 워크로드의 핵심 연산인 행렬 곱셈, 누산, 내적, 소프트맥스, 혼합 정밀도 연산을 빠르게 수행하도록 설계된다. 예를 들어 GPU 기반 구조는 SIMT 아키텍처의 다중 프로세서와 실행 회로를 통해 16비트 피연산자의 32비트 중간 곱 및 누산 결과를 계산하고, mixed-precision instruction으로 fused multiply-accumulate 연산을 수행한다. 즉, 연산 가속기는 AI 모델 계산의 처리량과 정밀도 효율을 담당한다.
+
+둘째, 이러한 연산 가속기는 **메모리 아키텍처에 강하게 의존**한다. 딥러닝 가속기와 랜덤 액세스 메모리가 결합된 집적 회로에서는 메모리가 명령어와 인공신경망 행렬을 저장하고, 가속기는 메모리에 저장된 입력을 신경망에 적용한 뒤 출력을 다시 메모리에 저장한다. 따라서 연산 성능은 단순한 계산 회로뿐 아니라, 행렬·명령어·입출력 데이터를 얼마나 가까운 위치에서 공급하고 저장할 수 있는지에 좌우된다.
+
+셋째, **PIM/CIM 기반 메모리 아키텍처**는 이 의존 관계를 더 밀접하게 만든다. 인-메모리 컴퓨트 칩렛 기반 AI 가속기에서는 각 칩렛의 타일과 슬라이스 안에 DIMC 장치가 포함되어, 트랜스포머 모델의 어텐션 함수 계산과 행렬 계산을 직접 가속한다. 혼합 정밀도 DNN 추론 프로세서도 입력 메모리, CIM 연산기, 합산기, 출력 메모리, 정밀도 인코딩 유닛을 결합해 저비트 인라이어와 고비트 아웃라이어를 나누어 처리한다. 즉, 메모리는 저장소를 넘어 연산 위치 자체가 된다.
+
+넷째, **패키징 기술은 연산 가속기와 메모리 아키텍처를 물리적으로 연결하는 기반**이다. 문서상 딥러닝 가속기 장치는 집적 회로 패키지 안에 포함되고, 외부 메모리 제어기와 연결되는 인터페이스 및 커넥터를 갖는다. 또한 AI 가속기 칩렛 구조는 D2D 인터커넥트, PCIe 버스, DRAM 인터페이스, 글로벌 CPU 인터페이스를 통해 칩렛, 메모리, 서버 또는 호 ...[truncated]</td><td>{&quot;Comprehensiveness&quot;: {&quot;winner&quot;: &quot;A&quot;, &quot;explanation&quot;: &quot;Answer A provides a more detailed and structured breakdown of the mutual dependencies. It clearly delineates how accelerators depend on memory for data/instruction supply, how memory architectures (like PIM/near-memory) dictate computation scheduling and efficiency, and how packaging technologies (interposers, TSVs, thermal management) physically realize these connections. Answer B covers similar points but with less depth on the specific physical and architectural constraints.&quot;}, &quot;Diversity&quot;: {&quot;winner&quot;: &quot;A&quot;, &quot;explanation&quot;: &quot;Answer A introduces a wider variety of technical concepts and components across all three domains, such as systolic arrays, sparse tensors, active bridge chiplets, interposers, TSVs, 3D stacked memory base dies with switches/ALUs, and thermal management, providing a richer technical perspective.&quot;}, &quot;Empowerment&quot;: {&quot;winner&quot;: &quot;A&quot;, &quot;explanation&quot;: &quot;Answer A&#x27;s structured framework (Workload -&gt; Accelerator -&gt; Memory -&gt; Packaging) offers a superior mental model for a researcher. It clearly explains the &#x27;why&#x27; and &#x27;how ...[truncated]</td></tr></tbody></table>
+  <h3>Figure 2: Cost comparison in tokens/API calls</h3>
+  <details open><summary>Cost and runtime summary</summary><pre>{
+  &quot;index_stats&quot;: {
+    &quot;document_count&quot;: 100,
+    &quot;processed_documents&quot;: 100,
+    &quot;failed_documents&quot;: 0,
+    &quot;completed&quot;: true,
+    &quot;status_counts&quot;: {
+      &quot;processed&quot;: 100
+    },
+    &quot;working_dir&quot;: &quot;/Users/dabeenkim/Documents/GitHub/HYU-lightRAG/experiments/rag_repro_100_seed20260609/lightrag_patent_prompt_100/storage&quot;,
+    &quot;elapsed_seconds&quot;: 346.24,
+    &quot;llm_model&quot;: &quot;gpt-5.5&quot;,
+    &quot;llm_host&quot;: &quot;http://localhost:11435/v1&quot;,
+    &quot;reasoning_effort&quot;: &quot;xhigh&quot;,
+    &quot;embedding_model&quot;: &quot;openai/text-embedding-3-large&quot;,
+    &quot;embedding_host&quot;: &quot;https://openrouter.ai/api/v1&quot;,
+    &quot;embedding_dim&quot;: 3072,
+    &quot;summary_language&quot;: &quot;Korean&quot;,
+    &quot;prompt_dir&quot;: &quot;/Users/dabeenkim/Documents/GitHub/HYU-lightRAG/LightRAG-main/prompts&quot;,
+    &quot;entity_type_prompt_file&quot;: &quot;patent_ai_semiconductor.yml&quot;,
+    &quot;entity_extraction_use_json&quot;: &quot;false&quot;,
+    &quot;graph_nodes&quot;: 1596,
+    &quot;graph_edges&quot;: 2203,
+    &quot;limit&quot;: 0,
+    &quot;elapsed_seconds_total_attempts&quot;: 19519.77,
+    &quot;elapsed_hours_total_attempts&quot;: 5.42,
+    &quot;attempt_count&quot;: 4,
+    &quot;attempts_file&quot;: &quot;/Users/dabeenkim/Documents/GitHub/HYU-lightRAG/experiments/rag_repro_100_seed20260609/lightrag_patent_prompt_100/index_attempts.json&quot;
+  },
+  &quot;graph_metrics&quot;: {
+    &quot;label&quot;: &quot;lightrag_patent_100&quot;,
+    &quot;working_dir&quot;: &quot;/Users/dabeenkim/Documents/GitHub/HYU-lightRAG/experiments/rag_repro_100_seed20260609/lightrag_patent_prompt_100/storage&quot;,
+    &quot;graph_nodes&quot;: 1596,
+    &quot;graph_edges&quot;: 2203,
+    &quot;relation_counts&quot;: {
+      &quot;technical&quot;: 2071,
+      &quot;other&quot;: 110,
+      &quot;metadata&quot;: 22
+    },
+    &quot;metadata_relation_ratio&quot;: 0.01,
+    &quot;technical_relation_ratio&quot;: 0.9401,
+    &quot;other_relation_ratio&quot;: 0.0499,
+    &quot;excluded_entity_count&quot;: 7,
+    &quot;excluded_entity_ratio&quot;: 0.0044,
+    &quot;entity_type_counts&quot;: {
+      &quot;method&quot;: 101,
+      &quot;architecture&quot;: 172,
+      &quot;techcomponent&quot;: 660,
+      &quot;operation&quot;: 270,
+      &quot;other&quot;: 208,
+      &quot;performancemetric&quot;: 105,
+      &quot;material&quot;: 40,
+      &quot;applicationdomain&quot;: 40
+    },
+    &quot;entity_type_entropy&quot;: 2.4668,
+    &quot;degree_ge_50_hub_count&quot;: 0,
+    &quot;top_hubs&quot;: [
+      {
+        &quot;entity&quot;: &quot;프로세서&quot;,
+        &quot;degree&quot;: 42,
+        &quot;entity_type&quot;: &quot;techcomponent&quot;,
+        &quot;excluded_entity&quot;: false
+      },
+      {
+        &quot;entity&quot;: &quot;메모리&quot;,
+        &quot;degree&quot;: 22,
+        &quot;entity_type&quot;: &quot;techcomponent&quot;,
+        &quot;excluded_entity&quot;: false
+      },
+      {
+        &quot;entity&quot;: &quot;메모리 셀 어레이&quot;,
+        &quot;degree&quot;: 22,
+        &quot;entity_type&quot;: &quot;techcomponent&quot;,
+        &quot;excluded_entity&quot;: false
+      },
+      {
+        &quot;entity&quot;: &quot;반도체 패키지&quot;,
+        &quot;degree&quot;: 16,
+        &quot;entity_type&quot;: &quot;architecture&quot;,
+        &quot;excluded_entity&quot;: false
+      },
+      {
+        &quot;entity&quot;: &quot;제어 로직 회로&quot;,
+        &quot;degree&quot;: 14,
+        &quot;entity_type&quot;: &quot;techcomponent&quot;,
+        &quot;excluded_entity&quot;: false
+      },
+      {
+        &quot;entity&quot;: &quot;메모리 장치&quot;,
+        &quot;degree&quot;: 14,
+        &quot;entity_type&quot;: &quot;architecture&quot;,
+        &quot;excluded_entity&quot;: false
+      },
+      {
+        &quot;entity&quot;: &quot;반도체 기판&quot;,
+        &quot;degree&quot;: 13,
+        &quot;entity_type&quot;: &quot;material&quot;,
+        &quot;excluded_entity&quot;: false
+      },
+      {
+        &quot;entity&quot;: &quot;목적 함수&quot;,
+        &quot;degree&quot;: 12,
+        &quot;entity_type&quot;: &quot;operation&quot;,
+        &quot;excluded_entity&quot;: false
+      },
+      {
+        &quot;entity&quot;: &quot;호스트&quot;,
+        &quot;degree&quot;: 11,
+        &quot;entity_type&quot;: &quot;techcomponent&quot;,
+        &quot;excluded_entity&quot;: false
+      },
+      {
+        &quot;entity&quot;: &quot;벡터 처리 유닛(VPU)&quot;,
+        &quot;degree&quot;: 11,
+        &quot;entity_type&quot;: &quot;architecture&quot;,
+        &quot;excluded_entity&quot;: false
+      },
+      {
+        &quot;entity&quot;: &quot;입력 데이터&quot;,
+        &quot;degree&quot;: 10,
+        &quot;entity_type&quot;: &quot;other&quot;,
+        &quot;excluded_entity&quot;: false
+      },
+      {
+        &quot;entity&quot;: &quot;레지스터&quot;,
+        &quot;degree&quot;: 10,
+        &quot;entity_type&quot;: &quot;techcomponent&quot;,
+        &quot;excluded_entity&quot;: false
+      },
+      {
+        &quot;entity&quot;: &quot;곱셈 블록 회로&quot;,
+        &quot;degree&quot;: 9,
+        &quot;entity_type&quot;: &quot;techcomponent&quot;,
+        &quot;excluded_entity&quot;: false
+      },
+      {
+        &quot;entity&quot;: &quot;게이트&quot;,
+        &quot;degree&quot;: 9,
+        &quot;entity_type&quot;: &quot;techcomponent&quot;,
+        &quot;excluded_entity&quot;: false
+      },
+      {
+        &quot;entity&quot;: &quot;메모리 모듈&quot;,
+        &quot;degree&quot;: 9,
+        &quot;entity_type&quot;: &quot;techcomponent&quot;,
+        &quot;excluded_entity&quot;: false
+      },
+      {
+        &quot;entity&quot;: &quot;기능 블록&quot;,
+        &quot;degree&quot;: 9,
+        &quot;entity_type&quot;: &quot;techcomponent&quot;,
+        &quot;excluded_entity&quot;: false
+      },
+      {
+        &quot;entity&quot;: &quot;다중 프로세서&quot;,
+        &quot;degree&quot;: 9,
+        &quot;entity_type&quot;: &quot;techcomponent&quot;,
+        &quot;excluded_entity&quot;: false
+      },
+      {
+        &quot;entity&quot;: &quot;인터포저&quot;,
+        &quot;degree&quot;: 9,
+        &quot;entity_type&quot;: &quot;architecture&quot;,
+        &quot;excluded_entity&quot;: false
+      },
+      {
+        &quot;entity&quot;: &quot;채널 영역&quot;,
+        &quot;degree&quot;: 9,
+        &quot;entity_type&quot;: &quot;techcomponent&quot;,
+        &quot;excluded_entity&quot;: false
+      },
+      {
+        &quot;entity&quot;: &quot;플래시 메모리 장치&quot;,
+        &quot;degree&quot;: 9,
+        &quot;entity_type&quot;: &quot;architecture&quot;,
+        &quot;excluded_entity&quot;: false
+      }
+    ],
+    &quot;metadata_hubs_in_top20&quot;: [],
+    &quot;targets&quot;: {
+      &quot;metadata_relation_ratio&quot;: &quot;&lt;= 0.25&quot;,
+      &quot;technical_relation_ratio&quot;: &quot;&gt;= 0.40&quot;,
+      &quot;excluded_entity_ratio&quot;: &quot;&lt;= 0.10&quot;
+    }
+  },
+  &quot;graphrag_manifest&quot;: {
+    &quot;experiment_dir&quot;: &quot;/Users/dabeenkim/Documents/GitHub/HYU-lightRAG/experiments/rag_repro_100_seed20260609&quot;,
+    &quot;external_dir&quot;: &quot;/Users/dabeenkim/Documents/GitHub/HYU-lightRAG/external/graphrag&quot;,
+    &quot;tag&quot;: &quot;v3.1.0&quot;,
+    &quot;stages&quot;: [
+      {
+        &quot;stage&quot;: &quot;setup&quot;,
+        &quot;repo&quot;: &quot;/Users/dabeenkim/Documents/GitHub/HYU-lightRAG/external/graphrag&quot;,
+        &quot;tag&quot;: &quot;v3.1.0&quot;,
+        &quot;commit&quot;: &quot;7fc6607edda3d387d23e52ededbf8a75b6730f97&quot;
+      },
+      {
+        &quot;stage&quot;: &quot;setup&quot;,
+        &quot;repo&quot;: &quot;/Users/dabeenkim/Documents/GitHub/HYU-lightRAG/external/graphrag&quot;,
+        &quot;tag&quot;: &quot;v3.1.0&quot;,
+        &quot;commit&quot;: &quot;7fc6607edda3d387d23e52ededbf8a75b6730f97&quot;
+      },
+      {
+        &quot;stage&quot;: &quot;setup&quot;,
+        &quot;repo&quot;: &quot;/Users/dabeenkim/Documents/GitHub/HYU-lightRAG/external/graphrag&quot;,
+        &quot;tag&quot;: &quot;v3.1.0&quot;,
+        &quot;commit&quot;: &quot;7fc6607edda3d387d23e52ededbf8a75b6730f97&quot;
+      },
+      {
+        &quot;stage&quot;: &quot;smoke&quot;,
+        &quot;root&quot;: &quot;/Users/dabeenkim/Documents/GitHub/HYU-lightRAG/experiments/rag_repro_100_seed20260609/graphrag_smoke_20&quot;,
+        &quot;command&quot;: &quot;index&quot;,
+        &quot;method&quot;: &quot;standard&quot;,
+        &quot;returncode&quot;: 0,
+        &quot;elapsed_seconds&quot;: 2308.413,
+        &quot;output_excerpt&quot;: &quot;..................................\n  151 / 193 ..................................................................\n  152 / 193 ...................................................................\n  153 / 193 ...................................................................\n  154 / 193 ....................................................................\n  155 / 193 ....................................................................\n  156 / 193 .....................................................................\n  157 / 193 .....................................................................\n  158 / 193 ......................................................................\n  159 / 193 ......................................................................\n  160 / 193 .......................................................................\n  161 / 193 .......................................................................\n  162 / 193 ........................................................................\n  163 / 193 ........................................................................\n  164 / 193 .........................................................................\n  165 / 193 .........................................................................\n  166 / 193 ..........................................................................\n  167 / 193 ...........................................................................\n  168 / 193 ...........................................................................\n  169 / 193 ............................................................................\n  170 / 193 ............................................................................\n  171 / 193 .............................................................................\n  172 / 193 .............................................................................\n  173 / 193 ..............................................................................\n  174 / 193 ..............................................................................\n  175 / 193 ...............................................................................\n  176 / 193 ...............................................................................\n  177 / 193 ................................................................................\n  178 / 193 ................................................................................\n  179 / 193 .................................................................................\n  180 / 193 .................................................................................\n  181 / 193 ..................................................................................\n  182 / 193 ..................................................................................\n  183 / 193 ...................................................................................\n  184 / 193 ...................................................................................\n  185 / 193 ....................................................................................\n  186 / 193 ....................................................................................\n  187 / 193 .....................................................................................\n  188 / 193 .....................................................................................\n  189 / 193 ......................................................................................\n  190 / 193 ......................................................................................\n  191 / 193 .......................................................................................\n  192 / 193 .......................................................................................\n  193 / 193 ........................................................................................\n[2026-06-10T03:21:19Z WARN  lance::dataset::write::insert] No existing dataset at /Users/dabeenkim/Documents/GitHub/HYU-lightRAG/experiments/rag_repro_100_seed20260609/graphrag_smoke_20/output/lancedb/entity_description.lance, it will be created\n\nWorkflow complete: create_community_reports\nWorkflowFunctionOutput(result=                                                    id  ...  size\n0    3c90f2bba4dbf2bfc75deb77ddac91d2b2a69175db7f7f...  ...     3\n1    944422f8690d2f5ded07899d10a8cfedcec4b5f85fe973...  ...     3\n2    3cce433ad584d6b9a84d03b5e3cf295b6b9e39077df44c...  ...     4\n3    56e134308638d24a1e6c63311a87ac759d1b84df3d1f02...  ...     3\n4    bf33873971bee6854c0950084e3979f5b23586923edad0...  ...     4\n..                                                 ...  ...   ...\n188  ecc1f26851e9922b5701fdfdf192ed1aff4b0d230ca6f1...  ...    34\n189  d16f663b6e6f349a967fde9db3757de574a1293d8ac8b6...  ...     5\n190  fe14e5ca060572da8e5b3cf0765e6da2313e9b25ad9187...  ...    27\n191  16774a7d106cd0aeb129b2652c36a1029c6fc9f1bb3c73...  ...    20\n192  879e6c41cceabb2ed34b6c9f1dc66c783c4af6284d187b...  ...    42\n\n[193 rows x 15 columns], stop=False)\nStarting workflow: generate_text_embeddings\n  1 / 25 \n  2 / 25 \n  3 / 25 ...\n  4 / 25 .......\n  5 / 25 ...........\n  6 / 25 ...............\n  7 / 25 ...................\n  8 / 25 .......................\n  9 / 25 ...........................\n  10 / 25 ..............................\n  11 / 25 ..................................\n  12 / 25 ......................................\n  13 / 25 ..........................................\n  14 / 25 ..............................................\n  15 / 25 ..................................................\n  16 / 25 ......................................................\n  17 / 25 ..........................................................\n  18 / 25 ..............................................................\n  19 / 25 ..................................................................\n  20 / 25 ......................................................................\n  21 / 25 ..........................................................................\n  22 / 25 ..............................................................................\n  23 / 25 ..................................................................................\n  24 / 25 ......................................................................................\n  25 / 25 ..........................................................................................\n  1 / 25 \n  2 / 25 \n  3 / 25 ...\n  4 / 25 .......\n  5 / 25 ...........\n  6 / 25 ...............\n  7 / 25 ...................\n  8 / 25 .......................\n  9 / 25 ...........................\n  10 / 25 ..............................\n  11 / 25 ..................................\n  12 / 25 ......................................\n  13 / 25 ..........................................\n  14 / 25 ..............................................\n  15 / 25 ..................................................\n  16 / 25 ......................................................\n  17 / 25 ..........................................................\n  18 / 25 ..............................................................\n  19 / 25 ..................................................................\n  20 / 25 ......................................................................\n  21 / 25 ..........................................................................\n  22 / 25 ..............................................................................\n  23 / 25 ..................................................................................\n  24 / 25 ......................................................................................\n  25 / 25 ..........................................................................................\n  1 / 2 ..........................................\n  2 / 2 ............................................................................................\n[2026-06-10T03:21:47Z WARN  lance::dataset::write::insert] No existing dataset at /Users/dabeenkim/Documents/GitHub/HYU-lightRAG/experiments/rag_repro_100_seed20260609/graphrag_smoke_20/output/lancedb/community_full_content.lance, it will be created\n  1 / 22 \n  2 / 22 \n  3 / 22 .....\n  4 / 22 .........\n  5 / 22 ..............\n  6 / 22 ..................\n  7 / 22 .......................\n  8 / 22 ...........................\n  9 / 22 ................................\n  10 / 22 ...................................\n  11 / 22 ........................................\n  12 / 22 .............................................\n  13 / 22 .................................................\n  14 / 22 ......................................................\n  15 / 22 ..........................................................\n  16 / 22 ...............................................................\n  17 / 22 ...................................................................\n  18 / 22 ........................................................................\n  19 / 22 ............................................................................\n  20 / 22 .................................................................................\n  21 / 22 .....................................................................................\n  22 / 22 ..........................................................................................\n[2026-06-10T03:22:04Z WARN  lance::dataset::write::insert] No existing dataset at /Users/dabeenkim/Documents/GitHub/HYU-lightRAG/experiments/rag_repro_100_seed20260609/graphrag_smoke_20/output/lancedb/text_unit_text.lance, it will be created\n  1 / 5 ............\n  2 / 5 ................................\n  3 / 5 ....................................................\n  4 / 5 ........................................................................\n  5 / 5 ............................................................................................\nWorkflow complete: generate_text_embeddings\nWorkflowFunctionOutput(result=None, stop=False)\nPipeline complete\n&quot;
+      },
+      {
+        &quot;stage&quot;: &quot;update&quot;,
+        &quot;root&quot;: &quot;/Users/dabeenkim/Documents/GitHub/HYU-lightRAG/experiments/rag_repro_100_seed20260609/graphrag_full_100_update&quot;,
+        &quot;command&quot;: &quot;update&quot;,
+        &quot;method&quot;: &quot;standard-update&quot;,
+        &quot;returncode&quot;: 0,
+        &quot;elapsed_seconds&quot;: 21.221,
+        &quot;output_excerpt&quot;: &quot;\u001b[92m12:24:47 - LiteLLM:WARNING\u001b[0m: common_utils.py:979 - litellm: could not pre-load bedrock-runtime response stream shape — Bedrock event-stream decoding will be unavailable. Error: No module named &#x27;botocore&#x27;\n\u001b[92m12:24:47 - LiteLLM:WARNING\u001b[0m: common_utils.py:24 - litellm: could not pre-load sagemaker-runtime response stream shape — SageMaker event-stream decoding will be unavailable. Error: No module named &#x27;botocore&#x27;\nStarting pipeline with workflows: \nPipeline complete\n&quot;
+      },
+      {
+        &quot;stage&quot;: &quot;fresh-full&quot;,
+        &quot;root&quot;: &quot;/Users/dabeenkim/Documents/GitHub/HYU-lightRAG/experiments/rag_repro_100_seed20260609/graphrag_full_100_fresh&quot;,
+        &quot;command&quot;: &quot;index&quot;,
+        &quot;method&quot;: &quot;standard&quot;,
+        &quot;returncode&quot;: 0,
+        &quot;elapsed_seconds&quot;: 4356.857,
+        &quot;output_excerpt&quot;: &quot;.....................\n  10 / 25 ..............................\n  11 / 25 ..................................\n  12 / 25 ......................................\n  13 / 25 ..........................................\n  14 / 25 ..............................................\n  15 / 25 ..................................................\n  16 / 25 ......................................................\n  17 / 25 ..........................................................\n  18 / 25 ...............
+...[truncated]</pre></details>
+  <h3>Table 5: Case Study: NaiveRAG vs LightRAG</h3>
+  <table><thead><tr><th>Query</th><th>Mode</th><th>Latency</th><th>Retrieved</th><th>Sources</th><th>Patent citations</th><th>Answer excerpt</th></tr></thead><tbody><tr><td>C-1</td><td>naive</td><td>91.1s</td><td>C=10</td><td>9</td><td>4</td><td>## 비교 요약
+
+제공된 문맥에서 **인-메모리 컴퓨팅 방식**은 연산을 메모리 내부 또는 메모리 가까이에서 수행하는 구조로 설명된다. 예를 들어 CIM 방식의 혼합 정밀도 DNN 추론 프로세서는 입력 데이터를 메모리에 저장하고, 저비트 인라이어는 아날로그 CIM으로, 고비트 아웃라이어는 디지털 CIM으로 연산한 뒤 합산한다. 또한 PIM 방식은 메모리 프로세서, 작업 메모리, 메모리 뱅크를 포함하는 인라인 메모리 모듈에서 조인 연산을 수행하거나, 메모리 셀 어레이와 센싱 회로를 이용해 비트 벡터 연산을 수행하는 형태로 나타난다.
+
+반면, 문맥에서 **hardware operator fusion**이라는 용어 자체는 직접 정의되어 있지 않다. 다만 가장 가까운 근거로는 하드웨어 실행 회로가 **fused multiply-accumulate** 연산을 수행하는 구조가 제시된다. 이 방식은 GPU의 SIMT 아키텍처 기반 멀티프로세서에서 혼합 정밀도 명령을 여러 스레드에 병렬 실행하고, 16비트 부동소수점 소스값들을 곱해 중간 결과를 만든 뒤 32비트 누산기로 누산하는 구조다.
+
+## 핵심 차이
+
+**연산 위치**에서 차이가 있다. 인-메모리 컴퓨팅은 메모리, 메모리 모듈, 메모리 셀 어레이, 센싱 회로 등 메모리 구조 안팎에서 연산을 수행하는 데 초점이 있다. 반면 문맥상 hardware fusion에 해당하는 fused multiply-accumulate 방식은 GPU 멀티프로세서 내부의 실행 회로, multiplier, accumulator를 통해 산술 연산을 통합 수행한다.
+
+**주요 목적**도 다르다. 인-메모리 컴퓨팅은 DNN 혼합 정밀도 연산 효율 향상, 아웃라이어로 인한 처리량 제한 방지, ADC 오버헤드 최소화, CPU를 대체할 수 있는 PIM 기반 조인 연산 수행, 비트 벡터 연산 제어 등에 사용된다. 반면 fused multiply-accumulate 하드웨어 방식은 머신러닝 연산 가속을 위한 GPU 연산 유닛 구조로 설명된다.
+
+**처리 대상**에서도 차이가 있다. 인-메모리 컴퓨팅은 DNN 입력 데이터, 인라이어/아웃라이어, 데이터 셋 조인 연산, 비트 벡터 연산 등 메모리 중심 데이터 처리를 다룬다. 반면 fuse ...[truncated]</td></tr><tr><td>C-1</td><td>hybrid</td><td>117.3s</td><td>E=27, R=38, C=10</td><td>27</td><td>5</td><td>## 비교 요약
+
+제공된 문맥에서 **인-메모리 컴퓨팅 방식**은 연산을 메모리 가까이 또는 메모리 내부에서 수행해 데이터 이동을 줄이고 특정 워크로드를 가속하는 구조로 설명된다. 예를 들어 CIM 연산기는 저비트 인라이어는 **아날로그 CIM**으로, 고비트 아웃라이어는 **디지털 CIM**으로 처리한 뒤 결과를 합산하며, 이를 통해 DNN 혼합 정밀도 연산에서 처리량 제한과 ADC 오버헤드를 줄이는 것을 목표로 한다[1]. PIM 기반 장치는 메인 메모리, PIM 모듈, 프로세서를 포함하고, 작업 메모리로 올라온 데이터셋에 대해 조인 연산을 수행하도록 구성된다[4]. 또 다른 예로 DIMC 기반 칩렛은 트랜스포머의 어텐션 함수 계산을 가속하고, SIMD 장치가 DIMC 출력을 추가 처리해 소프트맥스 함수를 계산한다[5].
+
+반면, 문맥에서 **hardware operator fusion**이라는 용어 자체는 독립적으로 정의되어 있지 않다. 다만 가장 직접적으로 대응되는 내용은 하드웨어가 여러 기본 연산을 하나의 실행 단위로 결합해 수행하는 **fused multiply-accumulate(FMA)** 방식이다. 예를 들어 다중 프로세서는 mixed-precision instruction을 여러 스레드에서 병렬 실행하고, 실행 회로는 16비트 승산기와 32비트 누산기를 사용해 곱셈 결과를 누산값에 더하는 fused multiply-accumulate operation을 수행한다[2]. 신경망 처리 장치에서도 행렬 처리 유닛이 다수의 병렬 FMA 연산을 수행해 행렬 곱셈 결과를 생성한다[6].
+
+## 핵심 차이
+
+**연산 위치**에서 차이가 크다. 인-메모리 컴퓨팅은 메모리 내부 또는 메모리와 가까운 모듈에서 연산을 수행하는 방식이다. CIM/PIM/DIMC 장치가 그 예이며, 메모리 내 컴퓨팅 연산, 조인 연산, 트랜스포머 어텐션 계산 같은 워크로드를 메모리 중심 구조에서 처리한다[1][4][5]. 반면 FMA 기반 hardware operator fusion은 실행 회로 또는 행렬 처리 유닛 안에서 곱셈과 누산 같은 연산자를 결합해 처리하는 방식으로 설명된다[2][6].
+
+**최적화 목표**도 다르다. 인-메모리 컴퓨팅은 데이터 이 ...[truncated]</td></tr></tbody></table>
+
+  
+    <h2 id="discussion">Discussion and Conclusion</h2>
+    <p>이번 실험은 Patent-100에서 LightRAG graph indexing, GraphRAG indexing/query, Gemini judge 평가까지 재현 가능한 pipeline으로 완주했다. 다만 judge win-rate를 그대로 성능 결론으로 읽기에는 답변 길이 편향이 가장 큰 교란 요인이다.</p>
+    <table><thead><tr><th>Finding</th><th>Evidence</th><th>Interpretation</th></tr></thead><tbody><tr><td>Graph construction succeeded</td><td>metadata relation=0.01, technical relation=0.9401, excluded entity=0.0044</td><td>특허번호/분류코드 중심 hub는 억제됐고, 기술 entity/relation 중심 graph는 목표 기준을 충족했다.</td></tr><tr><td>GraphRAG global wins, but length bias is a major confound</td><td>Overall wins: GraphRAG global 13 vs LightRAG hybrid 2; avg length ratio=2.43x (3218 vs 1325 chars)</td><td>Comprehensiveness/Diversity/Empowerment rubric은 긴 답변에 구조적으로 유리하므로, GraphRAG global 우위는 verbosity bias 가능성을 함께 보고해야 한다.</td></tr><tr><td>LightRAG hybrid is not clearly better than naive</td><td>Overall wins: LightRAG hybrid 8 vs naive 7; avg length ratio naive/hybrid=1.06x</td><td>이 특허 데이터에서는 chunk-only retrieval만으로도 답변 생성에 충분한 정보가 잡혔고, graph context의 추가 이득은 제한적으로 관찰됐다.</td></tr><tr><td>GraphRAG local is weak for this query set</td><td>Overall wins: LightRAG hybrid 14 vs GraphRAG local 1; GraphRAG local avg length=1879 chars (1.42x hybrid)</td><td>15개 쿼리가 broad 기술관계 질문 중심이라 entity-description local retrieval보다 global community/theme retrieval에 유리했을 가능성이 높다.</td></tr><tr><td>GraphRAG global also beats naive</td><td>Overall wins: GraphRAG global 12 vs naive 3</td><td>다만 이 비교 역시 GraphRAG global의 답변 길이가 길다는 confound를 공유하므로, 최종 결론은 길이 통제 실험 전까지 보수적으로 해석해야 한다.</td></tr></tbody></table>
+    <h3>Conclusion</h3>
+    <p>현재 결과의 보수적 결론은 다음과 같다. LightRAG의 특허 특화 graph 구축은 정량 품질 지표상 성공했다. 그러나 답변 품질 평가에서는 LightRAG hybrid가 naive 대비 뚜렷한 우위를 보이지 않았고, GraphRAG global의 강한 승률은 답변 길이 효과와 분리해서 해석해야 한다. 따라서 다음 단계에서는 동일 길이 조건 또는 judge prompt의 verbosity penalty를 둔 재평가가 필요하다.</p>
+    
+
+  <h2 id="appendix">Appendix 7.1: Experimental Data Details</h2>
+  <details open><summary>Sampling manifest</summary><pre>{
+  &quot;seed&quot;: 20260609,
+  &quot;per_category&quot;: 25,
+  &quot;smoke_per_category&quot;: 5,
+  &quot;categories&quot;: [
+    &quot;AA&quot;,
+    &quot;AB&quot;,
+    &quot;AC&quot;,
+    &quot;AD&quot;
+  ],
+  &quot;available_by_category&quot;: {
+    &quot;AA&quot;: 3833,
+    &quot;AB&quot;: 923,
+    &quot;AC&quot;: 752,
+    &quot;AD&quot;: 1137
+  },
+  &quot;selected_ids_by_category&quot;: {
+    &quot;AA&quot;: [
+      &quot;15-091413&quot;,
+      &quot;16-400562&quot;,
+      &quot;16-507493&quot;,
+      &quot;16-599306&quot;,
+      &quot;16-653346&quot;,
+      &quot;17-128290&quot;,
+      &quot;17-250890&quot;,
+      &quot;17-291315&quot;,
+      &quot;17-887145&quot;,
+      &quot;18-207755&quot;,
+      &quot;18-239198&quot;,
+      &quot;18-300955&quot;,
+      &quot;18-318521&quot;,
+      &quot;18-389361&quot;,
+      &quot;18-462872&quot;,
+      &quot;18-530101&quot;,
+      &quot;19-013580&quot;,
+      &quot;2017-0036715&quot;,
+      &quot;2020-7036316&quot;,
+      &quot;2021-0024247&quot;,
+      &quot;2021-0110666&quot;,
+      &quot;2023-0042255&quot;,
+      &quot;2023-7014865&quot;,
+      &quot;2024-0020571&quot;,
+      &quot;2024-7013969&quot;
+    ],
+    &quot;AB&quot;: [
+      &quot;13-067154&quot;,
+      &quot;13-467591&quot;,
+      &quot;13-925471&quot;,
+      &quot;13-976413&quot;,
+      &quot;14-254805&quot;,
+      &quot;15-143248&quot;,
+      &quot;15-173995&quot;,
+      &quot;15-903200&quot;,
+      &quot;16-060058&quot;,
+      &quot;16-506687&quot;,
+      &quot;16-551328&quot;,
+      &quot;16-632673&quot;,
+      &quot;16-805341&quot;,
+      &quot;17-142133&quot;,
+      &quot;17-325083&quot;,
+      &quot;17-326095&quot;,
+      &quot;17-511417&quot;,
+      &quot;17-650343&quot;,
+      &quot;17-829552&quot;,
+      &quot;18-200173&quot;,
+      &quot;18-243437&quot;,
+      &quot;18-421121&quot;,
+      &quot;18-635917&quot;,
+      &quot;18-979453&quot;,
+      &quot;2023-0108318&quot;
+    ],
+    &quot;AC&quot;: [
+      &quot;15-786452&quot;,
+      &quot;15-835591&quot;,
+      &quot;15-943926&quot;,
+      &quot;16-746419&quot;,
+      &quot;17-097501&quot;,
+      &quot;17-150891&quot;,
+      &quot;17-175263&quot;,
+      &quot;17-196922&quot;,
+      &quot;17-207114&quot;,
+      &quot;17-324964&quot;,
+      &quot;17-444788&quot;,
+      &quot;17-459782&quot;,
+      &quot;17-682100&quot;,
+      &quot;17-694184&quot;,
+      &quot;17-884963&quot;,
+      &quot;17-934691&quot;,
+      &quot;17-953151&quot;,
+      &quot;18-334262&quot;,
+      &quot;18-613361&quot;,
+      &quot;18-769849&quot;,
+      &quot;18-777870&quot;,
+      &quot;18-936210&quot;,
+      &quot;2017-0093014&quot;,
+      &quot;2023-0050666&quot;,
+      &quot;2023-7024558&quot;
+    ],
+    &quot;AD&quot;: [
+      &quot;13-096297&quot;,
+      &quot;15-957657&quot;,
+      &quot;15-964901&quot;,
+      &quot;16-367952&quot;,
+      &quot;16-377081&quot;,
+      &quot;16-498676&quot;,
+      &quot;16-823443&quot;,
+      &quot;16-844988&quot;,
+      &quot;17-115989&quot;,
+      &quot;17-163261&quot;,
+      &quot;17-560950&quot;,
+      &quot;17-579995&quot;,
+      &quot;17-771143&quot;,
+      &quot;17-807698&quot;,
+      &quot;18-064119&quot;,
+      &quot;18-163916&quot;,
+      &quot;18-212648&quot;,
+      &quot;18-230375&quot;,
+      &quot;18-493616&quot;,
+      &quot;2020-0128951&quot;,
+      &quot;2022-7012861&quot;,
+      &quot;2023-0008349&quot;,
+      &quot;2023-0101219&quot;,
+      &quot;2023-0133502&quot;,
+      &quot;2023-0179661&quot;
+    ]
+  },
+  &quot;smoke_ids_by_category&quot;: {
+    &quot;AA&quot;: [
+      &quot;15-091413&quot;,
+      &quot;16-400562&quot;,
+      &quot;16-507493&quot;,
+      &quot;16-599306&quot;,
+      &quot;16-653346&quot;
+    ],
+    &quot;AB&quot;: [
+      &quot;13-067154&quot;,
+      &quot;13-467591&quot;,
+      &quot;13-925471&quot;,
+      &quot;13-976413&quot;,
+      &quot;14-254805&quot;
+    ],
+    &quot;AC&quot;: [
+      &quot;15-786452&quot;,
+      &quot;15-835591&quot;,
+      &quot;15-943926&quot;,
+      &quot;16-746419&quot;,
+      &quot;17-097501&quot;
+    ],
+    &quot;AD&quot;: [
+      &quot;13-096297&quot;,
+      &quot;15-957657&quot;,
+      &quot;15-964901&quot;,
+      &quot;16-367952&quot;,
+      &quot;16-377081&quot;
+    ]
+  },
+  &quot;remaining_ids_by_category&quot;: {
+    &quot;AA&quot;: [
+      &quot;17-128290&quot;,
+      &quot;17-250890&quot;,
+      &quot;17-291315&quot;,
+      &quot;17-887145&quot;,
+      &quot;18-207755&quot;,
+      &quot;18-239198&quot;,
+      &quot;18-300955&quot;,
+      &quot;18-318521&quot;,
+      &quot;18-389361&quot;,
+      &quot;18-462872&quot;,
+      &quot;18-530101&quot;,
+      &quot;19-013580&quot;,
+      &quot;2017-0036715&quot;,
+      &quot;2020-7036316&quot;,
+      &quot;2021-0024247&quot;,
+      &quot;2021-0110666&quot;,
+      &quot;2023-0042255&quot;,
+      &quot;2023-7014865&quot;,
+      &quot;2024-0020571&quot;,
+      &quot;2024-7013969&quot;
+    ],
+    &quot;AB&quot;: [
+      &quot;15-143248&quot;,
+      &quot;15-173995&quot;,
+      &quot;15-903200&quot;,
+      &quot;16-060058&quot;,
+      &quot;16-506687&quot;,
+      &quot;16-551328&quot;,
+      &quot;16-632673&quot;,
+      &quot;16-805341&quot;,
+      &quot;17-142133&quot;,
+      &quot;17-325083&quot;,
+      &quot;17-326095&quot;,
+      &quot;17-511417&quot;,
+      &quot;17-650343&quot;,
+      &quot;17-829552&quot;,
+      &quot;18-200173&quot;,
+      &quot;18-243437&quot;,
+      &quot;18-421121&quot;,
+      &quot;18-635917&quot;,
+      &quot;18-979453&quot;,
+      &quot;2023-0108318&quot;
+    ],
+    &quot;AC&quot;: [
+      &quot;17-150891&quot;,
+      &quot;17-175263&quot;,
+      &quot;17-196922&quot;,
+      &quot;17-207114&quot;,
+      &quot;17-324964&quot;,
+      &quot;17-444788&quot;,
+      &quot;17-459782&quot;,
+      &quot;17-682100&quot;,
+      &quot;17-694184&quot;,
+      &quot;17-884963&quot;,
+      &quot;17-934691&quot;,
+      &quot;17-953151&quot;,
+      &quot;18-334262&quot;,
+      &quot;18-613361&quot;,
+      &quot;18-769849&quot;,
+      &quot;18-777870&quot;,
+      &quot;18-936210&quot;,
+      &quot;2017-0093014&quot;,
+      &quot;2023-0050666&quot;,
+      &quot;2023-7024558&quot;
+    ],
+    &quot;AD&quot;: [
+      &quot;16-498676&quot;,
+      &quot;16-823443&quot;,
+      &quot;16-844988&quot;,
+      &quot;17-115989&quot;,
+      &quot;17-163261&quot;,
+      &quot;17-560950&quot;,
+      &quot;17-579995&quot;,
+      &quot;17-771143&quot;,
+      &quot;17-807698&quot;,
+      &quot;18-064119&quot;,
+      &quot;18-163916&quot;,
+      &quot;18-212648&quot;,
+      &quot;18-230375&quot;,
+      &quot;18-493616&quot;,
+      &quot;2020-0128951&quot;,
+      &quot;2022-7012861&quot;,
+      &quot;2023-0008349&quot;,
+      &quot;2023-0101219&quot;,
+      &quot;2023-0133502&quot;,
+      &quot;2023-0179661&quot;
+    ]
+  },
+  &quot;total_selected&quot;: 100,
+  &quot;total_smoke&quot;: 20,
+  &quot;total_remaining&quot;: 80,
+  &quot;git_commit&quot;: &quot;53d2450&quot;,
+  &quot;input&quot;: &quot;/Users/dabeenkim/Documents/GitHub/HYU-lightRAG/patent_rawdata.csv&quot;,
+  &quot;sample_summary&quot;: {
+    &quot;rows&quot;: 100,
+    &quot;category_counts&quot;: {
+      &quot;AA&quot;: 25,
+      &quot;AB&quot;: 25,
+      &quot;AC&quot;: 25,
+      &quot;AD&quot;: 25
+    },
+    &quot;sub_category_counts&quot;: {
+      &quot;AA/AAA&quot;: 4,
+      &quot;AA/AAB&quot;: 4,
+      &quot;AA/AAC&quot;: 1,
+      &quot;AA/AAD&quot;: 15,
+      &quot;AA/AAE&quot;: 1,
+      &quot;AB/ABA&quot;: 6,
+      &quot;AB/ABB&quot;: 6,
+      &quot;AB/ABD&quot;: 5,
+      &quot;AB/ABE&quot;: 8,
+      &quot;AC/ACA&quot;: 13,
+      &quot;AC/ACB&quot;: 9,
+      &quot;AC/ACC&quot;: 3,
+      &quot;AD/ADA&quot;: 6,
+      &quot;AD/ADB&quot;: 6,
+      &quot;AD/ADC&quot;: 12,
+      &quot;AD/ADD&quot;: 1
+    },
+    &quot;year_counts&quot;: {
+      &quot;2011&quot;: 3,
+      &quot;2012&quot;: 1,
+      &quot;2013&quot;: 1,
+      &quot;2014&quot;: 1,
+      &quot;2016&quot;: 4,
+      &quot;2017&quot;: 6,
+      &quot;2018&quot;: 5,
+      &quot;2019&quot;: 11,
+      &quot;2020&quot;: 10,
+      &quot;2021&quot;: 17,
+      &quot;2022&quot;: 11,
+      &quot;2023&quot;: 21,
+      &quot;2024&quot;: 8,
+      &quot;2025&quot;: 1
+    }
+  },
+  &quot;smoke_summary&quot;: {
+    &quot;rows&quot;: 20,
+    &quot;category_counts&quot;: {
+      &quot;AA&quot;: 5,
+      &quot;AB&quot;: 5,
+      &quot;AC&quot;: 5,
+      &quot;AD&quot;: 5
+    },
+    &quot;sub_category_counts&quot;: {
+      &quot;AA/AAA&quot;: 1,
+      &quot;AA/AAD&quot;: 4,
+      &quot;AB/ABD&quot;: 1,
+      &quot;AB/ABE&quot;: 4,
+      &quot;AC/ACA&quot;: 3,
+      &quot;AC/ACB&quot;: 2,
+      &quot;AD/ADA&quot;: 3,
+      &quot;AD/ADC&quot;: 2
+    },
+    &quot;year_counts&quot;: {
+      &quot;2011&quot;: 3,
+      &quot;2012&quot;: 1,
+      &quot;2013&quot;: 1,
+      &quot;2014&quot;: 1,
+      &quot;2016&quot;: 1,
+      &quot;2017&quot;: 2,
+      &quot;2018&quot;: 3,
+      &quot;2019&quot;: 6,
+      &quot;2020&quot;: 2
+    }
+  },
+  &quot;remaining_summary&quot;: {
+    &quot;rows&quot;: 80,
+    &quot;category_counts&quot;: {
+      &quot;AA&quot;: 20,
+      &quot;AB&quot;: 20,
+      &quot;AC&quot;: 20,
+      &quot;AD&quot;: 20
+    },
+    &quot;sub_category_counts&quot;: {
+      &quot;AA/AAA&quot;: 3,
+      &quot;AA/AAB&quot;: 4,
+      &quot;AA/AAC&quot;: 1,
+      &quot;AA/AAD&quot;: 11,
+      &quot;AA/AAE&quot;: 1,
+      &quot;AB/ABA&quot;: 6,
+      &quot;AB/ABB&quot;: 6,
+      &quot;AB/ABD&quot;: 4,
+      &quot;AB/ABE&quot;: 4,
+      &quot;AC/ACA&quot;: 10,
+      &quot;AC/ACB&quot;: 7,
+      &quot;AC/ACC&quot;: 3,
+      &quot;AD/ADA&quot;: 3,
+      &quot;AD/ADB&quot;: 6,
+      &quot;AD/ADC&quot;: 10,
+      &quot;AD/ADD&quot;: 1
+    },
+    &quot;year_counts&quot;: {
+      &quot;2016&quot;: 3,
+      &quot;2017&quot;: 4,
+      &quot;2018&quot;: 2,
+      &quot;2019&quot;: 5,
+      &quot;2020&quot;: 8,
+      &quot;2021&quot;: 17,
+      &quot;2022&quot;: 11,
+      &quot;2023&quot;: 21,
+      &quot;2024&quot;: 8,
+      &quot;2025&quot;: 1
+    }
+  },
+  &quot;doc_count&quot;: 100,
+  &quot;query_count&quot;: 15,
+  &quot;token_estimate&quot;: {
+    &quot;total&quot;: 82950,
+    &quot;average&quot;: 829.5
+  },
+  &quot;category_counts&quot;: {
+    &quot;AA&quot;: 25,
+    &quot;AB&quot;: 25,
+    &quot;AC&quot;: 25,
+    &quot;AD&quot;: 25
+  },
+  &quot;files&quot;: {
+    &quot;patents_100_jsonl&quot;: &quot;/Users/dabeenkim/Documents/GitHub/HYU-lightRAG/experiments/rag_repro_100_seed20260609/dataset/patents_100.jsonl&quot;,
+    &quot;queries_jsonl&quot;: &quot;/Users/dabeenkim/Documents/GitHub/HYU-lightRAG/experiments/rag_repro_100_seed20260609/queries/eval_queries_15.jsonl&quot;
+  }
+}</pre></details>
+  <h2>Appendix 7.2: Retrieval-Augmented Generation Example</h2>
+  
+    <h3>Keyword Extraction and Retrieved Context</h3>
+    <table><thead><tr><th>query_id</th><th>mode</th><th>question</th><th>elapsed</th><th>source_patents</th></tr></thead><tbody><tr><td>AA-1</td><td>hybrid</td><td>AI 코어 및 가속기 특허에서 신경망 연산 가속기 구조는 어떤 방식으로 연산 병렬성을 높이는가?</td><td>119.0s</td><td>20</td></tr></tbody></table>
+    <details open><summary>Query metadata</summary><pre>{
+  &quot;query_mode&quot;: &quot;hybrid&quot;,
+  &quot;keywords&quot;: {
+    &quot;high_level&quot;: [
+      &quot;AI 코어&quot;,
+      &quot;가속기 특허&quot;,
+      &quot;신경망 연산 가속기 구조&quot;,
+      &quot;연산 병렬성 향상 방식&quot;
+    ],
+    &quot;low_level&quot;: [
+      &quot;신경망 연산&quot;,
+      &quot;가속기 구조&quot;,
+      &quot;연산 병렬성&quot;
+    ]
+  },
+  &quot;processing_info&quot;: {
+    &quot;total_entities_found&quot;: 24,
+    &quot;total_relations_found&quot;: 36,
+    &quot;entities_after_truncation&quot;: 24,
+    &quot;relations_after_truncation&quot;: 36,
+    &quot;merged_chunks_count&quot;: 20,
+    &quot;final_chunks_count&quot;: 10
+  }
+}</pre></details>
+    <table><thead><tr><th>context</th><th>count</th><th>sample</th></tr></thead><tbody><tr><td>entities</td><td>24</td><td>[{&quot;entity_name&quot;: &quot;신경망 가속기&quot;, &quot;entity_type&quot;: &quot;architecture&quot;, &quot;description&quot;: &quot;신경망 가속기는 하드웨어 시스템에서 신경망 계층을 실행하도록 구성되는 하드웨어 구조이다.&quot;, &quot;source_id&quot;: &quot;15-786452-chunk-000&quot;, &quot;file_path&quot;: &quot;15-786452&quot;, &quot;created_at&quot;: 1781007654}, {&quot;entity_name&quot;: &quot;AI 하드웨어 가속기&quot;, &quot;entity_type&quot;: &quot;architecture&quot;, &quot;description&quot;: &quot;AI 하드웨어 가속기는 원본 텐서의 희소 값 정보, 형상 데이터, 이진 맵을 활용해 고밀도 텐서에 대한 신경망 연산을 수행하는 구조이다.&quot;, &quot;source_id&quot;: &quot;18-207755-chunk-000&quot;, &quot;file_path&quot;: &quot;18-207755&quot;, &quot;created_at&quot;: 1781020594}, {&quot;entity_name&quot;: &quot;신경망 프로세서&quot;, &quot;entity_type&quot;: &quot;architecture&quot;, &quot;description&quot;: &quot;신경망 프로세서는 신경망 연산을 수행하는 프로세서이다.&quot;, &quot;source_id&quot;: &quot;18-212648-chunk-000&quot;, &quot;file_path&quot;: &quot;18-212648&quot;, &quot;created_at&quot;: 1781018005}]</td></tr><tr><td>relationships</td><td>36</td><td>[{&quot;src_id&quot;: &quot;신경망&quot;, &quot;tgt_id&quot;: &quot;신경망 활성화 로직 구현 장치&quot;, &quot;description&quot;: &quot;신경망 활성화 로직 구현 장치는 신경망을 위한 활성화 로직을 구현한다.&quot;, &quot;keywords&quot;: &quot;적용,활성화 로직&quot;, &quot;weight&quot;: 1.0, &quot;source_id&quot;: &quot;17-291315-chunk-000&quot;, &quot;file_path&quot;: &quot;17-291315&quot;, &quot;created_at&quot;: 1781016186}, {&quot;src_id&quot;: &quot;AI 하드웨어 가속기&quot;, &quot;tgt_id&quot;: &quot;회로 구성요소&quot;, &quot;description&quot;: &quot;AI 하드웨어 가속기는 텐서 처리와 신경망 연산 수행을 위한 하나 이상의 회로 구성요소를 포함한다.&quot;, &quot;keywords&quot;: &quot;구성요소,포함&quot;, &quot;weight&quot;: 1.0, &quot;source_id&quot;: &quot;18-207755-chunk-000&quot;, &quot;file_path&quot;: &quot;18-207755&quot;, &quot;created_at&quot;: 1781020594}, {&quot;src_id&quot;: &quot;신경망&quot;, &quot;tgt_id&quot;: &quot;컨볼루션 연산&quot;, &quot;description&quot;: &quot;컨볼루션 연산은 신경망에 관련된 계산으로 수행된다.&lt;SEP&gt;컨볼루션 연산은 신경망 계층의 입력 데이터와 커널 데이터를 대상으로 수행된다.&quot;, &quot;keywords&quot;: &quot;수행,신경망 연산,적용&quot;, &quot;weight&quot;: 2.0, &quot;source_id&quot;: &quot;17-459782-chunk-000&lt;SEP&gt;17-196922-chunk-000&quot;, &quot;file_path&quot;: &quot;17-459782&lt;SEP&gt;17-196922&quot;, &quot;created_at&quot;: 1781015678}]</td></tr><tr><td>chunks</td><td>10</td><td>[{&quot;reference_id&quot;: &quot;1&quot;, &quot;content&quot;: &quot;문서 유형: AI 반도체 특허\npatent_id: 17-511417\n출원번호: 17-511417\n공개번호: 2022-0050683\n발명의 명칭: Apparatuses, methods, and systems for neural networks\n요약: Methods and apparatuses relating to processing neural networks are described. In one embodiment, an apparatus to process a neural network includes a plurality of fully connected layer chips coupled by an interconnect; a plurality of convolutional layer chips each coupled by an interconnect to a respective fully connected layer chip of the plurality of fully connected layer chips and each of the plurality of fully connected layer chips and the plurality of convolutional layer chips including an interconnect to couple each of a forward propagation compute intensive tile, a back propagation compute intensive tile, and a weight gradient compute intensive tile of a column of compute intensive tiles between a first memory intensive tile and a second memory intensive tile.\nAI요약(목적): 공유 메모리에서 액세스 동기화를 제공한다.\nAI요약(솔루션 ...[truncated]</td></tr></tbody></table>
+    
+  <h2>Appendix 7.3.1: Graph Generation Prompt and Outputs</h2>
+  <details open><summary>Prompt excerpt</summary><pre>entity_types_guidance: |
+  Extract only technical knowledge graph entities and relationships from AI semiconductor patent text.
+  Use Korean descriptions unless an entity name is a technical English term.
+
+  Do not extract administrative metadata as entities:
+  - patent_id, application number, publication number, registration number
+  - IPC/CPC classification codes
+  - country codes and nationalities such as US, KR, JP, CN, EP, WO
+  - legal status values such as 등록, 공개, 거절, 소멸
+  - application/publication/registration dates and years
+  - claim numbers such as 청구항1
+  - category/subcategory codes such as AA, AB, AC, AD, AAA, AAD, ACC
+
+  Also avoid making broad document labels into entities, such as &quot;AI 반도체 특허&quot; or &quot;특허 문서&quot;.
+  If a category name is only administrative classification, do not extract it.
+
+  Classify each extracted entity using one of these types:
+  - TechComponent: hardware components, circuits, units, devices, memory blocks, processing elements, buses, interfaces
+  - Architecture: system, processor, memory, packaging, interconnect, accelerator, or in-memory computing architecture
+  - Operation: neural-network operation, matrix operation, data movement, scheduling, control, read/write, update, fusion, compilation
+  - Method: algorithm, procedure, manufacturing process, optimization method, execution method
+  - Material: semiconductor, device, packaging, wiring, electrode, memory cell, or process material when technically central
+  - PerformanceMetric: throughput, latency, power consumption, bandwidth, efficiency, accuracy, density, timing parameter
+  - ApplicationDomain: neural network, artificial intelligence processor, transformer workload, object detection, recommendation, inference
+  - Organization: applicant or owner only when it is technically relevant to the narrative; otherwise skip
+  - Other: use only when the entity is clearly technical but no type fits
+
+  Extract relationships only between extracted technical entities.
+  Prefer concise technical relationship keywords such as:
+  - 구성요소, 포함, 연결, 저장, 판독, 제어, 생성, 수행, 최적화, 가속, 융합, 컴파일, 데이터 전송, 아키텍처 활용
+
+entity_extraction_examples:
+  - |
+    ---Entity Types---
+    - TechComponent: hardware components, circuits, units, devices, memory blocks, processing elements, buses, interfaces
+    - Architecture: system, processor, memory, packaging, interconnect, accelerator, or in-memory computing architecture
+    - Operation: neural-network operation, matrix operation, data movement, scheduling, control, read/write, update, fusion, compilation
+    - Method: algorithm, procedure, manufacturing process, optimization method, execution method
+    - PerformanceMetric: throughput, latency, power consumption, bandwidth, efficiency, accuracy, density, timing parameter
+    - ApplicationDomain: neural network, artificial intelligence processor, transformer workload, object detection, recommendation, inference
+
+    ---Input Text---
+    ```
+    발명의 명칭: Circuit for cmos based resistive processing unit
+    요약: A CMOS-based resistive processing unit (RPU) for a neural network. The RPU includes a capacitor device configured to store a charge representing a weight value associated with a neural network circuit operation. A current source Field Effect Transistor (FET) device is operatively connected to the capacitor device for increasing a charge on the capacitor. A current sink FET device operatively connected to the capacitor device is configured for decreasing the stored capacitor charge. An analog weight update circuit receives one or more update signals generated in conjunction with the neural network circuit operation, the analog weight update circuit controlling the current source FET device and the current sink FET device.
+    AI요약(목적): 아날로그 웨이트 업데이트를 이용하는 심층 신경망을 위한 커패시터 기반의 CMOS 저항 처리 유닛(RPU)을 제공한다.
+    ```
+
+    ---Output---
+    entity{tuple_delimiter}CMOS 저항 처리 유닛{tuple_delimiter}Architecture{tuple_delimiter}CMOS 기반 RPU는 신경망 회로 동작에서 가중치 값을 전하로 표현하고 갱신하는 처리 유닛이다.
+    entity{tuple_delimiter}커패시터 장치{tuple_delimiter}TechComponent{tuple_delimiter}커패시터 장치는 신경망 가중치 값을 나타내는 전하를 저장하는 구성요소이다.
+    entity{tuple_delimiter}전류원 FET{tuple_delimiter}TechComponent{tuple_delimiter}전류원 FET는 커패시터 장치에 연결되어 저장 전하를 증가시키는 트랜지스터 장치이다.
+    entity{tuple_delimiter}전류 싱크 FET{tuple_delimiter}TechComponent{tuple_delimiter}전류 싱크 FET는 커패시터 장치에서 방전 전류를 받아 저장 전하를 감소시키는 트랜지스터 장치이다.
+    entity{tuple_delimiter}아날로그 웨이트 업데이트 회로{tuple_delimiter}TechComponent{tuple_delimiter}아날로그 웨이트 업데이트 회로는 업데이트 신호에 따라 전류원 FET와 전류 싱크 FET를 제어한다.
+    entity{tuple_delimiter}신경망 회로 동작{tuple_delimiter}Operation{tuple_delimiter}신경망 회로 동작은 저장된 전하를 가중치 값으로 사용하는 연산 맥락이다.
+    relation{tuple_delimiter}CMOS 저항 처리 유닛{tuple_delimiter}커패시터 장치{tuple_delimiter}구성요소, 전하 저장{tuple_delimiter}CMOS 저항 처리 유닛은 가중치 값을 나타내는 전하를 저장하기 위해 커패시터 장치를 포함한다.
+    relation{tuple_delimiter}전류원 FET{tuple_delimiter}커패시터 장치{tuple_delimiter}연결, 전하 증가{tuple_delimiter}전류원 FET는 커패시터 장치에 연결되어 저장 전하를 증가시키는 전류를 제공한다.
+    relation{tuple_delimiter}전류 싱크 FET{tuple_delimiter}커패시터 장치{tuple_delimiter}연결, 전하 감소{tuple_delimiter}전류 싱크 FET는 커패시터 장치에서 방전되는 전류를 받아 저장 전하를 감소시킨다.
+    relation{tuple_delimiter}아날로그 웨이트 업데이트 회로{tuple_delimiter}전류원 FET{tuple_delimiter}제어, 가중치 업데이트{tuple_delimiter}아날로그 웨이트 업데이트 회로는 업데이트 신호에 따라 전류원 FET를 제어한다.
+    relation{tuple_delimiter}아날로그 웨이트 업데이트 회로{tuple_delimiter}전류 싱크 FET{tuple_delimiter}제어, 가중치 업데이트{tuple_delimiter}아날로그 웨이트 업데이트 회로는 업데이트 신호에 따라 전류 싱크 FET를 제어한다.
+    {completion_delimiter}
+  - |
+    ---Entity Types---
+    - TechComponent: hardware components, circuits, units, devices, memory blocks, processing elements, buses, interfaces
+    - Architecture: system, processor, memory, packaging, interconnect, accelerator, or in-memory computing architecture
+    - Operation: neural-network operation, matrix operation, data movement, scheduling, control, read/write, update, fusion, compilation
+    - Method: algorithm, procedure, manufacturing process, optimization method, execution method
+    - PerformanceMetric: throughput, latency, power consumption, bandwidth, efficiency, accuracy, density, timing parameter
+    - ApplicationDomain: neural network, artificial intelligence processor, transformer workload, object detection, recommendation, inference
+
+    ---Input Text---
+    ```
+    발명의 명칭: Performing hardware operator fusion
+    요약: A method of generating executable instructions for a computing system is provided. The method comprises receiving a first set of instructions including a kernel of a first operator and a kernel of a second operator. The kernel of the first operator includes write instructions to a virtual data node, and the kernel of the second operator includes read instructions to the virtual data node. The method determines data transfer operations between the first operator and the second operator and generates a second set of instructions representing a fused operator.
+    대표청구항: A method of generating executable instructions for a hardware accelerator includes converting off-chip read inst</pre></details>
+  
+    <h3>R/P/D Function Output Examples</h3>
+    <p class="note">실제 Patent-100 storage에서 특허 <code>16-060058</code>와 graph/VDB payload를 읽어 구성했다.</p>
+    <details open><summary>R input chunk excerpt</summary><pre>문서 유형: AI 반도체 특허
+patent_id: 16-060058
+출원번호: 16-060058
+공개번호: 2018-0374939
+등록번호: 10439056
+발명의 명칭: Power semiconductor device and method of manufacturing power semiconductor device
+요약: A power semiconductor device according to the present invention has a super junction structure, and includes a low-resistance semiconductor layer, an n−-type column region, p−-type column regions, a base region, trenches, gate insulation films, gate electrodes, source regions, interlayer insulation films, contact holes, metal plugs, p+-type diffusion regions, a source electrode and a gate pad electrode. An active element part includes an n−-type column region between a predetermined p−-type column region disposed closest to a gate pad part and a predetermined n−-type column region disposed closest to the gate pad part among the n−-type column regions which are in contact with the trenches. The present invention provides a power semiconductor device which can satisfy a demand for reduction in cost and downsizing of electronic equipment, can lower ON resistance while maintaining a high withstand voltage, and can possess a large breakdown resistance.
+AI요약(목적): 전력 반도체 소자에 관한 것으로, 특히 전자 기기의 가격 절감 및 소형화 요구를 만족시킬 수 있고, 고내압을 유지하면서도 온 저항을 낮출 수 있으며, 큰 항복 저항을 가질 수 있는 전력 반도체 소자를 제공한다.
+AI요약(솔루션): 전력 반도체 소자는 금속 플러그를 포함하며, 전력 반도체 소자를 소정의 단면에서 보았을 때, 능동 소자부는 교대로 배치된 제1 도전형 컬럼 영역 중 게이트 패드부에 가장 가깝게 배치된 제2 도전형 컬럼 영역 사이에 하나 이상의 제1 도전형 컬럼 영역을 포함한다.
+AI요약(목적+솔루션): [목적] 전력 반도체 소자에 관한 것으로, 특히 전자 기기의 가격 절감 및 소형화 요구를 만족시킬 수 있고, 고내압을 유지하면서도 온 저항을 낮출 수 있으며, 큰 항복 저항을 가질 수 있는 전력 반도체 소자를 제공한다. [솔루션] 전력 반도체 소자는 금속 플러그를 포함하며, 전력 반도체 소자를 소정의 단면에서 보았을 때, 능동 소자부는 교대로 배치된 제1 도전형 컬럼 영역 중 게이트 패드부에 가장 가깝게 배치된 제2 도전형 컬럼 영역 사이에 하나 이상의 제1 도전형 컬럼 영역을 포함한다.
+대표청구항: [청구항1] 1. A power semiconductor device having a super junction structure  ...[truncated]</pre></details>
+    <table><thead><tr><th>R output</th><th>count</th><th>sample</th></tr></thead><tbody><tr><td>entities</td><td>29</td><td>베이스 영역, 소스 영역, 고내압, 온 저항, 항복 저항, 게이트 절연막, 전력 반도체 소자, 전력 반도체 소자 제조 방법, 제2 도전형 고농도 확산 영역, 제2 도전형 컬럼 영역</td></tr><tr><td>relations</td><td>49</td><td>층간 절연막 -&gt; 활성 소자부; 능동 소자 전극 -&gt; 제2 도전형 고농도 확산 영역; 능동 소자부 -&gt; 제2 도전형 컬럼 영역; 게이트 패드부 -&gt; 저저항 반도체층; 고내압 -&gt; 전력 반도체 소자; 베이스 영역 -&gt; 제2 도전형 컬럼 영역; 능동 소자 전극 -&gt; 제1 도전형 고농도 확산 영역; 능동 소자부 -&gt; 제1 도전형 컬럼 영역</td></tr></tbody></table>
+    <details open><summary>P entity key-value profile</summary><pre>{
+  &quot;__id__&quot;: &quot;ent-5d4c53e0341a9e7a7a588ff1d12835fc&quot;,
+  &quot;__created_at__&quot;: 1781017535,
+  &quot;entity_name&quot;: &quot;반도체층&quot;,
+  &quot;content&quot;: &quot;반도체층\n반도체층은 단위 시냅스 소자에 포함되며 반도체 물질로 구성되는 층이다.&lt;SEP&gt;반도체층은 활성 소자부와 공통으로 사용되는 반도체 장치의 층 구조이다.&lt;SEP&gt;반도체층은 반도체 소자의 기반 층으로, 층간 절연막이 형성되는 대상이다.&quot;,
+  &quot;source_id&quot;: &quot;2024-0020571-chunk-000&lt;SEP&gt;16-060058-chunk-001&lt;SEP&gt;13-067154-chunk-000&quot;,
+  &quot;file_path&quot;: &quot;2024-0020571&lt;SEP&gt;16-060058&lt;SEP&gt;13-067154&quot;,
+  &quot;vector&quot;: &quot;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
+...[truncated]</pre></details>
+    <details open><summary>P relation key-value profile</summary><pre>{
+  &quot;__id__&quot;: &quot;rel-e018a03af3eacde4fa277129969521d4&quot;,
+  &quot;__created_at__&quot;: 1781003522,
+  &quot;src_id&quot;: &quot;디스플레이 장치&quot;,
+  &quot;tgt_id&quot;: &quot;영상 처리 방법&quot;,
+  &quot;source_id&quot;: &quot;16-632673-chunk-000&quot;,
+  &quot;content&quot;: &quot;영상 데이터 생성,표시\t디스플레이 장치\n영상 처리 방법\n영상 처리 방법은 디스플레이 장치에 표시될 영상 데이터를 생성한다.&quot;,
+  &quot;file_path&quot;: &quot;16-632673&quot;,
+  &quot;vector&quot;: &quot;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
+...[truncated]</pre></details>
+    <h4>D deduplication examples</h4>
+    <table><thead><tr><th>entity</th><th>chunk_count</th><th>chunk_ids</th></tr></thead><tbody><tr><td>프로세서</td><td>16</td><td>[&#x27;2021-0024247-chunk-000&#x27;, &#x27;17-511417-chunk-000&#x27;, &#x27;18-163916-chunk-000&#x27;, &#x27;16-400562-chunk-000&#x27;, &#x27;17-887145-chunk-000&#x27;]</td></tr><tr><td>메모리</td><td>13</td><td>[&#x27;2021-0024247-chunk-000&#x27;, &#x27;2021-0024247-chunk-001&#x27;, &#x27;18-334262-chunk-000&#x27;, &#x27;18-163916-chunk-000&#x27;, &#x27;18-493616-chunk-000&#x27;]</td></tr><tr><td>신경망</td><td>7</td><td>[&#x27;17-459782-chunk-000&#x27;, &#x27;17-511417-chunk-000&#x27;, &#x27;18-462872-chunk-000&#x27;, &#x27;17-196922-chunk-000&#x27;, &#x27;17-291315-chunk-000&#x27;]</td></tr><tr><td>메모리 셀 어레이</td><td>6</td><td>[&#x27;2023-0008349-chunk-000&#x27;, &#x27;2017-0093014-chunk-000&#x27;, &#x27;17-694184-chunk-000&#x27;, &#x27;16-823443-chunk-000&#x27;, &#x27;16-507493-chunk-000&#x27;]</td></tr><tr><td>반도체 기판</td><td>5</td><td>[&#x27;16-551328-chunk-000&#x27;, &#x27;17-326095-chunk-000&#x27;, &#x27;13-925471-chunk-000&#x27;, &#x27;15-173995-chunk-000&#x27;, &#x27;13-096297-chunk-000&#x27;]</td></tr></tbody></table>
+    <table><thead><tr><th>relation</th><th>chunk_count</th><th>chunk_ids</th></tr></thead><tbody><tr><td>메모리&lt;SEP&gt;학습된 딥러닝 모델</td><td>2</td><td>[&#x27;2021-0024247-chunk-000&#x27;, &#x27;2021-0024247-chunk-001&#x27;]</td></tr><tr><td>인공지능 가속기&lt;SEP&gt;제1 데이터 버퍼</td><td>2</td><td>[&#x27;17-459782-chunk-000&#x27;, &#x27;17-196922-chunk-000&#x27;]</td></tr><tr><td>인공지능 가속기&lt;SEP&gt;제2 데이터 버퍼</td><td>2</td><td>[&#x27;17-459782-chunk-000&#x27;, &#x27;17-196922-chunk-000&#x27;]</td></tr><tr><td>제1 데이터 버퍼&lt;SEP&gt;제1 입력 시프트 레지스터</td><td>2</td><td>[&#x27;17-459782-chunk-000&#x27;, &#x27;17-196922-chunk-000&#x27;]</td></tr><tr><td>제2 데이터 버퍼&lt;SEP&gt;제2 입력 시프트 레지스터</td><td>2</td><td>[&#x27;17-459782-chunk-000&#x27;, &#x27;17-196922-chunk-000&#x27;]</td></tr></tbody></table>
+    
+  <h2>Appendix 7.3.2: Query Generation</h2>
+  <p>15개 쿼리는 모델 없이 직접 설계한 고정 평가셋이다.</p>
+  <table><thead><tr><th>query_id</th><th>category</th><th>type</th><th>question</th><th>expected_focus</th></tr></thead><tbody><tr><td>AA-1</td><td>AA</td><td>category_specific</td><td>AI 코어 및 가속기 특허에서 신경망 연산 가속기 구조는 어떤 방식으로 연산 병렬성을 높이는가?</td><td>parallel compute architecture, NPU, matrix operation, dataflow</td></tr><tr><td>AA-2</td><td>AA</td><td>category_specific</td><td>NPU 또는 행렬 연산 장치 관련 특허에서 메모리 접근 병목을 줄이는 기술은 무엇인가?</td><td>memory access bottleneck, buffer, scheduler, data movement</td></tr><tr><td>AB-1</td><td>AB</td><td>category_specific</td><td>인-메모리 컴퓨팅 또는 PIM 구조가 AI 연산 성능을 높이는 핵심 원리는 무엇인가?</td><td>PIM, in-memory computing, analog/digital matrix operation</td></tr><tr><td>AB-2</td><td>AB</td><td>category_specific</td><td>SRAM 또는 DRAM 기반 메모리 아키텍처와 AI 연산 회로의 결합 방식은 어떻게 나타나는가?</td><td>SRAM, DRAM, memory architecture, compute circuit coupling</td></tr><tr><td>AC-1</td><td>AC</td><td>category_specific</td><td>AI 반도체 패키징 또는 인터커넥트 기술은 대역폭과 전력 효율을 어떻게 개선하는가?</td><td>packaging, interconnect, bandwidth, power efficiency</td></tr><tr><td>AC-2</td><td>AC</td><td>category_specific</td><td>칩렛, 적층, TSV, 인터포저 계열 기술이 AI 가속기 구조와 어떤 관계를 갖는가?</td><td>chiplet, stacking, TSV, interposer, accelerator architecture</td></tr><tr><td>AD-1</td><td>AD</td><td>category_specific</td><td>AI 반도체 제조 또는 공정 특허에서 신뢰성이나 수율 개선을 위한 핵심 방법은 무엇인가?</td><td>manufacturing process, reliability, yield, process control</td></tr><tr><td>AD-2</td><td>AD</td><td>category_specific</td><td>소자 구조나 공정 제어가 AI 연산 성능 또는 전력 효율에 미치는 영향은 무엇인가?</td><td>device structure, process control, performance, energy efficiency</td></tr><tr><td>X-1</td><td>cross</td><td>cross_category</td><td>연산 가속기, 메모리 아키텍처, 패키징 기술은 AI 반도체에서 어떤 기술적 의존 관계를 갖는가?</td><td>accelerator-memory-packaging dependency graph</td></tr><tr><td>X-2</td><td>cross</td><td>cross_category</td><td>PIM과 NPU 방식은 데이터 이동 비용을 줄이는 관점에서 어떻게 다르게 접근하는가?</td><td>PIM vs NPU, data movement, memory proximity</td></tr><tr><td>X-3</td><td>cross</td><td>cross_category</td><td>AI 반도체 특허에서 전력 효율, 대역폭, 지연시간 개선 기술은 어떤 관계망을 형성하는가?</td><td>power efficiency, bandwidth, latency, relation network</td></tr><tr><td>F-1</td><td>AB</td><td>fact_check</td><td>특허 16-060058의 주요 구성요소, 해결하려는 문제, 대표청구항의 기술 범위를 설명하라.</td><td>single patent structure, claim elements, problem-solution</td></tr><tr><td>F-2</td><td>AC</td><td>fact_check</td><td>특허 17-444788의 대표청구항에 포함된 회로, 메모리, 연산 구성요소를 source patent 기준으로 정리하라.</td><td>single patent claim components, source-grounded answer</td></tr><tr><td>C-1</td><td>cross</td><td>comparison</td><td>인-메모리 컴퓨팅 방식과 hardware operator fusion 방식의 차이를 비교하라.</td><td>comparison, in-memory computing, operator fusion</td></tr><tr><td>E-1</td><td>AC</td><td>exploratory</td><td>AI 반도체 패키징 기술 동향을 특허 근거 중심으로 탐색적으로 요약하라.</td><td>packaging trend, patent evidence, source coverage</td></tr></tbody></table>
+  <h2>Appendix 7.3.3: Keyword Extraction</h2>
+  
+    <h3>Keyword Extraction and Retrieved Context</h3>
+    <table><thead><tr><th>query_id</th><th>mode</th><th>question</th><th>elapsed</th><th>source_patents</th></tr></thead><tbody><tr><td>AA-1</td><td>hybrid</td><td>AI 코어 및 가속기 특허에서 신경망 연산 가속기 구조는 어떤 방식으로 연산 병렬성을 높이는가?</td><td>119.0s</td><td>20</td></tr></tbody></table>
+    <details open><summary>Query metadata</summary><pre>{
+  &quot;query_mode&quot;: &quot;hybrid&quot;,
+  &quot;keywords&quot;: {
+    &quot;high_level&quot;: [
+      &quot;AI 코어&quot;,
+      &quot;가속기 특허&quot;,
+      &quot;신경망 연산 가속기 구조&quot;,
+      &quot;연산 병렬성 향상 방식&quot;
+    ],
+    &quot;low_level&quot;: [
+      &quot;신경망 연산&quot;,
+      &quot;가속기 구조&quot;,
+      &quot;연산 병렬성&quot;
+    ]
+  },
+  &quot;processing_info&quot;: {
+    &quot;total_entities_found&quot;: 24,
+    &quot;total_relations_found&quot;: 36,
+    &quot;entities_after_truncation&quot;: 24,
+    &quot;relations_after_truncation&quot;: 36,
+    &quot;merged_chunks_count&quot;: 20,
+    &quot;final_chunks_count&quot;: 10
+  }
+}</pre></details>
+    <table><thead><tr><th>context</th><th>count</th><th>sample</th></tr></thead><tbody><tr><td>entities</td><td>24</td><td>[{&quot;entity_name&quot;: &quot;신경망 가속기&quot;, &quot;entity_type&quot;: &quot;architecture&quot;, &quot;description&quot;: &quot;신경망 가속기는 하드웨어 시스템에서 신경망 계층을 실행하도록 구성되는 하드웨어 구조이다.&quot;, &quot;source_id&quot;: &quot;15-786452-chunk-000&quot;, &quot;file_path&quot;: &quot;15-786452&quot;, &quot;created_at&quot;: 1781007654}, {&quot;entity_name&quot;: &quot;AI 하드웨어 가속기&quot;, &quot;entity_type&quot;: &quot;architecture&quot;, &quot;description&quot;: &quot;AI 하드웨어 가속기는 원본 텐서의 희소 값 정보, 형상 데이터, 이진 맵을 활용해 고밀도 텐서에 대한 신경망 연산을 수행하는 구조이다.&quot;, &quot;source_id&quot;: &quot;18-207755-chunk-000&quot;, &quot;file_path&quot;: &quot;18-207755&quot;, &quot;created_at&quot;: 1781020594}, {&quot;entity_name&quot;: &quot;신경망 프로세서&quot;, &quot;entity_type&quot;: &quot;architecture&quot;, &quot;description&quot;: &quot;신경망 프로세서는 신경망 연산을 수행하는 프로세서이다.&quot;, &quot;source_id&quot;: &quot;18-212648-chunk-000&quot;, &quot;file_path&quot;: &quot;18-212648&quot;, &quot;created_at&quot;: 1781018005}]</td></tr><tr><td>relationships</td><td>36</td><td>[{&quot;src_id&quot;: &quot;신경망&quot;, &quot;tgt_id&quot;: &quot;신경망 활성화 로직 구현 장치&quot;, &quot;description&quot;: &quot;신경망 활성화 로직 구현 장치는 신경망을 위한 활성화 로직을 구현한다.&quot;, &quot;keywords&quot;: &quot;적용,활성화 로직&quot;, &quot;weight&quot;: 1.0, &quot;source_id&quot;: &quot;17-291315-chunk-000&quot;, &quot;file_path&quot;: &quot;17-291315&quot;, &quot;created_at&quot;: 1781016186}, {&quot;src_id&quot;: &quot;AI 하드웨어 가속기&quot;, &quot;tgt_id&quot;: &quot;회로 구성요소&quot;, &quot;description&quot;: &quot;AI 하드웨어 가속기는 텐서 처리와 신경망 연산 수행을 위한 하나 이상의 회로 구성요소를 포함한다.&quot;, &quot;keywords&quot;: &quot;구성요소,포함&quot;, &quot;weight&quot;: 1.0, &quot;source_id&quot;: &quot;18-207755-chunk-000&quot;, &quot;file_path&quot;: &quot;18-207755&quot;, &quot;created_at&quot;: 1781020594}, {&quot;src_id&quot;: &quot;신경망&quot;, &quot;tgt_id&quot;: &quot;컨볼루션 연산&quot;, &quot;description&quot;: &quot;컨볼루션 연산은 신경망에 관련된 계산으로 수행된다.&lt;SEP&gt;컨볼루션 연산은 신경망 계층의 입력 데이터와 커널 데이터를 대상으로 수행된다.&quot;, &quot;keywords&quot;: &quot;수행,신경망 연산,적용&quot;, &quot;weight&quot;: 2.0, &quot;source_id&quot;: &quot;17-459782-chunk-000&lt;SEP&gt;17-196922-chunk-000&quot;, &quot;file_path&quot;: &quot;17-459782&lt;SEP&gt;17-196922&quot;, &quot;created_at&quot;: 1781015678}]</td></tr><tr><td>chunks</td><td>10</td><td>[{&quot;reference_id&quot;: &quot;1&quot;, &quot;content&quot;: &quot;문서 유형: AI 반도체 특허\npatent_id: 17-511417\n출원번호: 17-511417\n공개번호: 2022-0050683\n발명의 명칭: Apparatuses, methods, and systems for neural networks\n요약: Methods and apparatuses relating to processing neural networks are described. In one embodiment, an apparatus to process a neural network includes a plurality of fully connected layer chips coupled by an interconnect; a plurality of convolutional layer chips each coupled by an interconnect to a respective fully connected layer chip of the plurality of fully connected layer chips and each of the plurality of fully connected layer chips and the plurality of convolutional layer chips including an interconnect to couple each of a forward propagation compute intensive tile, a back propagation compute intensive tile, and a weight gradient compute intensive tile of a column of compute intensive tiles between a first memory intensive tile and a second memory intensive tile.\nAI요약(목적): 공유 메모리에서 액세스 동기화를 제공한다.\nAI요약(솔루션 ...[truncated]</td></tr></tbody></table>
+    
+  <h2>Appendix 7.3.4: RAG Evaluation</h2>
+  <p class="note">Gemini 3.5 Flash judge를 실행했고 60/60 pairwise 결과를 정규화해 사용했다.</p>
+  <table><thead><tr><th>Judge item</th><th>Planned value</th></tr></thead><tbody><tr><td>Pairwise comparisons</td><td>LightRAG hybrid vs NaiveRAG; LightRAG hybrid vs GraphRAG global/local; GraphRAG global vs NaiveRAG</td></tr><tr><td>Rubrics</td><td>Comprehensiveness, Diversity, Empowerment, Technical correctness, Hallucination risk, Overall</td></tr><tr><td>A/B ordering</td><td>query별로 answer A/B 순서 교차</td></tr><tr><td>Output schema</td><td>{metric: {winner, score_a, score_b, rationale}, overall_summary}</td></tr></tbody></table>
+  <details open><summary>Judge summary</summary><pre>{
+  &quot;judge_model&quot;: &quot;google/gemini-3.5-flash&quot;,
+  &quot;total_judgments&quot;: 60,
+  &quot;rubric_wins&quot;: {
+    &quot;Comprehensiveness&quot;: {
+      &quot;lightrag_hybrid&quot;: 20,
+      &quot;lightrag_naive&quot;: 6,
+      &quot;Tie&quot;: 5,
+      &quot;graphrag_global&quot;: 28,
+      &quot;graphrag_local&quot;: 1
+    },
+    &quot;Diversity&quot;: {
+      &quot;Tie&quot;: 5,
+      &quot;lightrag_naive&quot;: 9,
+      &quot;lightrag_hybrid&quot;: 19,
+      &quot;graphrag_global&quot;: 26,
+      &quot;graphrag_local&quot;: 1
+    },
+    &quot;Empowerment&quot;: {
+      &quot;lightrag_hybrid&quot;: 23,
+      &quot;lightrag_naive&quot;: 11,
+      &quot;graphrag_global&quot;: 25,
+      &quot;graphrag_local&quot;: 1
+    },
+    &quot;Technical correctness&quot;: {
+      &quot;Tie&quot;: 23,
+      &quot;lightrag_hybrid&quot;: 15,
+      &quot;lightrag_naive&quot;: 7,
+      &quot;graphrag_global&quot;: 15
+    },
+    &quot;Hallucination risk&quot;: {
+      &quot;Tie&quot;: 39,
+      &quot;lightrag_naive&quot;: 3,
+      &quot;lightrag_hybrid&quot;: 7,
+      &quot;graphrag_global&quot;: 11
+    },
+    &quot;Overall&quot;: {
+      &quot;lightrag_hybrid&quot;: 24,
+      &quot;lightrag_naive&quot;: 10,
+      &quot;graphrag_global&quot;: 25,
+      &quot;graphrag_local&quot;: 1
+    }
+  },
+  &quot;pair_wins&quot;: {
+    &quot;lightrag_hybrid__vs__lightrag_naive&quot;: {
+      &quot;Comprehensiveness&quot;: {
+        &quot;lightrag_hybrid&quot;: 6,
+        &quot;lightrag_naive&quot;: 5,
+        &quot;Tie&quot;: 4
+      },
+      &quot;Diversity&quot;: {
+        &quot;Tie&quot;: 4,
+        &quot;lightrag_naive&quot;: 7,
+        &quot;lightrag_hybrid&quot;: 4
+      },
+      &quot;Empowerment&quot;: {
+        &quot;lightrag_hybrid&quot;: 8,
+        &quot;lightrag_naive&quot;: 7
+      },
+      &quot;Technical correctness&quot;: {
+        &quot;Tie&quot;: 10,
+        &quot;lightrag_hybrid&quot;: 1,
+        &quot;lightrag_naive&quot;: 4
+      },
+      &quot;Hallucination risk&quot;: {
+        &quot;Tie&quot;: 13,
+        &quot;lightrag_naive&quot;: 1,
+        &quot;lightrag_hybrid&quot;: 1
+      },
+      &quot;Overall&quot;: {
+        &quot;lightrag_hybrid&quot;: 8,
+        &quot;lightrag_naive&quot;: 7
+      }
+    },
+    &quot;lightrag_hybrid__vs__graphrag_global&quot;: {
+      &quot;Comprehensiveness&quot;: {
+        &quot;graphrag_global&quot;: 14,
+        &quot;lightrag_hybrid&quot;: 1
+      },
+      &quot;Diversity&quot;: {
+        &quot;graphrag_global&quot;: 14,
+        &quot;lightrag_hybrid&quot;: 1
+      },
+      &quot;Empowerment&quot;: {
+        &quot;graphrag_global&quot;: 14,
+        &quot;lightrag_hybrid&quot;: 1
+      },
+      &quot;Technical correctness&quot;: {
+        &quot;graphrag_global&quot;: 8,
+        &quot;Tie&quot;: 4,
+        &quot;lightrag_hybrid&quot;: 3
+      },
+      &quot;Hallucination risk&quot;: {
+        &quot;Tie&quot;: 7,
+        &quot;graphrag_global&quot;: 5,
+        &quot;lightrag_hybrid&quot;: 3
+      },
+      &quot;Overall&quot;: {
+        &quot;graphrag_global&quot;: 13,
+        &quot;lightrag_hybrid&quot;: 2
+      }
+    },
+    &quot;lightrag_hybrid__vs__graphrag_local&quot;: {
+      &quot;Comprehensiveness&quot;: {
+        &quot;Tie&quot;: 1,
+        &quot;lightrag_hybrid&quot;: 13,
+        &quot;graphrag_local&quot;: 1
+      },
+      &quot;Diversity&quot;: {
+        &quot;lightrag_hybrid&quot;: 14,
+        &quot;graphrag_local&quot;: 1
+      },
+      &quot;Empowerment&quot;: {
+        &quot;lightrag_hybrid&quot;: 14,
+        &quot;graphrag_local&quot;: 1
+      },
+      &quot;Technical correctness&quot;: {
+        &quot;lightrag_hybrid&quot;: 11,
+        &quot;Tie&quot;: 4
+      },
+      &quot;Hallucination risk&quot;: {
+        &quot;Tie&quot;: 12,
+        &quot;lightrag_hybrid&quot;: 3
+      },
+      &quot;Overall&quot;: {
+        &quot;lightrag_hybrid&quot;: 14,
+        &quot;graphrag_local&quot;: 1
+      }
+    },
+    &quot;graphrag_global__vs__lightrag_naive&quot;: {
+      &quot;Comprehensiveness&quot;: {
+        &quot;graphrag_global&quot;: 14,
+        &quot;lightrag_naive&quot;: 1
+      },
+      &quot;Diversity&quot;: {
+        &quot;graphrag_global&quot;: 12,
+        &quot;lightrag_naive&quot;: 2,
+        &quot;Tie&quot;: 1
+      },
+      &quot;Empowerment&quot;: {
+        &quot;graphrag_global&quot;: 11,
+        &quot;lightrag_naive&quot;: 4
+      },
+      &quot;Technical correctness&quot;: {
+        &quot;graphrag_global&quot;: 7,
+        &quot;lightrag_naive&quot;: 3,
+        &quot;Tie&quot;: 5
+      },
+      &quot;Hallucination risk&quot;: {
+        &quot;graphrag_global&quot;: 6,
+        &quot;Tie&quot;: 7,
+        &quot;lightrag_naive&quot;: 2
+      },
+      &quot;Overall&quot;: {
+        &quot;graphrag_global&quot;: 12,
+        &quot;lightrag_naive&quot;: 3
+      }
+    }
+  }
+}</pre></details>
+  <table><thead><tr><th>Audit</th><th>Value</th></tr></thead><tbody><tr><td>Rows before normalization</td><td>63</td></tr><tr><td>Rows after normalization</td><td>60</td></tr><tr><td>Success after repair</td><td>60/60</td></tr><tr><td>Recovered failed keys</td><td>lightrag_hybrid__vs__graphrag_global/F-1, lightrag_hybrid__vs__graphrag_local/AC-2</td></tr><tr><td>Backup preserved</td><td>experiments/rag_repro_100_seed20260609/evaluation/judge_results.backup_20260610_160921.jsonl</td></tr></tbody></table>
+  <details open><summary>Judge output examples</summary><pre>[
+  {
+    &quot;status&quot;: &quot;success&quot;,
+    &quot;pair_id&quot;: &quot;lightrag_hybrid__vs__lightrag_naive&quot;,
+    &quot;query_id&quot;: &quot;AA-1&quot;,
+    &quot;question&quot;: &quot;AI 코어 및 가속기 특허에서 신경망 연산 가속기 구조는 어떤 방식으로 연산 병렬성을 높이는가?&quot;,
+    &quot;answer_a_label&quot;: &quot;lightrag_hybrid&quot;,
+    &quot;answer_b_label&quot;: &quot;lightrag_naive&quot;,
+    &quot;judge_result&quot;: {
+      &quot;Comprehensiveness&quot;: {
+        &quot;winner&quot;: &quot;A&quot;,
+        &quot;explanation&quot;: &quot;Answer A focuses more directly on the physical and structural methods used to increase operational parallelism in neural network accelerators, such as 2D shift registers for data slicing, N-dimensional logic circuit arrays, processing element (PE) arrays for parallel fused MAC operations, and chiplet/tile-based architectures. Answer B includes techniques like sparsity optimization (skipping zeros) and multi-core mapping, which, while improving efficiency, are less directly about structural hardware parallelism than the mechanisms detailed in Answer A.&quot;
+      },
+      &quot;Diversity&quot;: {
+        &quot;winner&quot;: &quot;Tie&quot;,
+        &quot;explanation&quot;: &quot;Both answers offer excellent technical diversity. Answer A covers instruction-level, data-slice (convolutional), matrix-level (PE arrays), and system-level (chiplets) parallelism. Answer B covers in-memory computing (ReRAM), multi-core mapping, bit-serial split accumulation (adder trees), and instruction queuing. Both provide rich, distinct technical perspectives.&quot;
+      },
+      &quot;Empowerment&quot;: {
+        &quot;winner&quot;: &quot;A&quot;,
+        &quot;explanation&quot;: &quot;Answer A is highly empowering for a researcher because it clearly maps out the hardware hierarchy of parallelism (from instruction decomposition to data slicing, PE arrays, and chiplets). This structured approach makes it easier to understand how different hardware components cooperate to achieve high throughput, helping the researcher make better architectural judgments.&quot;
+      },
+      &quot;Technical correctness&quot;: {
+        &quot;winner&quot;: &quot;Tie&quot;,
+        &quot;explanation&quot;: &quot;Both answers are technically precise, internally consistent, and accurately describe established hardware acceleration concepts (such as systolic-array-like shift registers in Answer A, and adder trees/in-memory computing in Answer B).&quot;
+      },
+      &quot;Hallucination risk&quot;: {
+        &quot;winner&quot;: &quot;Tie&quot;,
+        &quot;explanation&quot;: &quot;Both answers maintain a highly professional tone, use realistic patent-style reference numbers, and describe well-known semiconductor and AI accelerator concepts without any apparent logical contradictions or unrealistic claims.&quot;
+      },
+      &quot;Overall&quot;: {
+        &quot;winner&quot;: &quot;A&quot;,
+        &quot;explanation&quot;: &quot;Answer A is the overall winner because it addresses the core question of &#x27;how the accelerator structure increases operational parallelism&#x27; more directly and comprehensively. It provides a clear, hierarchical view of hardware parallelism (slicing, PE arrays, chiplets), whereas Answer B mixes in efficiency-focused techniques like sparsity and mapping which are slightly tangential to pure structural parallelism.&quot;
+      }
+    },
+    &quot;elapsed_seconds&quot;: 24.65
+  },
+  {
+    &quot;status&quot;: &quot;success&quot;,
+    &quot;pair_id&quot;: &quot;lightrag_hybrid__vs__lightrag_naive&quot;,
+    &quot;query_id&quot;: &quot;AA-2&quot;,
+    &quot;question&quot;: &quot;NPU 또는 행렬 연산 장치 관련 특허에서 메모리 접근 병목을 줄이는 기술은 무엇인가?&quot;,
+    &quot;answer_a_label&quot;: &quot;lightrag_naive&quot;,
+    &quot;answer_b_label&quot;: &quot;lightrag_hybrid&quot;,
+    &quot;judge_result&quot;: {
+      &quot;Comprehensiveness&quot;: {
+        &quot;winner&quot;: &quot;A&quot;,
+        &quot;explanation&quot;: &quot;Answer A covers a wider and more distinct set of technologies, including sparse matrix zero-skipping (SanDisk), PIM scheduling/coupling, multi-bank parallel PIM (Samsung), non-volatile memory integration (Samsung), and crossbar switches (Expedera). Answer B splits the Samsung PIM technology into two separate points, making its overall coverage slightly less comprehensive.&quot;
+      },
+      &quot;Diversity&quot;: {
+        &quot;winner&quot;: &quot;A&quot;,
+        &quot;explanation&quot;: &quot;Answer A provides a broader range of technical perspectives, ranging from skipping memory accesses entirely based on data sparsity, to physical PIM scheduling, multi-bank addressing, and hardware crossbar routing. Answer B&#x27;s first two points overlap significantly as they both describe the same Samsung PIM architecture.&quot;
+      },
+      &quot;Empowerment&quot;: {
+        &quot;winner&quot;: &quot;A&quot;,
+        &quot;explanation&quot;: &quot;Answer A is highly empowering for a researcher because it explicitly names the patent assignees (SanDisk, Samsung Electronics, Expedera) alongside the technical descriptions. This allows a researcher to easily locate and investigate the specific patent families. Furthermore, the explanation of the zero-skipping mechanism (using registers for zero row/column indices to skip bitline/wordline access) is highly detailed and actionable.&quot;
+      },
+      &quot;Technical correctness&quot;: {
+        &quot;winner&quot;: &quot;Tie&quot;,
+        &quot;explanation&quot;: &quot;Both answers are technically precise and describe valid semiconductor and NPU architectural concepts (such as CIM/PIM, mixed-precision quantization, and crossbar switches) without any internal inconsistencies.&quot;
+      },
+      &quot;Hallucination risk&quot;: {
+        &quot;winner&quot;: &quot;Tie&quot;,
+        &quot;explanation&quot;: &quot;Both answers ground their claims in patent references and maintain a low risk of hallucination. Answer A&#x27;s inclusion of specific company names makes it easier to verify, but both are solid.&quot;
+      },
+      &quot;Overall&quot;: {
+        &quot;winner&quot;: &quot;A&quot;,
+        &quot;explanation&quot;: &quot;Answer A is the superior response because it provides a more diverse and comprehensive set of technologies, avoids redundant points, and empowers the researcher by explicitly naming the patent assignees (SanDisk, Samsung, Expedera) associated with each technology.&quot;
+      }
+    },
+    &quot;elapsed_seconds&quot;: 11.513
+  },
+  {
+    &quot;status&quot;: &quot;success&quot;,
+    &quot;pair_id&quot;: &quot;lightrag_hybrid__vs__lightrag_naive&quot;,
+    &quot;query_id&quot;: &quot;AB-1&quot;,
+    &quot;question&quot;: &quot;인-메모리 컴퓨팅 또는 PIM 구조가 AI 연산 성능을 높이는 핵심 원리는 무엇인가?&quot;,
+    &quot;answer_a_label&quot;: &quot;lightrag_hybrid&quot;,
+    &quot;answer_b_label&quot;: &quot;lightrag_naive&quot;,
+    &quot;judge_result&quot;: {
+      &quot;Comprehensiveness&quot;: {
+        &quot;winner&quot;: &quot;B&quot;,
+        &quot;explanation&quot;: &quot;Answer B is more comprehensive as it includes an additional technical detail regarding element-wise multiplication between memory banks (referencing source [3]), which is missing in Answer A. It also categorizes the core principles into four distinct, well-explained pillars.&quot;
+      },
+      &quot;Diversity&quot;: {
+        &quot;winner&quot;: &quot;B&quot;,
+        &quot;explanation&quot;: &quot;Answer B provides a richer set of technical perspectives by incorporating an extra reference ([3]) and structuring the explanation into data movement, bank-level execution, workload-specific acceleration (Transformers), and mixed-precision processing.&quot;
+      },
+      &quot;Empowerment&quot;: {
+        &quot;winner&quot;: &quot;B&quot;,
+        &quot;explanation&quot;: &quot;Answer B is highly structured with clear headings (First, Second, Third, Fourth) and a concise final summary. This logical breakdown makes it much easier for a researcher to digest the complex architectural principles of PIM/CIM and make follow-up judgments.&quot;
+      },
+      &quot;Technical correctness&quot;: {
+        &quot;winner&quot;: &quot;Tie&quot;,
+        &quot;explanation&quot;: &quot;Both answers are technically precise, consistent with the patent-derived context, and free of internal contradictions.&quot;
+      },
+      &quot;Hallucination risk&quot;: {
+        &quot;winner&quot;: &quot;Tie&quot;,
+        &quot;explanation&quot;: &quot;Both answers strictly adhere to the provided reference contexts without introducing unsupported claims.&quot;
+      },
+      &quot;Overall&quot;: {
+        &quot;winner&quot;: &quot;B&quot;,
+        &quot;explanation&quot;: &quot;Answer B is superior because it synthesizes the information into a highly structured, easy-to-read format, and includes additional relevant technical details (such as bank-to-bank element-wise multiplication) that make the explanation of PIM/CIM performance enhancement more complete.&quot;
+      }
+    },
+    &quot;elapsed_seconds&quot;: 8.201
+  }
+]</pre></details>
+</main>
+</body>
+</html>

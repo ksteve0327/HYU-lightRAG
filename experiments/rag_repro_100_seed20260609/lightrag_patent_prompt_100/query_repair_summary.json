@@ -1,0 +1,12 @@
+{
+  "backup": "experiments/rag_repro_100_seed20260609/lightrag_patent_prompt_100/query_results_15_modes.backup_20260610_155528.jsonl",
+  "original_rows": 60,
+  "repair_rows": 2,
+  "merged_rows": 60,
+  "replaced_keys": [
+    "X-1/global",
+    "X-1/hybrid"
+  ],
+  "success_records": 60,
+  "empty_or_failed": 0
+}

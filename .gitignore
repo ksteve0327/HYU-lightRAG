@@ -1,0 +1,67 @@
+.DS_Store
+__pycache__/
+*.py[cod]
+*.so
+*.dylib
+.venv/
+venv/
+node_modules/
+.pytest_cache/
+
+# Secrets and local credentials
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.p8
+*secret*
+*token*
+
+# Local scratch and bulky source archives
+tmp/
+*.zip
+*.pdf
+*.csv
+
+# Raw/private datasets and large generated vector stores
+data/
+patent_rawdata.csv
+
+# Third-party checkouts are reproduced externally; keep only local scripts/patch notes.
+external/
+
+# Keep only the patent prompt we authored from the local LightRAG checkout.
+LightRAG-main/*
+!LightRAG-main/prompts/
+LightRAG-main/prompts/*
+!LightRAG-main/prompts/entity_type/
+LightRAG-main/prompts/entity_type/*
+!LightRAG-main/prompts/entity_type/patent_ai_semiconductor.yml
+
+# Experiment runtime artifacts that contain credentials, caches, embeddings, or bulky storage.
+experiments/**/.env
+experiments/**/cache/
+experiments/**/input/
+experiments/**/storage/
+experiments/**/*.parquet
+experiments/**/context.json
+experiments/**/logs/
+experiments/**/lancedb/
+experiments/**/*.lance/
+experiments/patent_prompt_pilot_20/
+experiments/**/dataset/*.jsonl
+experiments/**/query_results*.backup*.jsonl
+experiments/**/*backup*.jsonl
+experiments/**/graph_metrics_partial.json
+experiments/**/index_attempts.json
+experiments/**/index_stats*_resume*.json
+experiments/**/query_results_repair*.jsonl
+experiments/**/eval_queries_repair*.jsonl
+experiments/**/prompts/
+experiments/**/settings.yaml
+experiments/**/update_output/
+
+# Draft/legacy reports not used as the final public artifact.
+reports/*_draft.html
+reports/lightrag_flow_3_1_3_4.html

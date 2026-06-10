@@ -1,0 +1,156 @@
+{
+  "label": "lightrag_patent_100",
+  "working_dir": "/Users/dabeenkim/Documents/GitHub/HYU-lightRAG/experiments/rag_repro_100_seed20260609/lightrag_patent_prompt_100/storage",
+  "graph_nodes": 1596,
+  "graph_edges": 2203,
+  "relation_counts": {
+    "technical": 2071,
+    "other": 110,
+    "metadata": 22
+  },
+  "metadata_relation_ratio": 0.01,
+  "technical_relation_ratio": 0.9401,
+  "other_relation_ratio": 0.0499,
+  "excluded_entity_count": 7,
+  "excluded_entity_ratio": 0.0044,
+  "entity_type_counts": {
+    "method": 101,
+    "architecture": 172,
+    "techcomponent": 660,
+    "operation": 270,
+    "other": 208,
+    "performancemetric": 105,
+    "material": 40,
+    "applicationdomain": 40
+  },
+  "entity_type_entropy": 2.4668,
+  "degree_ge_50_hub_count": 0,
+  "top_hubs": [
+    {
+      "entity": "프로세서",
+      "degree": 42,
+      "entity_type": "techcomponent",
+      "excluded_entity": false
+    },
+    {
+      "entity": "메모리",
+      "degree": 22,
+      "entity_type": "techcomponent",
+      "excluded_entity": false
+    },
+    {
+      "entity": "메모리 셀 어레이",
+      "degree": 22,
+      "entity_type": "techcomponent",
+      "excluded_entity": false
+    },
+    {
+      "entity": "반도체 패키지",
+      "degree": 16,
+      "entity_type": "architecture",
+      "excluded_entity": false
+    },
+    {
+      "entity": "제어 로직 회로",
+      "degree": 14,
+      "entity_type": "techcomponent",
+      "excluded_entity": false
+    },
+    {
+      "entity": "메모리 장치",
+      "degree": 14,
+      "entity_type": "architecture",
+      "excluded_entity": false
+    },
+    {
+      "entity": "반도체 기판",
+      "degree": 13,
+      "entity_type": "material",
+      "excluded_entity": false
+    },
+    {
+      "entity": "목적 함수",
+      "degree": 12,
+      "entity_type": "operation",
+      "excluded_entity": false
+    },
+    {
+      "entity": "호스트",
+      "degree": 11,
+      "entity_type": "techcomponent",
+      "excluded_entity": false
+    },
+    {
+      "entity": "벡터 처리 유닛(VPU)",
+      "degree": 11,
+      "entity_type": "architecture",
+      "excluded_entity": false
+    },
+    {
+      "entity": "입력 데이터",
+      "degree": 10,
+      "entity_type": "other",
+      "excluded_entity": false
+    },
+    {
+      "entity": "레지스터",
+      "degree": 10,
+      "entity_type": "techcomponent",
+      "excluded_entity": false
+    },
+    {
+      "entity": "곱셈 블록 회로",
+      "degree": 9,
+      "entity_type": "techcomponent",
+      "excluded_entity": false
+    },
+    {
+      "entity": "게이트",
+      "degree": 9,
+      "entity_type": "techcomponent",
+      "excluded_entity": false
+    },
+    {
+      "entity": "메모리 모듈",
+      "degree": 9,
+      "entity_type": "techcomponent",
+      "excluded_entity": false
+    },
+    {
+      "entity": "기능 블록",
+      "degree": 9,
+      "entity_type": "techcomponent",
+      "excluded_entity": false
+    },
+    {
+      "entity": "다중 프로세서",
+      "degree": 9,
+      "entity_type": "techcomponent",
+      "excluded_entity": false
+    },
+    {
+      "entity": "인터포저",
+      "degree": 9,
+      "entity_type": "architecture",
+      "excluded_entity": false
+    },
+    {
+      "entity": "채널 영역",
+      "degree": 9,
+      "entity_type": "techcomponent",
+      "excluded_entity": false
+    },
+    {
+      "entity": "플래시 메모리 장치",
+      "degree": 9,
+      "entity_type": "architecture",
+      "excluded_entity": false
+    }
+  ],
+  "metadata_hubs_in_top20": [],
+  "targets": {
+    "metadata_relation_ratio": "<= 0.25",
+    "technical_relation_ratio": ">= 0.40",
+    "excluded_entity_ratio": "<= 0.10"
+  }
+}

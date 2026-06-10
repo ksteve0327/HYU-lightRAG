@@ -1,0 +1,28 @@
+{
+  "document_count": 100,
+  "processed_documents": 100,
+  "failed_documents": 0,
+  "completed": true,
+  "status_counts": {
+    "processed": 100
+  },
+  "working_dir": "/Users/dabeenkim/Documents/GitHub/HYU-lightRAG/experiments/rag_repro_100_seed20260609/lightrag_patent_prompt_100/storage",
+  "elapsed_seconds": 346.24,
+  "llm_model": "gpt-5.5",
+  "llm_host": "http://localhost:11435/v1",
+  "reasoning_effort": "xhigh",
+  "embedding_model": "openai/text-embedding-3-large",
+  "embedding_host": "https://openrouter.ai/api/v1",
+  "embedding_dim": 3072,
+  "summary_language": "Korean",
+  "prompt_dir": "/Users/dabeenkim/Documents/GitHub/HYU-lightRAG/LightRAG-main/prompts",
+  "entity_type_prompt_file": "patent_ai_semiconductor.yml",
+  "entity_extraction_use_json": "false",
+  "graph_nodes": 1596,
+  "graph_edges": 2203,
+  "limit": 0,
+  "elapsed_seconds_total_attempts": 19519.77,
+  "elapsed_hours_total_attempts": 5.42,
+  "attempt_count": 4,
+  "attempts_file": "/Users/dabeenkim/Documents/GitHub/HYU-lightRAG/experiments/rag_repro_100_seed20260609/lightrag_patent_prompt_100/index_attempts.json"
+}

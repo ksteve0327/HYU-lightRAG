@@ -1,0 +1,124 @@
+entity_types_guidance: |
+  Extract only technical knowledge graph entities and relationships from AI semiconductor patent text.
+  Use Korean descriptions unless an entity name is a technical English term.
+
+  Do not extract administrative metadata as entities:
+  - patent_id, application number, publication number, registration number
+  - IPC/CPC classification codes
+  - country codes and nationalities such as US, KR, JP, CN, EP, WO
+  - legal status values such as 등록, 공개, 거절, 소멸
+  - application/publication/registration dates and years
+  - claim numbers such as 청구항1
+  - category/subcategory codes such as AA, AB, AC, AD, AAA, AAD, ACC
+
+  Also avoid making broad document labels into entities, such as "AI 반도체 특허" or "특허 문서".
+  If a category name is only administrative classification, do not extract it.
+
+  Classify each extracted entity using one of these types:
+  - TechComponent: hardware components, circuits, units, devices, memory blocks, processing elements, buses, interfaces
+  - Architecture: system, processor, memory, packaging, interconnect, accelerator, or in-memory computing architecture
+  - Operation: neural-network operation, matrix operation, data movement, scheduling, control, read/write, update, fusion, compilation
+  - Method: algorithm, procedure, manufacturing process, optimization method, execution method
+  - Material: semiconductor, device, packaging, wiring, electrode, memory cell, or process material when technically central
+  - PerformanceMetric: throughput, latency, power consumption, bandwidth, efficiency, accuracy, density, timing parameter
+  - ApplicationDomain: neural network, artificial intelligence processor, transformer workload, object detection, recommendation, inference
+  - Organization: applicant or owner only when it is technically relevant to the narrative; otherwise skip
+  - Other: use only when the entity is clearly technical but no type fits
+
+  Extract relationships only between extracted technical entities.
+  Prefer concise technical relationship keywords such as:
+  - 구성요소, 포함, 연결, 저장, 판독, 제어, 생성, 수행, 최적화, 가속, 융합, 컴파일, 데이터 전송, 아키텍처 활용
+
+entity_extraction_examples:
+  - |
+    ---Entity Types---
+    - TechComponent: hardware components, circuits, units, devices, memory blocks, processing elements, buses, interfaces
+    - Architecture: system, processor, memory, packaging, interconnect, accelerator, or in-memory computing architecture
+    - Operation: neural-network operation, matrix operation, data movement, scheduling, control, read/write, update, fusion, compilation
+    - Method: algorithm, procedure, manufacturing process, optimization method, execution method
+    - PerformanceMetric: throughput, latency, power consumption, bandwidth, efficiency, accuracy, density, timing parameter
+    - ApplicationDomain: neural network, artificial intelligence processor, transformer workload, object detection, recommendation, inference
+
+    ---Input Text---
+    ```
+    발명의 명칭: Circuit for cmos based resistive processing unit
+    요약: A CMOS-based resistive processing unit (RPU) for a neural network. The RPU includes a capacitor device configured to store a charge representing a weight value associated with a neural network circuit operation. A current source Field Effect Transistor (FET) device is operatively connected to the capacitor device for increasing a charge on the capacitor. A current sink FET device operatively connected to the capacitor device is configured for decreasing the stored capacitor charge. An analog weight update circuit receives one or more update signals generated in conjunction with the neural network circuit operation, the analog weight update circuit controlling the current source FET device and the current sink FET device.
+    AI요약(목적): 아날로그 웨이트 업데이트를 이용하는 심층 신경망을 위한 커패시터 기반의 CMOS 저항 처리 유닛(RPU)을 제공한다.
+    ```
+
+    ---Output---
+    entity{tuple_delimiter}CMOS 저항 처리 유닛{tuple_delimiter}Architecture{tuple_delimiter}CMOS 기반 RPU는 신경망 회로 동작에서 가중치 값을 전하로 표현하고 갱신하는 처리 유닛이다.
+    entity{tuple_delimiter}커패시터 장치{tuple_delimiter}TechComponent{tuple_delimiter}커패시터 장치는 신경망 가중치 값을 나타내는 전하를 저장하는 구성요소이다.
+    entity{tuple_delimiter}전류원 FET{tuple_delimiter}TechComponent{tuple_delimiter}전류원 FET는 커패시터 장치에 연결되어 저장 전하를 증가시키는 트랜지스터 장치이다.
+    entity{tuple_delimiter}전류 싱크 FET{tuple_delimiter}TechComponent{tuple_delimiter}전류 싱크 FET는 커패시터 장치에서 방전 전류를 받아 저장 전하를 감소시키는 트랜지스터 장치이다.
+    entity{tuple_delimiter}아날로그 웨이트 업데이트 회로{tuple_delimiter}TechComponent{tuple_delimiter}아날로그 웨이트 업데이트 회로는 업데이트 신호에 따라 전류원 FET와 전류 싱크 FET를 제어한다.
+    entity{tuple_delimiter}신경망 회로 동작{tuple_delimiter}Operation{tuple_delimiter}신경망 회로 동작은 저장된 전하를 가중치 값으로 사용하는 연산 맥락이다.
+    relation{tuple_delimiter}CMOS 저항 처리 유닛{tuple_delimiter}커패시터 장치{tuple_delimiter}구성요소, 전하 저장{tuple_delimiter}CMOS 저항 처리 유닛은 가중치 값을 나타내는 전하를 저장하기 위해 커패시터 장치를 포함한다.
+    relation{tuple_delimiter}전류원 FET{tuple_delimiter}커패시터 장치{tuple_delimiter}연결, 전하 증가{tuple_delimiter}전류원 FET는 커패시터 장치에 연결되어 저장 전하를 증가시키는 전류를 제공한다.
+    relation{tuple_delimiter}전류 싱크 FET{tuple_delimiter}커패시터 장치{tuple_delimiter}연결, 전하 감소{tuple_delimiter}전류 싱크 FET는 커패시터 장치에서 방전되는 전류를 받아 저장 전하를 감소시킨다.
+    relation{tuple_delimiter}아날로그 웨이트 업데이트 회로{tuple_delimiter}전류원 FET{tuple_delimiter}제어, 가중치 업데이트{tuple_delimiter}아날로그 웨이트 업데이트 회로는 업데이트 신호에 따라 전류원 FET를 제어한다.
+    relation{tuple_delimiter}아날로그 웨이트 업데이트 회로{tuple_delimiter}전류 싱크 FET{tuple_delimiter}제어, 가중치 업데이트{tuple_delimiter}아날로그 웨이트 업데이트 회로는 업데이트 신호에 따라 전류 싱크 FET를 제어한다.
+    {completion_delimiter}
+  - |
+    ---Entity Types---
+    - TechComponent: hardware components, circuits, units, devices, memory blocks, processing elements, buses, interfaces
+    - Architecture: system, processor, memory, packaging, interconnect, accelerator, or in-memory computing architecture
+    - Operation: neural-network operation, matrix operation, data movement, scheduling, control, read/write, update, fusion, compilation
+    - Method: algorithm, procedure, manufacturing process, optimization method, execution method
+    - PerformanceMetric: throughput, latency, power consumption, bandwidth, efficiency, accuracy, density, timing parameter
+    - ApplicationDomain: neural network, artificial intelligence processor, transformer workload, object detection, recommendation, inference
+
+    ---Input Text---
+    ```
+    발명의 명칭: Performing hardware operator fusion
+    요약: A method of generating executable instructions for a computing system is provided. The method comprises receiving a first set of instructions including a kernel of a first operator and a kernel of a second operator. The kernel of the first operator includes write instructions to a virtual data node, and the kernel of the second operator includes read instructions to the virtual data node. The method determines data transfer operations between the first operator and the second operator and generates a second set of instructions representing a fused operator.
+    대표청구항: A method of generating executable instructions for a hardware accelerator includes converting off-chip read instructions, on-chip write instructions, on-chip read instructions, and off-chip write instructions for a fused operator.
+    ```
+
+    ---Output---
+    entity{tuple_delimiter}하드웨어 오퍼레이터 퓨전{tuple_delimiter}Method{tuple_delimiter}하드웨어 오퍼레이터 퓨전은 두 오퍼레이터의 실행 명령과 데이터 전송을 결합해 fused operator를 생성하는 방법이다.
+    entity{tuple_delimiter}하드웨어 가속기{tuple_delimiter}Architecture{tuple_delimiter}하드웨어 가속기는 fused operator instruction file을 실행하는 대상 장치이다.
+    entity{tuple_delimiter}제1 오퍼레이터 커널{tuple_delimiter}TechComponent{tuple_delimiter}제1 오퍼레이터 커널은 제1 오퍼레이터 명령과 가상 데이터 노드에 대한 write instruction을 포함한다.
+    entity{tuple_delimiter}제2 오퍼레이터 커널{tuple_delimiter}TechComponent{tuple_delimiter}제2 오퍼레이터 커널은 제2 오퍼레이터 명령과 가상 데이터 노드에 대한 read instruction을 포함한다.
+    entity{tuple_delimiter}가상 데이터 노드{tuple_delimiter}TechComponent{tuple_delimiter}가상 데이터 노드는 오퍼레이터 간 중간 데이터를 연결하는 논리적 데이터 저장 지점이다.
+    entity{tuple_delimiter}데이터 전송 연산{tuple_delimiter}Operation{tuple_delimiter}데이터 전송 연산은 제1 오퍼레이터 출력과 제2 오퍼레이터 입력 사이의 매핑을 실행 명령으로 변환한다.
+    entity{tuple_delimiter}fused operator{tuple_delimiter}Operation{tuple_delimiter}fused operator는 제1 오퍼레이터와 제2 오퍼레이터 및 데이터 전송 명령을 결합한 실행 단위이다.
+    relation{tuple_delimiter}하드웨어 오퍼레이터 퓨전{tuple_delimiter}fused operator{tuple_delimiter}생성, 연산 융합{tuple_delimiter}하드웨어 오퍼레이터 퓨전은 두 오퍼레이터를 결합해 fused operator를 생성한다.
+    relation{tuple_delimiter}제1 오퍼레이터 커널{tuple_delimiter}가상 데이터 노드{tuple_delimiter}write instruction, 중간 데이터 저장{tuple_delimiter}제1 오퍼레이터 커널은 가상 데이터 노드에 출력 데이터를 쓰는 명령을 포함한다.
+    relation{tuple_delimiter}제2 오퍼레이터 커널{tuple_delimiter}가상 데이터 노드{tuple_delimiter}read instruction, 중간 데이터 읽기{tuple_delimiter}제2 오퍼레이터 커널은 가상 데이터 노드에서 제1 출력 데이터를 읽어 입력 데이터를 조립한다.
+    relation{tuple_delimiter}데이터 전송 연산{tuple_delimiter}fused operator{tuple_delimiter}명령 생성, 데이터 이동{tuple_delimiter}데이터 전송 연산은 fused operator instruction file에 포함될 on-chip/off-chip read/write 명령으로 변환된다.
+    relation{tuple_delimiter}하드웨어 가속기{tuple_delimiter}fused operator{tuple_delimiter}실행, 명령 파일{tuple_delimiter}하드웨어 가속기는 fused operator를 나타내는 instruction file을 실행한다.
+    {completion_delimiter}
+  - |
+    ---Entity Types---
+    - TechComponent: hardware components, circuits, units, devices, memory blocks, processing elements, buses, interfaces
+    - Architecture: system, processor, memory, packaging, interconnect, accelerator, or in-memory computing architecture
+    - Operation: neural-network operation, matrix operation, data movement, scheduling, control, read/write, update, fusion, compilation
+    - Method: algorithm, procedure, manufacturing process, optimization method, execution method
+    - PerformanceMetric: throughput, latency, power consumption, bandwidth, efficiency, accuracy, density, timing parameter
+    - ApplicationDomain: neural network, artificial intelligence processor, transformer workload, object detection, recommendation, inference
+
+    ---Input Text---
+    ```
+    발명의 명칭: Efficient analog in-memory matrix multiplication processor
+    요약: Techniques are provided for efficient matrix multiplication using in-memory analog parallel processing, with applications for neural networks and artificial intelligence processors. The method stores two matrices in-memory, reads columns of the matrices from memory in parallel, and uses bit line functional read operations and cross bit line functional read operations to generate analog dot products between the columns. Each dot product corresponds to an element of the matrix multiplication product.
+    대표청구항: An analog in-memory matrix multiplication system includes a memory circuit with a first memory array region, a second memory array region, BL functional read circuits, and a BL analog processing circuit.
+    ```
+
+    ---Output---
+    entity{tuple_delimiter}아날로그 인-메모리 행렬 곱셈 프로세서{tuple_delimiter}Architecture{tuple_delimiter}아날로그 인-메모리 행렬 곱셈 프로세서는 메모리 내부의 아날로그 병렬 처리를 이용해 행렬 곱셈을 수행하는 구조이다.
+    entity{tuple_delimiter}인-메모리 아날로그 병렬 처리{tuple_delimiter}Operation{tuple_delimiter}인-메모리 아날로그 병렬 처리는 메모리에서 행렬 데이터를 병렬로 읽고 아날로그 내적을 생성하는 연산 방식이다.
+    entity{tuple_delimiter}메모리 회로{tuple_delimiter}TechComponent{tuple_delimiter}메모리 회로는 두 행렬을 저장하고 bit line 기반 functional read를 제공하는 회로이다.
+    entity{tuple_delimiter}제1 메모리 배열 영역{tuple_delimiter}TechComponent{tuple_delimiter}제1 메모리 배열 영역은 전치된 첫 번째 행렬을 저장하는 메모리 영역이다.
+    entity{tuple_delimiter}제2 메모리 배열 영역{tuple_delimiter}TechComponent{tuple_delimiter}제2 메모리 배열 영역은 두 번째 행렬을 비전치 형태로 저장하는 메모리 영역이다.
+    entity{tuple_delimiter}BL functional read 회로{tuple_delimiter}TechComponent{tuple_delimiter}BL functional read 회로는 메모리 배열의 컬럼 데이터를 아날로그 전압 벡터로 읽는 회로이다.
+    entity{tuple_delimiter}BL 아날로그 처리 회로{tuple_delimiter}TechComponent{tuple_delimiter}BL 아날로그 처리 회로는 읽어낸 아날로그 전압 값으로 컬럼 간 아날로그 내적을 생성하는 회로이다.
+    entity{tuple_delimiter}아날로그 내적{tuple_delimiter}Operation{tuple_delimiter}아날로그 내적은 두 행렬 컬럼 사이에서 생성되어 행렬 곱셈 결과의 원소에 대응하는 연산 결과이다.
+    entity{tuple_delimiter}신경망 가중 인자{tuple_delimiter}ApplicationDomain{tuple_delimiter}신경망 가중 인자는 메모리에 저장되는 행렬 중 하나로 사용될 수 있는 신경망 적용 데이터이다.
+    relation{tuple_delimiter}아날로그 인-메모리 행렬 곱셈 프로세서{tuple_delimiter}인-메모리 아날로그 병렬 처리{tuple_delimiter}아키텍처 활용, 행렬 곱셈{tuple_delimiter}프로세서는 인-메모리 아날로그 병렬 처리를 이용해 효율적인 행렬 곱셈을 수행한다.
+    relation{tuple_delimiter}메모리 회로{tuple_delimiter}제1 메모리 배열 영역{tuple_delimiter}구성요소, 행렬 저장{tuple_delimiter}메모리 회로는 전치된 첫 번째 행렬을 저장하는 제1 메모리 배열 영역을 포함한다.
+    relation{tuple_delimiter}메모리 회로{tuple_delimiter}제2 메모리 배열 영역{tuple_delimiter}구성요소, 행렬 저장{tuple_delimiter}메모리 회로는 두 번째 행렬을 비전치 형태로 저장하는 제2 메모리 배열 영역을 포함한다.
+    relation{tuple_delimiter}BL functional read 회로{tuple_delimiter}메모리 회로{tuple_delimiter}판독, bit line read{tuple_delimiter}BL functional read 회로는 메모리 회로에서 행렬 컬럼을 읽어 아날로그 전압 벡터를 생성한다.
+    relation{tuple_delimiter}BL 아날로그 처리 회로{tuple_delimiter}아날로그 내적{tuple_delimiter}생성, 행렬 곱셈{tuple_delimiter}BL 아날로그 처리 회로는 읽어낸 전압 값으로 컬럼 간 아날로그 내적을 생성한다.
+    relation{tuple_delimiter}아날로그 내적{tuple_delimiter}신경망 가중 인자{tuple_delimiter}적용, 신경망 행렬 연산{tuple_delimiter}아날로그 내적은 신경망 가중 인자와 입력 데이터를 저장한 행렬의 곱셈 결과 원소에 대응한다.
+    {completion_delimiter}
