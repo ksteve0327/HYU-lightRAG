@@ -2,7 +2,7 @@
 
 AI 반도체 특허 100건에 대해 LightRAG, GraphRAG, Naive RAG를 비교하는 재현 실험 레포지토리.
 
-한양대학교 산업데이터엔지니어링학과 Knowlege Engineering Lab 석사과정 연구의 일부로, Graph-based RAG가 특허 도메인에서 실제로 유효한지 정량 평가한다.
+LightRAG 논문을 읽고 실제로 재현하여 코드로 익히는 것이 본 연구의 목적
 
 ## 실험 개요
 
