@@ -1,0 +1,72 @@
+{
+  "target": {
+    "min_chars": 1100,
+    "max_chars": 1300
+  },
+  "counts": {
+    "source_rows": 60,
+    "normalized_rows": 60,
+    "normalized_success": 60,
+    "normalized_failure": 0
+  },
+  "before": {
+    "graphrag_global": {
+      "count": 15,
+      "avg": 3217.93,
+      "min": 2419,
+      "max": 5160,
+      "in_target": 0
+    },
+    "graphrag_local": {
+      "count": 15,
+      "avg": 1878.67,
+      "min": 795,
+      "max": 2781,
+      "in_target": 2
+    },
+    "lightrag_hybrid": {
+      "count": 15,
+      "avg": 1324.53,
+      "min": 284,
+      "max": 1791,
+      "in_target": 4
+    },
+    "lightrag_naive": {
+      "count": 15,
+      "avg": 1404.6,
+      "min": 292,
+      "max": 2074,
+      "in_target": 4
+    }
+  },
+  "after": {
+    "graphrag_global": {
+      "count": 15,
+      "avg": 1664.73,
+      "min": 1284,
+      "max": 2408,
+      "in_target": 3
+    },
+    "graphrag_local": {
+      "count": 15,
+      "avg": 1484.53,
+      "min": 1055,
+      "max": 2042,
+      "in_target": 3
+    },
+    "lightrag_hybrid": {
+      "count": 15,
+      "avg": 1085.2,
+      "min": 888,
+      "max": 1260,
+      "in_target": 7
+    },
+    "lightrag_naive": {
+      "count": 15,
+      "avg": 1152.53,
+      "min": 966,
+      "max": 1475,
+      "in_target": 8
+    }
+  }
+}

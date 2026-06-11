@@ -1,0 +1,741 @@
+{
+  "lengths": {
+    "target": {
+      "min_chars": 1100,
+      "max_chars": 1300
+    },
+    "counts": {
+      "source_rows": 60,
+      "normalized_rows": 60,
+      "normalized_success": 60,
+      "normalized_failure": 0
+    },
+    "before": {
+      "graphrag_global": {
+        "count": 15,
+        "avg": 3217.93,
+        "min": 2419,
+        "max": 5160,
+        "in_target": 0
+      },
+      "graphrag_local": {
+        "count": 15,
+        "avg": 1878.67,
+        "min": 795,
+        "max": 2781,
+        "in_target": 2
+      },
+      "lightrag_hybrid": {
+        "count": 15,
+        "avg": 1324.53,
+        "min": 284,
+        "max": 1791,
+        "in_target": 4
+      },
+      "lightrag_naive": {
+        "count": 15,
+        "avg": 1404.6,
+        "min": 292,
+        "max": 2074,
+        "in_target": 4
+      }
+    },
+    "after": {
+      "graphrag_global": {
+        "count": 15,
+        "avg": 1664.73,
+        "min": 1284,
+        "max": 2408,
+        "in_target": 3
+      },
+      "graphrag_local": {
+        "count": 15,
+        "avg": 1484.53,
+        "min": 1055,
+        "max": 2042,
+        "in_target": 3
+      },
+      "lightrag_hybrid": {
+        "count": 15,
+        "avg": 1085.2,
+        "min": 888,
+        "max": 1260,
+        "in_target": 7
+      },
+      "lightrag_naive": {
+        "count": 15,
+        "avg": 1152.53,
+        "min": 966,
+        "max": 1475,
+        "in_target": 8
+      }
+    }
+  },
+  "judge_original_verbosity_aware": {
+    "attempt_rows": 63,
+    "success_attempt_rows": 60,
+    "failure_attempt_rows": 3,
+    "deduped_success_rows": 60,
+    "rubric_wins": {
+      "Comprehensiveness": {
+        "lightrag_hybrid": 19,
+        "lightrag_naive": 13,
+        "Tie": 7,
+        "graphrag_global": 20,
+        "graphrag_local": 1
+      },
+      "Diversity": {
+        "lightrag_naive": 9,
+        "Tie": 11,
+        "lightrag_hybrid": 12,
+        "graphrag_global": 26,
+        "graphrag_local": 2
+      },
+      "Empowerment": {
+        "lightrag_hybrid": 23,
+        "lightrag_naive": 14,
+        "graphrag_global": 19,
+        "graphrag_local": 3,
+        "Tie": 1
+      },
+      "Technical correctness": {
+        "Tie": 24,
+        "lightrag_hybrid": 16,
+        "lightrag_naive": 7,
+        "graphrag_global": 13
+      },
+      "Hallucination risk": {
+        "Tie": 42,
+        "graphrag_global": 8,
+        "lightrag_hybrid": 7,
+        "lightrag_naive": 3
+      },
+      "Overall": {
+        "lightrag_hybrid": 23,
+        "lightrag_naive": 14,
+        "graphrag_global": 19,
+        "graphrag_local": 3,
+        "Tie": 1
+      }
+    },
+    "pair_wins": {
+      "lightrag_hybrid__vs__lightrag_naive": {
+        "Comprehensiveness": {
+          "lightrag_hybrid": 4,
+          "lightrag_naive": 9,
+          "Tie": 2
+        },
+        "Diversity": {
+          "lightrag_naive": 8,
+          "Tie": 5,
+          "lightrag_hybrid": 2
+        },
+        "Empowerment": {
+          "lightrag_hybrid": 5,
+          "lightrag_naive": 9,
+          "Tie": 1
+        },
+        "Technical correctness": {
+          "Tie": 9,
+          "lightrag_hybrid": 2,
+          "lightrag_naive": 4
+        },
+        "Hallucination risk": {
+          "Tie": 15
+        },
+        "Overall": {
+          "lightrag_hybrid": 5,
+          "lightrag_naive": 9,
+          "Tie": 1
+        }
+      },
+      "lightrag_hybrid__vs__graphrag_global": {
+        "Comprehensiveness": {
+          "graphrag_global": 9,
+          "lightrag_hybrid": 5,
+          "Tie": 1
+        },
+        "Diversity": {
+          "graphrag_global": 13,
+          "Tie": 1,
+          "lightrag_hybrid": 1
+        },
+        "Empowerment": {
+          "graphrag_global": 9,
+          "lightrag_hybrid": 6
+        },
+        "Technical correctness": {
+          "graphrag_global": 7,
+          "Tie": 3,
+          "lightrag_hybrid": 5
+        },
+        "Hallucination risk": {
+          "graphrag_global": 3,
+          "Tie": 7,
+          "lightrag_hybrid": 5
+        },
+        "Overall": {
+          "graphrag_global": 9,
+          "lightrag_hybrid": 6
+        }
+      },
+      "lightrag_hybrid__vs__graphrag_local": {
+        "Comprehensiveness": {
+          "graphrag_local": 1,
+          "lightrag_hybrid": 10,
+          "Tie": 4
+        },
+        "Diversity": {
+          "graphrag_local": 2,
+          "lightrag_hybrid": 9,
+          "Tie": 4
+        },
+        "Empowerment": {
+          "graphrag_local": 3,
+          "lightrag_hybrid": 12
+        },
+        "Technical correctness": {
+          "Tie": 6,
+          "lightrag_hybrid": 9
+        },
+        "Hallucination risk": {
+          "Tie": 13,
+          "lightrag_hybrid": 2
+        },
+        "Overall": {
+          "graphrag_local": 3,
+          "lightrag_hybrid": 12
+        }
+      },
+      "graphrag_global__vs__lightrag_naive": {
+        "Comprehensiveness": {
+          "graphrag_global": 11,
+          "lightrag_naive": 4
+        },
+        "Diversity": {
+          "graphrag_global": 13,
+          "lightrag_naive": 1,
+          "Tie": 1
+        },
+        "Empowerment": {
+          "graphrag_global": 10,
+          "lightrag_naive": 5
+        },
+        "Technical correctness": {
+          "graphrag_global": 6,
+          "Tie": 6,
+          "lightrag_naive": 3
+        },
+        "Hallucination risk": {
+          "graphrag_global": 5,
+          "Tie": 7,
+          "lightrag_naive": 3
+        },
+        "Overall": {
+          "graphrag_global": 10,
+          "lightrag_naive": 5
+        }
+      }
+    },
+    "query_type_wins": {
+      "category_specific": {
+        "Comprehensiveness": {
+          "lightrag_hybrid": 11,
+          "lightrag_naive": 5,
+          "graphrag_global": 15,
+          "graphrag_local": 1
+        },
+        "Diversity": {
+          "lightrag_naive": 5,
+          "Tie": 3,
+          "lightrag_hybrid": 8,
+          "graphrag_global": 15,
+          "graphrag_local": 1
+        },
+        "Empowerment": {
+          "lightrag_hybrid": 11,
+          "lightrag_naive": 5,
+          "graphrag_global": 15,
+          "graphrag_local": 1
+        },
+        "Technical correctness": {
+          "Tie": 12,
+          "lightrag_hybrid": 8,
+          "lightrag_naive": 2,
+          "graphrag_global": 10
+        },
+        "Hallucination risk": {
+          "Tie": 25,
+          "graphrag_global": 6,
+          "lightrag_hybrid": 1
+        },
+        "Overall": {
+          "lightrag_hybrid": 11,
+          "lightrag_naive": 5,
+          "graphrag_global": 15,
+          "graphrag_local": 1
+        }
+      },
+      "comparison": {
+        "Comprehensiveness": {
+          "Tie": 2,
+          "lightrag_hybrid": 1,
+          "lightrag_naive": 1
+        },
+        "Diversity": {
+          "Tie": 2,
+          "graphrag_global": 2
+        },
+        "Empowerment": {
+          "lightrag_hybrid": 3,
+          "lightrag_naive": 1
+        },
+        "Technical correctness": {
+          "lightrag_hybrid": 1,
+          "Tie": 2,
+          "lightrag_naive": 1
+        },
+        "Hallucination risk": {
+          "Tie": 4
+        },
+        "Overall": {
+          "lightrag_hybrid": 3,
+          "lightrag_naive": 1
+        }
+      },
+      "exploratory": {
+        "Comprehensiveness": {
+          "lightrag_naive": 1,
+          "Tie": 1,
+          "lightrag_hybrid": 1,
+          "graphrag_global": 1
+        },
+        "Diversity": {
+          "lightrag_naive": 1,
+          "graphrag_global": 2,
+          "lightrag_hybrid": 1
+        },
+        "Empowerment": {
+          "lightrag_naive": 2,
+          "lightrag_hybrid": 2
+        },
+        "Technical correctness": {
+          "Tie": 2,
+          "lightrag_hybrid": 2
+        },
+        "Hallucination risk": {
+          "Tie": 1,
+          "lightrag_hybrid": 2,
+          "lightrag_naive": 1
+        },
+        "Overall": {
+          "lightrag_naive": 2,
+          "lightrag_hybrid": 2
+        }
+      },
+      "fact_check": {
+        "Comprehensiveness": {
+          "lightrag_naive": 3,
+          "lightrag_hybrid": 3,
+          "Tie": 2
+        },
+        "Diversity": {
+          "lightrag_naive": 2,
+          "lightrag_hybrid": 2,
+          "graphrag_global": 1,
+          "graphrag_local": 1,
+          "Tie": 2
+        },
+        "Empowerment": {
+          "lightrag_naive": 3,
+          "lightrag_hybrid": 3,
+          "graphrag_local": 1,
+          "Tie": 1
+        },
+        "Technical correctness": {
+          "lightrag_naive": 3,
+          "lightrag_hybrid": 3,
+          "Tie": 2
+        },
+        "Hallucination risk": {
+          "Tie": 3,
+          "lightrag_hybrid": 3,
+          "lightrag_naive": 2
+        },
+        "Overall": {
+          "lightrag_naive": 3,
+          "lightrag_hybrid": 3,
+          "graphrag_local": 1,
+          "Tie": 1
+        }
+      },
+      "cross_category": {
+        "Comprehensiveness": {
+          "lightrag_hybrid": 3,
+          "lightrag_naive": 3,
+          "graphrag_global": 4,
+          "Tie": 2
+        },
+        "Diversity": {
+          "Tie": 4,
+          "lightrag_naive": 1,
+          "graphrag_global": 6,
+          "lightrag_hybrid": 1
+        },
+        "Empowerment": {
+          "lightrag_hybrid": 4,
+          "lightrag_naive": 3,
+          "graphrag_global": 4,
+          "graphrag_local": 1
+        },
+        "Technical correctness": {
+          "Tie": 6,
+          "lightrag_naive": 1,
+          "graphrag_global": 3,
+          "lightrag_hybrid": 2
+        },
+        "Hallucination risk": {
+          "Tie": 9,
+          "lightrag_hybrid": 1,
+          "graphrag_global": 2
+        },
+        "Overall": {
+          "lightrag_hybrid": 4,
+          "lightrag_naive": 3,
+          "graphrag_global": 4,
+          "graphrag_local": 1
+        }
+      }
+    }
+  },
+  "judge_normalized_verbosity_aware": {
+    "attempt_rows": 63,
+    "success_attempt_rows": 60,
+    "failure_attempt_rows": 3,
+    "deduped_success_rows": 60,
+    "rubric_wins": {
+      "Comprehensiveness": {
+        "lightrag_naive": 14,
+        "lightrag_hybrid": 19,
+        "Tie": 6,
+        "graphrag_global": 20,
+        "graphrag_local": 1
+      },
+      "Diversity": {
+        "lightrag_naive": 13,
+        "lightrag_hybrid": 20,
+        "Tie": 6,
+        "graphrag_global": 20,
+        "graphrag_local": 1
+      },
+      "Empowerment": {
+        "lightrag_naive": 16,
+        "lightrag_hybrid": 24,
+        "graphrag_global": 19,
+        "graphrag_local": 1
+      },
+      "Technical correctness": {
+        "Tie": 21,
+        "lightrag_naive": 10,
+        "lightrag_hybrid": 17,
+        "graphrag_global": 12
+      },
+      "Hallucination risk": {
+        "Tie": 45,
+        "lightrag_naive": 4,
+        "lightrag_hybrid": 8,
+        "graphrag_global": 3
+      },
+      "Overall": {
+        "lightrag_naive": 16,
+        "lightrag_hybrid": 24,
+        "graphrag_global": 19,
+        "graphrag_local": 1
+      }
+    },
+    "pair_wins": {
+      "lightrag_hybrid__vs__lightrag_naive": {
+        "Comprehensiveness": {
+          "lightrag_naive": 9,
+          "lightrag_hybrid": 5,
+          "Tie": 1
+        },
+        "Diversity": {
+          "lightrag_naive": 8,
+          "lightrag_hybrid": 6,
+          "Tie": 1
+        },
+        "Empowerment": {
+          "lightrag_naive": 9,
+          "lightrag_hybrid": 6
+        },
+        "Technical correctness": {
+          "Tie": 8,
+          "lightrag_naive": 4,
+          "lightrag_hybrid": 3
+        },
+        "Hallucination risk": {
+          "Tie": 13,
+          "lightrag_naive": 1,
+          "lightrag_hybrid": 1
+        },
+        "Overall": {
+          "lightrag_naive": 9,
+          "lightrag_hybrid": 6
+        }
+      },
+      "lightrag_hybrid__vs__graphrag_global": {
+        "Comprehensiveness": {
+          "graphrag_global": 11,
+          "lightrag_hybrid": 3,
+          "Tie": 1
+        },
+        "Diversity": {
+          "graphrag_global": 11,
+          "lightrag_hybrid": 3,
+          "Tie": 1
+        },
+        "Empowerment": {
+          "graphrag_global": 11,
+          "lightrag_hybrid": 4
+        },
+        "Technical correctness": {
+          "graphrag_global": 7,
+          "Tie": 6,
+          "lightrag_hybrid": 2
+        },
+        "Hallucination risk": {
+          "Tie": 10,
+          "graphrag_global": 2,
+          "lightrag_hybrid": 3
+        },
+        "Overall": {
+          "graphrag_global": 11,
+          "lightrag_hybrid": 4
+        }
+      },
+      "lightrag_hybrid__vs__graphrag_local": {
+        "Comprehensiveness": {
+          "lightrag_hybrid": 11,
+          "graphrag_local": 1,
+          "Tie": 3
+        },
+        "Diversity": {
+          "lightrag_hybrid": 11,
+          "Tie": 3,
+          "graphrag_local": 1
+        },
+        "Empowerment": {
+          "lightrag_hybrid": 14,
+          "graphrag_local": 1
+        },
+        "Technical correctness": {
+          "lightrag_hybrid": 12,
+          "Tie": 3
+        },
+        "Hallucination risk": {
+          "Tie": 11,
+          "lightrag_hybrid": 4
+        },
+        "Overall": {
+          "lightrag_hybrid": 14,
+          "graphrag_local": 1
+        }
+      },
+      "graphrag_global__vs__lightrag_naive": {
+        "Comprehensiveness": {
+          "graphrag_global": 9,
+          "lightrag_naive": 5,
+          "Tie": 1
+        },
+        "Diversity": {
+          "graphrag_global": 9,
+          "lightrag_naive": 5,
+          "Tie": 1
+        },
+        "Empowerment": {
+          "graphrag_global": 8,
+          "lightrag_naive": 7
+        },
+        "Technical correctness": {
+          "Tie": 4,
+          "graphrag_global": 5,
+          "lightrag_naive": 6
+        },
+        "Hallucination risk": {
+          "Tie": 11,
+          "graphrag_global": 1,
+          "lightrag_naive": 3
+        },
+        "Overall": {
+          "graphrag_global": 8,
+          "lightrag_naive": 7
+        }
+      }
+    },
+    "query_type_wins": {
+      "category_specific": {
+        "Comprehensiveness": {
+          "lightrag_naive": 6,
+          "lightrag_hybrid": 9,
+          "graphrag_global": 16,
+          "Tie": 1
+        },
+        "Diversity": {
+          "lightrag_naive": 6,
+          "lightrag_hybrid": 9,
+          "graphrag_global": 15,
+          "Tie": 2
+        },
+        "Empowerment": {
+          "lightrag_naive": 7,
+          "lightrag_hybrid": 10,
+          "graphrag_global": 15
+        },
+        "Technical correctness": {
+          "Tie": 11,
+          "lightrag_naive": 2,
+          "lightrag_hybrid": 9,
+          "graphrag_global": 10
+        },
+        "Hallucination risk": {
+          "Tie": 29,
+          "graphrag_global": 2,
+          "lightrag_hybrid": 1
+        },
+        "Overall": {
+          "lightrag_naive": 7,
+          "lightrag_hybrid": 10,
+          "graphrag_global": 15
+        }
+      },
+      "comparison": {
+        "Comprehensiveness": {
+          "lightrag_naive": 2,
+          "lightrag_hybrid": 1,
+          "graphrag_local": 1
+        },
+        "Diversity": {
+          "lightrag_naive": 2,
+          "lightrag_hybrid": 1,
+          "graphrag_local": 1
+        },
+        "Empowerment": {
+          "lightrag_naive": 2,
+          "lightrag_hybrid": 1,
+          "graphrag_local": 1
+        },
+        "Technical correctness": {
+          "Tie": 3,
+          "lightrag_naive": 1
+        },
+        "Hallucination risk": {
+          "Tie": 4
+        },
+        "Overall": {
+          "lightrag_naive": 2,
+          "lightrag_hybrid": 1,
+          "graphrag_local": 1
+        }
+      },
+      "exploratory": {
+        "Comprehensiveness": {
+          "lightrag_naive": 2,
+          "graphrag_global": 1,
+          "lightrag_hybrid": 1
+        },
+        "Diversity": {
+          "Tie": 1,
+          "graphrag_global": 1,
+          "lightrag_hybrid": 1,
+          "lightrag_naive": 1
+        },
+        "Empowerment": {
+          "lightrag_naive": 2,
+          "graphrag_global": 1,
+          "lightrag_hybrid": 1
+        },
+        "Technical correctness": {
+          "lightrag_naive": 2,
+          "Tie": 1,
+          "lightrag_hybrid": 1
+        },
+        "Hallucination risk": {
+          "lightrag_naive": 2,
+          "lightrag_hybrid": 1,
+          "Tie": 1
+        },
+        "Overall": {
+          "lightrag_naive": 2,
+          "graphrag_global": 1,
+          "lightrag_hybrid": 1
+        }
+      },
+      "fact_check": {
+        "Comprehensiveness": {
+          "lightrag_naive": 3,
+          "lightrag_hybrid": 4,
+          "Tie": 1
+        },
+        "Diversity": {
+          "lightrag_naive": 3,
+          "lightrag_hybrid": 3,
+          "Tie": 2
+        },
+        "Empowerment": {
+          "lightrag_naive": 3,
+          "lightrag_hybrid": 5
+        },
+        "Technical correctness": {
+          "lightrag_naive": 3,
+          "lightrag_hybrid": 3,
+          "Tie": 2
+        },
+        "Hallucination risk": {
+          "Tie": 3,
+          "lightrag_hybrid": 3,
+          "lightrag_naive": 2
+        },
+        "Overall": {
+          "lightrag_naive": 3,
+          "lightrag_hybrid": 5
+        }
+      },
+      "cross_category": {
+        "Comprehensiveness": {
+          "lightrag_hybrid": 4,
+          "Tie": 4,
+          "graphrag_global": 3,
+          "lightrag_naive": 1
+        },
+        "Diversity": {
+          "lightrag_hybrid": 6,
+          "graphrag_global": 4,
+          "lightrag_naive": 1,
+          "Tie": 1
+        },
+        "Empowerment": {
+          "lightrag_hybrid": 7,
+          "graphrag_global": 3,
+          "lightrag_naive": 2
+        },
+        "Technical correctness": {
+          "Tie": 4,
+          "lightrag_hybrid": 4,
+          "graphrag_global": 2,
+          "lightrag_naive": 2
+        },
+        "Hallucination risk": {
+          "Tie": 8,
+          "lightrag_hybrid": 3,
+          "graphrag_global": 1
+        },
+        "Overall": {
+          "lightrag_hybrid": 7,
+          "graphrag_global": 3,
+          "lightrag_naive": 2
+        }
+      }
+    }
+  }
+}

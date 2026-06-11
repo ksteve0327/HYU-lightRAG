@@ -12,7 +12,7 @@ LightRAG 논문을 읽고 실제로 재현하여 코드로 익히는 것이 본 
 | 시스템 | LightRAG (naive/local/global/hybrid), GraphRAG v3.1.0 (basic/local/global) |
 | 생성 모델 | gpt-5.5 (codex-proxy) |
 | 임베딩 | text-embedding-3-large (OpenRouter) |
-| 평가 | Gemini 3.5 Flash (LLM-as-judge, 5 rubrics, pairwise A/B swap) |
+| 평가 | Gemini 3.5 Flash (LLM-as-judge, 5 rubrics, pairwise A/B swap, verbosity-aware re-judge) |
 | 쿼리 | 15개 고정 평가셋 (category-specific 8, cross-category 3, fact-check 2, comparison 1, exploratory 1) |
 
 ## 핵심 결과
@@ -25,6 +25,19 @@ LightRAG 논문을 읽고 실제로 재현하여 코드로 익히는 것이 본 
 | GraphRAG global vs naive | 80.0% vs 20.0% | GraphRAG global 우세, length bias 동일 적용 |
 
 **주요 발견**: GraphRAG global의 압도적 승률은 답변 길이 편향(평균 3218 vs 1325 chars)과 분리해서 해석해야 한다. LightRAG의 특허 특화 그래프 구축은 품질 지표상 성공(technical relation 94%, metadata relation 1%)했으나, hybrid가 naive 대비 뚜렷한 우위를 보이지 않았다.
+
+### Length normalization + verbosity-aware judge
+
+답변 길이 편향을 점검하기 위해 1100-1300자 목표로 답변을 정규화하고, verbosity penalty를 명시한 Gemini judge를 추가 실행했다.
+
+| 비교 | 정규화 후 Overall 승수 | 해석 |
+|---|---:|---|
+| LightRAG hybrid vs naive | 6 vs 9 | naive 우세, hybrid의 graph context 이득은 제한적 |
+| LightRAG hybrid vs GraphRAG global | 4 vs 11 | GraphRAG global 우세 유지 |
+| LightRAG hybrid vs GraphRAG local | 14 vs 1 | LightRAG hybrid 우세 |
+| GraphRAG global vs naive | 8 vs 7 | 길이 보정 후 GraphRAG global 우위가 크게 축소 |
+
+단, GraphRAG global은 정규화 후에도 평균 1665자이고 목표 범위(1100-1300자)에 들어온 답변은 3/15건뿐이다. 따라서 이는 완전한 동일 길이 비교가 아니라 verbosity-aware 보정 실험으로 해석한다.
 
 ## 레포 구조
 
@@ -39,6 +52,7 @@ HYU-lightRAG/
 │   ├── rag_repro_judge.py     # Gemini judge 평가
 │   ├── rag_repro_metrics.py   # 자동 메트릭 계산
 │   ├── rag_repro_report.py    # HTML 리포트 생성
+│   ├── rag_length_control.py  # 길이 정규화 및 verbosity-aware judge
 │   ├── graph_metrics.py       # 그래프 품질 지표
 │   └── common.py              # 공통 유틸리티
 ├── LightRAG-main/prompts/entity_type/
@@ -48,7 +62,8 @@ HYU-lightRAG/
 │   ├── queries/               # 15개 평가 쿼리
 │   ├── lightrag_patent_prompt_100/  # LightRAG 인덱스/쿼리 결과
 │   ├── graphrag_full_100_fresh/     # GraphRAG 인덱스/쿼리 결과
-│   └── evaluation/            # Judge 결과 및 메트릭
+│   ├── evaluation/            # Judge 결과 및 메트릭
+│   └── evaluation_length_control/ # 길이 정규화 및 verbosity-aware judge 결과
 └── reports/
     └── rag_repro_100_comparison.html  # 최종 비교 리포트
 ```
@@ -94,6 +109,12 @@ python3 -m patent_lightrag.graphrag_repro
 # Judge 평가
 python3 -m patent_lightrag.rag_repro_judge
 
+# 길이 정규화 + verbosity-aware judge
+python3 -m patent_lightrag.rag_length_control --stage normalize --resume
+python3 -m patent_lightrag.rag_length_control --stage judge-original --resume
+python3 -m patent_lightrag.rag_length_control --stage judge-normalized --resume
+python3 -m patent_lightrag.rag_length_control --stage summarize
+
 # 리포트 생성
 python3 -m patent_lightrag.rag_repro_report
 ```
@@ -110,7 +131,7 @@ python3 -m patent_lightrag.rag_repro_report
 
 ## 제한사항
 
-- LLM-as-judge의 verbosity bias가 주요 교란 요인 (길이 통제 실험 미실시)
+- LLM-as-judge의 verbosity bias가 주요 교란 요인이다. 길이 정규화와 verbosity-aware judge를 추가 실행했지만, GraphRAG global은 정규화 후에도 평균 길이가 더 길어 완전한 동일 길이 비교는 아니다.
 - 쿼리 15개로 표본 수가 적어 통계적 유의성 검정 불가
 - gpt-5.5로 생성과 인덱싱을 동시 수행해 self-enhancement bias 가능성
 - 특허 도메인 한정 결과이므로 일반화에 주의
