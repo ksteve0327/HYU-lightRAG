@@ -1,0 +1,1302 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Patent-100 LightRAG Implementation Report</title>
+  <style>
+:root{
+  --ink:#17202a; --muted:#667085; --paper:#f6f8fb; --panel:#ffffff; --line:#d8e1ec;
+  --blue:#2563eb; --green:#0f766e; --orange:#d97706; --red:#dc2626; --slate:#334155;
+  --soft-blue:#e8f0ff; --soft-green:#e7f6f2; --soft-orange:#fff3df; --soft-red:#ffecec;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.58 -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR",sans-serif}
+a{color:inherit}
+.topbar{position:sticky;top:0;z-index:10;background:rgba(246,248,251,.92);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+.topbar-inner{max-width:1220px;margin:auto;padding:12px 22px;display:flex;align-items:center;justify-content:space-between;gap:18px}
+.brand{font-weight:800;color:#0f172a}
+.nav{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.nav a{text-decoration:none;color:#475569;font-size:13px;font-weight:700;padding:7px 10px;border-radius:999px}
+.nav a:hover{background:#e2e8f0;color:#0f172a}
+main{max-width:1220px;margin:auto;padding:26px 22px 80px}
+.hero{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(320px,.9fr);gap:18px;align-items:stretch;margin:18px 0 24px}
+.hero-copy,.panel,.metric-card,.mini-card,.flow-step,.result-card,.mode-card,.callout{background:var(--panel);border:1px solid var(--line);border-radius:8px;box-shadow:0 12px 32px rgba(15,23,42,.06)}
+.hero-copy{padding:34px}
+.eyebrow{display:inline-block;color:var(--blue);font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:0;margin-bottom:8px}
+h1{font-size:48px;line-height:1.08;margin:8px 0 14px;letter-spacing:0;word-break:keep-all}
+h2{font-size:28px;line-height:1.15;margin:0;letter-spacing:0;word-break:keep-all}
+h3{letter-spacing:0;word-break:keep-all}
+.lead{font-size:18px;color:#475569;margin:0;max-width:780px}
+.hero-aside{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.metric-card{padding:18px;min-height:122px}
+.metric-card span{display:block;color:#64748b;font-size:12px;font-weight:800;text-transform:uppercase}
+.metric-card strong{display:block;margin:8px 0 6px;font-size:30px;line-height:1;color:#0f172a}
+.metric-card small{color:#64748b}
+.compact strong{font-size:24px}
+.section{padding:30px 0}
+.section-head{display:flex;align-items:end;justify-content:space-between;gap:20px;margin-bottom:16px}
+.section-head p{max-width:520px;margin:0;color:#64748b}
+.panel{padding:22px;margin-bottom:16px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.split{display:grid;grid-template-columns:1.35fr .65fr;gap:16px}
+.implementation-grid{display:grid;grid-template-columns:minmax(0,.88fr) minmax(360px,1.12fr);gap:16px;align-items:start}
+.mini-card,.mode-card,.result-card,.callout{padding:18px}
+.mini-card h3,.mode-card h3,.result-card h3,.callout h3{margin:0 0 8px;font-size:18px}
+.mini-card p,.mode-card p,.result-card p,.callout p{margin:0;color:#64748b}
+.rq-card h3{font-size:17px;line-height:1.45;color:#0f172a}
+.rq-answer{margin-top:10px!important;color:#334155!important;line-height:1.6}
+.rq-answer strong{color:#0f172a;margin-right:4px}
+.rq-points{margin:12px 0 0;padding-left:18px;color:#475569;line-height:1.65}
+.rq-points li{margin:5px 0}
+.flow{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+.implementation-grid .flow{grid-template-columns:1fr}
+.flow-step{padding:18px;position:relative;min-height:150px}
+.flow-step:not(:last-child)::after{content:"";position:absolute;right:-11px;top:50%;width:10px;height:2px;background:var(--blue)}
+.implementation-grid .flow-step{min-height:auto}
+.implementation-grid .flow-step:not(:last-child)::after{left:28px;right:auto;top:auto;bottom:-11px;width:2px;height:10px;background:var(--blue)}
+.flow-step b{display:inline-grid;place-items:center;width:31px;height:31px;border-radius:50%;background:#0f172a;color:white;font-size:12px;margin-bottom:10px}
+.flow-step h3{margin:0 0 7px;font-size:17px}.flow-step p{margin:0;color:#64748b;font-size:13px}
+.actual-run{border:1px solid var(--line);border-radius:8px;background:linear-gradient(135deg,#fff,#f8fafc);padding:18px}
+.actual-run-head h3{margin:0 0 6px}.actual-run-head p{margin:0 0 14px;color:#64748b}
+.actual-flow{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;position:relative}
+.actual-node{position:relative;border:1px solid var(--line);border-radius:8px;background:white;padding:13px;min-height:104px}
+.actual-node span{display:block;color:#2563eb;font-size:11px;font-weight:900;text-transform:uppercase}
+.actual-node strong{display:block;margin:7px 0 5px;font-size:20px;line-height:1.1;color:#0f172a}
+.actual-node small{display:block;color:#64748b;line-height:1.45}
+.actual-sample{margin-top:12px;padding:13px;border-radius:8px;background:#eff6ff;border:1px solid #bfdbfe}
+.actual-sample strong{display:block;margin-bottom:6px}.actual-sample p{margin:5px 0;color:#334155}.actual-sample span{font-weight:900;color:#2563eb}
+.prompt-excerpts{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px}
+.prompt-card{border:1px solid var(--line);border-radius:8px;background:#fff;padding:16px;min-width:0}
+.prompt-card h3{margin:0 0 6px;font-size:17px}.prompt-card p{margin:0 0 10px;color:#64748b;line-height:1.55}
+.prompt-card .code{max-height:430px}
+.prompt-card.translation{background:#f8fafc}
+.callout{background:linear-gradient(135deg,#fff,#f8fafc)}
+.callout.accent{border-color:#93c5fd;background:linear-gradient(135deg,#fff,#eff6ff)}
+.code{background:#111827;color:#e5e7eb;border-radius:8px;padding:14px;overflow:auto;font:12px/1.55 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;white-space:pre-wrap}
+.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:8px;background:white;margin-top:10px}
+.table,.relation-table{width:100%;border-collapse:separate;border-spacing:0;min-width:680px}
+.table th,.table td,.relation-table th,.relation-table td{padding:12px 14px;border-bottom:1px solid var(--line);vertical-align:top;text-align:left;overflow-wrap:anywhere;line-height:1.55}
+.table th,.relation-table th{background:#eef2f7;font-size:12px;color:#475569;white-space:nowrap}.table tr:last-child td,.relation-table tr:last-child td{border-bottom:0}
+.table tbody tr:nth-child(even),.relation-table tbody tr:nth-child(even){background:#f8fafc}
+.compact-table{min-width:640px}
+.compact-table th,.compact-table td{font-size:13px;padding:9px 12px}
+.relation-table{table-layout:fixed;min-width:1220px}
+.relation-table th,.relation-table td{padding:10px 12px}
+.relation-table th:nth-child(1),.relation-table td:nth-child(1){width:14%}
+.relation-table th:nth-child(2),.relation-table td:nth-child(2){width:18%}
+.relation-table th:nth-child(3),.relation-table td:nth-child(3){width:14%}
+.relation-table th:nth-child(4),.relation-table td:nth-child(4){width:36%}
+.relation-table th:nth-child(5),.relation-table td:nth-child(5){width:12%;white-space:pre-line}
+.relation-table th:nth-child(6),.relation-table td:nth-child(6){width:6%;text-align:center}
+.bar-chart{display:grid;gap:10px}
+.bar-row{display:grid;grid-template-columns:170px 1fr 70px;gap:10px;align-items:center}
+.bar-label strong{display:block}.bar-label span{color:#64748b;font-size:12px}
+.bar-track{height:12px;border-radius:999px;background:#e2e8f0;overflow:hidden}.bar-fill{height:100%;background:linear-gradient(90deg,var(--green),var(--blue));border-radius:999px}
+.bar-value{font-weight:800;text-align:right}
+.graph-layout{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(320px,.9fr);gap:16px}
+.graph-viz-grid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(280px,.85fr);gap:16px;align-items:start}
+.viz h3{margin-top:0}
+.viz p{color:#64748b;margin:0 0 12px}
+.viz svg{width:100%;height:auto;border:1px solid var(--line);border-radius:8px;background:#fbfdff}
+.edge{stroke:#94a3b8;stroke-width:1.5;opacity:.72}
+.multi-edge{stroke:#2563eb;stroke-width:2.6;opacity:.92}
+.edge-label{font-size:9px;fill:#334155;stroke:white;stroke-width:3px;paint-order:stroke}
+.viz text{font-size:10px;fill:#0f172a;pointer-events:none}
+.graph-legend{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:10px 0 14px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:#fbfdff;font-size:12px;color:#334155}
+.graph-legend strong{margin-right:4px;color:#0f172a}.legend-item{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}.legend-dot{width:11px;height:11px;border-radius:50%;display:inline-block;box-shadow:0 0 0 1px rgba(15,23,42,.12)}.legend-note{color:#64748b;margin-left:auto}
+.graph-svg{width:100%;height:auto;border:1px solid var(--line);border-radius:8px;background:#fbfdff}
+.graph-svg line{stroke:#94a3b8;stroke-width:1.5;opacity:.75}.graph-svg text{font-size:11px;fill:#334155}.node{fill:#64748b}.node-techcomponent{fill:#2563eb}.node-architecture{fill:#0f766e}.node-operation{fill:#9333ea}.node-material{fill:#16a34a}.node-method{fill:#d97706}
+.mode-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.mode-card strong{font-size:24px;color:#0f172a}
+.qa-test-grid{display:grid;gap:16px}
+.qa-test-card{border:1px solid var(--line);border-radius:8px;background:white;padding:18px}
+.qa-test-card h3{margin:0 0 8px;font-size:20px}.qa-question{margin:0 0 12px;color:#334155;font-weight:700}
+.qa-mode-table{table-layout:fixed;min-width:980px}
+.qa-mode-table th:nth-child(1),.qa-mode-table td:nth-child(1){width:9%}
+.qa-mode-table th:nth-child(2),.qa-mode-table td:nth-child(2){width:24%}
+.qa-mode-table th:nth-child(3),.qa-mode-table td:nth-child(3){width:42%}
+.qa-mode-table th:nth-child(4),.qa-mode-table td:nth-child(4){width:14%}
+.qa-mode-table th:nth-child(5),.qa-mode-table td:nth-child(5){width:11%;text-align:center}
+.qa-hybrid-answer{margin-top:12px;padding:13px;border-radius:8px;background:#f8fafc;border:1px solid var(--line)}
+.qa-hybrid-answer > strong{display:block;margin-bottom:6px}.qa-hybrid-answer p{margin:0;color:#475569}.qa-hybrid-answer p strong{display:inline;margin:0;color:#0f172a;font-weight:800}
+.result-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}.result-lines{display:grid;gap:6px;margin:10px 0}.result-lines p{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}.result-lines span{font-weight:800;color:#475569}
+.comparison-table{table-layout:fixed;min-width:1040px}
+.comparison-table th:nth-child(1),.comparison-table td:nth-child(1){width:24%}
+.comparison-table th:nth-child(2),.comparison-table td:nth-child(2){width:18%}
+.comparison-table th:nth-child(3),.comparison-table td:nth-child(3){width:20%}
+.comparison-table th:nth-child(4),.comparison-table td:nth-child(4){width:38%}
+.paper-table{width:100%;border-collapse:collapse;min-width:980px;background:#fff;font-size:13px;line-height:1.45}
+.paper-table caption{caption-side:top;margin:0 0 10px;font-weight:900;font-size:16px;color:#0f172a;text-align:left}
+.paper-table th,.paper-table td{border:1px solid #cbd5e1;padding:9px 10px;vertical-align:top;text-align:left}
+.paper-table th{background:#f1f5f9;color:#334155;font-weight:900}
+.paper-table .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.paper-table .emph{font-weight:900;color:#0f172a}
+.paper-win-table th{text-align:center}.paper-win-table td:first-child{font-weight:800;color:#334155}
+.paper-ablation-table{min-width:1080px}.paper-ablation-table th:nth-child(1),.paper-ablation-table td:nth-child(1){width:15%;font-weight:800}.paper-ablation-table th:nth-child(2),.paper-ablation-table td:nth-child(2){width:33%}.paper-ablation-table th:nth-child(3),.paper-ablation-table td:nth-child(3){width:18%}
+.paper-case-table{min-width:980px}.paper-case-table th{width:16%}.paper-case-table p{margin:0 0 8px}.paper-case-table p:last-child{margin-bottom:0}.paper-case-table strong{color:#0f172a}
+.file-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.file-link{display:flex;justify-content:space-between;gap:16px;padding:12px 14px;border:1px solid var(--line);border-radius:8px;background:#fff;text-decoration:none}.file-link span{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;color:#64748b;text-align:right;overflow-wrap:anywhere}
+.muted{color:#64748b}.note{color:#64748b;margin:8px 0 0}
+.pill-row{display:flex;flex-wrap:wrap;gap:8px}.pill{padding:6px 9px;border-radius:999px;background:#e2e8f0;color:#334155;font-size:12px;font-weight:800}.pill.done{background:#dcfce7;color:#166534}.pill.blank{background:#fef3c7;color:#92400e}
+details{border:1px solid var(--line);border-radius:8px;background:#fff;padding:12px;margin-top:10px}summary{cursor:pointer;font-weight:800}
+@media(max-width:980px){.hero,.graph-layout,.graph-viz-grid,.grid-2,.grid-3,.grid-4,.split,.implementation-grid,.flow,.mode-grid,.result-grid,.file-grid,.prompt-excerpts{grid-template-columns:1fr}.hero-aside{grid-template-columns:1fr 1fr}.flow-step:not(:last-child)::after,.implementation-grid .flow-step:not(:last-child)::after{display:none}.nav{display:none}h1{font-size:36px}.section-head{display:block}.section-head p{margin-top:8px}.bar-row{grid-template-columns:1fr}.actual-flow{grid-template-columns:1fr}}
+@media print{.topbar{display:none}body{background:white;font-size:11px}main{max-width:none;padding:0}.section{break-before:page}.hero{break-before:auto}.panel,.metric-card,.mini-card,.flow-step,.result-card,.mode-card,.callout,.actual-run,.actual-node{box-shadow:none;break-inside:avoid}h1{font-size:32px}h2{font-size:20px}.table th,.table td,.relation-table th,.relation-table td{padding:6px;font-size:9px}.code{font-size:8px}.graph-svg,.viz svg{max-height:130mm}.hero,.flow,.grid-2,.grid-3,.grid-4,.split,.implementation-grid,.graph-layout,.graph-viz-grid,.mode-grid,.result-grid{gap:8px}}
+</style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">Patent-100 LightRAG Report</div>
+      <nav class="nav">
+        <a href="#overview">Overview</a>
+        <a href="#implementation">Implementation</a>
+        <a href="#qa-test">QA Test</a>
+        <a href="#comparison">RAG Comparison</a>
+        <a href="#discussion">Discussion</a>
+        <a href="#appendix">Appendix</a>
+      </nav>
+    </div>
+  </header>
+  <main>
+    <section id="overview" class="hero">
+      <div class="hero-copy">
+        <span class="eyebrow">Readable version · 기존 상세 보고서 보존</span>
+        <h1>AI 반도체 특허 100건으로 구현한 LightRAG 흐름</h1>
+        <p class="lead">이 버전은 구현 흐름을 먼저 보여주고, 뒤의 실험 결과는 핵심 결론만 남긴 요약 보고서다. raw JSON과 복구 로그는 상세 보고서와 appendix 링크로 분리했다.</p>
+      </div>
+      <div class="hero-aside">
+        <article class="metric-card"><span>Dataset</span><strong>100</strong><small>AA/AB/AC/AD x 25, seed=20260609</small></article>
+        <article class="metric-card"><span>LightRAG graph</span><strong>1596</strong><small>2203 relations</small></article>
+        <article class="metric-card"><span>Queries</span><strong>15</strong><small>LightRAG 60/60, GraphRAG baseline 15/15</small></article>
+        <article class="metric-card"><span>Judge</span><strong>60</strong><small>Gemini 3.5 Flash pairwise judgments</small></article>
+      </div>
+    </section>
+
+    <section id="implementation" class="section">
+      <div class="section-head">
+        <h2>1. LightRAG Implementation</h2>
+        <p>중요한 부분은 여기다. 특허가 어떤 텍스트로 들어가고, R/P/D를 거쳐 어떤 graph와 vector store가 되는지 실제 값을 붙여 설명한다.</p>
+      </div>
+
+      <div class="panel">
+        <h3>Implementation flow</h3>
+        <div class="implementation-grid">
+          <div class="flow"><article class='flow-step'><b>01</b><h3>Structured Patent</h3><p>patent_id, 출원번호, 제목, 요약, 목적/솔루션, 대표청구항, 분류, 권리자, 국가, 연도</p></article><article class='flow-step'><b>02</b><h3>Chunking</h3><p>1200 token 단위로 특허 텍스트를 분할하고 source id를 유지</p></article><article class='flow-step'><b>03</b><h3>R Function</h3><p>LLM이 기술 entity와 relation tuple을 추출</p></article><article class='flow-step'><b>04</b><h3>P/D Functions</h3><p>profile 생성 후 동일 entity/relation을 source 기준으로 병합</p></article><article class='flow-step'><b>05</b><h3>Retrieval</h3><p>naive/local/global/hybrid가 query별 context를 구성</p></article></div>
+
+    <div class="actual-run">
+      <div class="actual-run-head">
+        <span class="eyebrow">Actual Patent-100 run</span>
+        <h3>실제 산출물 기준 데이터 이동</h3>
+        <p>아래 값은 보고서 생성 시 LightRAG storage와 query result JSON에서 직접 읽은 값이다.</p>
+      </div>
+      <div class="actual-flow">
+        <article class="actual-node">
+          <span>01 input</span>
+          <strong>100 patents</strong>
+          <small>AA/AB/AC/AD x 25, seed=20260609</small>
+        </article>
+
+        <article class="actual-node">
+          <span>02 chunks</span>
+          <strong>162 chunks</strong>
+          <small>avg=757.9 tokens, multi-chunk docs=61</small>
+        </article>
+
+        <article class="actual-node">
+          <span>03 sample R</span>
+          <strong>16-060058</strong>
+          <small>16-060058-chunk-000 / 1200 tokens / 29 entities / 49 relations</small>
+        </article>
+
+        <article class="actual-node">
+          <span>04 graph</span>
+          <strong>1596 nodes</strong>
+          <small>2203 edges, technical=94.0%</small>
+        </article>
+
+        <article class="actual-node">
+          <span>05 dedup</span>
+          <strong>123 entities</strong>
+          <small>24 multi-source relations merged</small>
+        </article>
+
+        <article class="actual-node">
+          <span>06 vectors</span>
+          <strong>3961 records</strong>
+          <small>chunk=162, entity=1596, relation=2203</small>
+        </article>
+
+        <article class="actual-node">
+          <span>07 retrieval</span>
+          <strong>AA-1 hybrid</strong>
+          <small>Entity 개수=24, Relation 개수=36, Chunk 개수=10, source patents=20</small>
+        </article>
+        </div>
+      <div class="actual-sample">
+        <strong>Sample chunk path</strong>
+        <p><code>16-060058-chunk-000</code>에서 <b>29</b>개 entity와 <b>49</b>개 relation이 추출됐다.</p>
+        <p><span>entities</span> 베이스 영역, 소스 영역, 고내압, 온 저항, 항복 저항, 게이트 절연막</p>
+        <p><span>relations</span> 층간 절연막 -&gt; 활성 소자부; 능동 소자 전극 -&gt; 제2 도전형 고농도 확산 영역; 능동 소자부 -&gt; 제2 도전형 컬럼 영역</p>
+      </div>
+    </div>
+
+        </div>
+
+    <div class="prompt-excerpts">
+      <article class="prompt-card">
+        <span class="eyebrow">R Function prompt</span>
+        <h3>Entity / Relation 추출 기준</h3>
+        <p>LightRAG 기본 extraction prompt에 특허용 YAML guidance와 few-shot 예시를 주입해 gpt-5.5가 entity/relation tuple을 생성했다.</p>
+        <pre class='code'># R Function: entity / relation extraction prompt
+System prompt 핵심 1: output schema
+4. **Output Format:**
+  - Entity row: `entity{tuple_delimiter}entity_name{tuple_delimiter}entity_type{tuple_delimiter}entity_description`
+  - Relation row: `relation{tuple_delimiter}source_entity{tuple_delimiter}target_entity{tuple_delimiter}relationship_keywords{tuple_delimiter}relationship_description`
+  - Wrong: `entity{tuple_delimiter}Alice{tuple_delimiter}Acme{tuple_delimiter}founded{tuple_delimiter}Alice founded Acme`
+  - Correct: `relation{tuple_delimiter}Alice{tuple_delimiter}Acme{tuple_delimiter}founded{tuple_delimiter}Alice founded Acme`
+
+5. **Delimiter Usage:**
+  - The `{tuple_delimiter}` is a complete, atomic marker and **must not be filled with content**. It serves strictly as a field separator.
+  - Incorrect: `entity{tuple_delimiter}Tokyo&lt;|location|&gt;Tokyo is the capital of Japan.`
+  - Correct: `entity{tuple_delimiter}Tokyo{tuple_delimiter}location{tuple_deli
+...[truncated]
+
+System prompt 핵심 2: language / context
+7. **Context &amp; Language:**
+  - Ensure all entity names and descriptions are written in the **third person**.
+  - Explicitly name the subject or object; **avoid using pronouns** such as `this article`, `this paper`, `our company`, `I`, `you`, and `he/she`.
+  - The entire output (entity names, keywords, and descriptions) must be written in `{language}`.
+  - Proper nouns (e.g., personal names, place names, organization names) should be retained in their original language if a proper
+...[truncated]
+
+User prompt 핵심:
+---Task---
+Extract entities and relationships from the `
+
+# Patent-specific YAML guidance
+entity_types_guidance: |
+  Extract only technical knowledge graph entities and relationships from AI semiconductor patent text.
+  Use Korean descriptions unless an entity name is a technical English term.
+
+  Do not extract administrative metadata as entities:
+  - patent_id, application number, publication number, registration number
+  - IPC/CPC classification codes
+  - country codes and nationalities such as US, KR, JP, CN, EP, WO
+  - legal status values such as 등록, 공개, 거절, 소멸
+  - application/publication/registration dates and years
+  - claim numbers such as 청구항1
+  - category/subcategory codes such as AA, AB, AC, AD, AAA, AAD, ACC
+
+  Also avoid making broad document labels into entities, such as &quot;AI 반도체 특허&quot; or &quot;특허 문서&quot;.
+  If a category name is only administrative classification, do not extract it.
+
+  Classify each extracted entity using one of these types:
+  - TechComponent: hardware components, circuits, units, devices, memory blocks, processing elements, buses, interfaces
+  - Architecture: system, processor, memory, p
+...[truncated]
+
+# Patent few-shot output example
+---Output---
+    entity{tuple_delimiter}CMOS 저항 처리 유닛{tuple_delimiter}Architecture{tuple_delimiter}CMOS 기반 RPU는 신경망 회로 동작에서 가중치 값을 전하로 표현하고 갱신하는 처리 유닛이다.
+    entity{tuple_delimiter}커패시터 장치{tuple_delimiter}TechComponent{tuple_delimiter}커패시터 장치는 신경망 가중치 값을 나타내는 전하를 저장하는 구성요소이다.
+    entity{tuple_delimiter}전류원 FET{tuple_delimiter}TechComponent{tuple_delimiter}전류원 FET는 커패시터 장치에 연결되어 저장 전하를 증가시키는 트랜지스터 장치이다.
+    entity{tuple_delimiter}전류 싱크 FET{tuple_delimiter}TechComponent{tuple_delimiter}전류 싱크 FET는 커패시터 장치에서 방전 전류를 받아 저장 전하를 감소시키는 트랜지스터 장치이다.
+    entity{tuple_delimiter}아날로그 웨이트 업데이트 회로{tuple_delimiter}TechComponent{tuple_delimiter}아날로그 웨이트 업데이트 회로는 업데이트 신호에 따라 전류원 FET와 전류 싱크 FET를 제어한다.
+    entity{tuple_delimiter}신경망 회로 동작{tuple_delimiter}Operation{tuple_delimiter}신경망 회로 동작은 저장된 전하를 가중치 값으로 사용하는 연산 맥락이다.
+    relation{tuple_delimiter}CMOS 저항 처리 유닛{tuple_delimiter}커패시터 장치{tuple_delimiter}구성요소, 전하 저장{tuple_delimiter}CMOS 저항 처리 유닛은 가중치 값을 나타내는 전하를 저장하기 위해 커패시터 장치를 포함한다.
+    relation{tuple_delimiter}전류원 FET{tuple_delimiter}커패시터 장치{tuple_delimiter}연결, 전하 증가{tuple_delimiter}전류원 FET는 커패시터 장치에 연결되어 저장 전하를 증가시키는 전류를 제공한다.
+    relation{tuple_delimiter}전류 싱크 FET{tuple
+...[truncated]</pre>
+      </article>
+      <article class="prompt-card translation">
+        <span class="eyebrow">R Function 한국어 번역</span>
+        <h3>LLM이 entity / relation을 뽑는 규칙</h3>
+        <p>위 R Function prompt를 보고서용으로 한국어로 옮긴 버전이다.</p>
+        <pre class='code'># R Function 프롬프트 한국어 번역
+역할:
+- LLM은 Knowledge Graph Specialist로 동작한다.
+- 입력 특허 텍스트에서 명확하고 의미 있는 entity와 relation을 추출한다.
+
+Entity 추출 규칙:
+- entity_name: entity 이름을 일관된 이름으로 정한다.
+- entity_type: ---Entity Types---에 제공된 타입 중 하나로 분류한다. 맞는 타입이 없으면 Other를 사용한다.
+- entity_description: 입력 텍스트에 있는 정보만 근거로 entity의 속성과 동작을 간결하지만 충분히 설명한다.
+
+Relation 추출 규칙:
+- 이미 추출한 entity 사이의 직접적이고 의미 있는 관계만 뽑는다.
+- 하나의 문장이 여러 entity 관계를 포함하면 2개 entity 단위의 relation으로 분해한다.
+- source_entity, target_entity, relationship_keywords, relationship_description을 생성한다.
+
+출력 형식:
+- entity{tuple_delimiter}entity_name{tuple_delimiter}entity_type{tuple_delimiter}entity_description
+- relation{tuple_delimiter}source_entity{tuple_delimiter}target_entity{tuple_delimiter}relationship_keywords{tuple_delimiter}relationship_description
+- entity row를 먼저 출력하고, 그 다음 relation row를 출력한다.
+- 마지막에는 {completion_delimiter}를 출력한다.
+
+특허 특화 규칙:
+- 기술 knowledge graph에 필요한 entity/relation만 추출한다.
+- 특허번호, 출원번호, 공개번호, 등록번호, IPC/CPC, 국가코드, 법적상태, 날짜, 청구항 번호, 중/소분류 코드는 entity로 추출하지 않는다.
+- entity type은 TechComponent, Architecture, Operation, Method, Material, PerformanceMetric, ApplicationDomain, Organization, Other 중에서 고른다.
+- relation은 추출된 기술 entity 사이에서만 만든다.
+- 바람직한 relation keyword 예시는 구성요소, 포함, 연결, 저장, 판독, 제어, 생성, 수행, 최적화, 가속, 융합, 컴파일, 데이터 전송, 아키텍처 활용이다.
+
+우리 실험에서의 의미:
+- R Function은 특허 chunk를 읽고 기술 entity와 entity 간 relation tuple을 생성하는 LLM 단계다.
+- 이 단계의 출력이 이후 graph node/edge의 후보가 된다.</pre>
+      </article>
+    </div>
+    <div class="prompt-excerpts prompt-translations">
+      <article class="prompt-card">
+        <span class="eyebrow">P Function prompt</span>
+        <h3>Profile / Summary 생성 기준</h3>
+        <p>동일 entity/relation의 description 조각이 여러 개일 때 LightRAG가 LLM으로 하나의 profile summary를 만든다.</p>
+        <pre class='code'># P Function: entity/relation profile summary prompt
+---Role---
+You are a Knowledge Graph Specialist, proficient in data curation and synthesis.
+
+---Task---
+Your task is to synthesize a list of descriptions of a given entity or relation into a single, comprehensive, and cohesive summary.
+
+---Instructions---
+1. Input Format: The description list is provided in JSON format. Each JSON object (representing a single description) appears on a new line within the `Description List` section.
+2. Output Format: The merged description will be returned as plain text, presented in multiple paragraphs, without any additional formatting or extraneous comments before or after the summary.
+3. Comprehensiveness: The summary must integrate all key information from *every* provided description. Do not omit any important facts or details.
+4. Context: Ensure the summary is written from an objective, third-person perspective; explicitly mention the name of the entity or relation for full clarity and context.
+5. Context &amp; Objectivity:
+  - Write the summary from an objective, third-person perspective.
+  - Explicitly mention the full name of the entity or relation at the beginning of the summary to ensure immediate clarity and context.
+6. Conflict Handling:
+  - In cases of conflicting or inconsistent descriptions, first determine if these conflicts arise from multiple, distinct entities or relationships that share the same name.
+  - If distinct entities/relations are identified, summarize each one *separately* within the overall output.
+  - If conflicts within a single entity/relation (
+...[truncated]
+
+# 실제 동작 조건
+- description이 1개면 LLM 호출 없이 그대로 profile description으로 저장한다.
+- 같은 entity/relation이 여러 chunk/source에서 반복되면 Description List를 JSONL로 묶어 위 prompt에 넣는다.
+- LLM 요약 결과가 vdb_entities.json / vdb_relationships.json의 content/description이 되고 embedding 대상 profile이 된다.</pre>
+      </article>
+      <article class="prompt-card translation">
+        <span class="eyebrow">P Function prompt 한국어 번역</span>
+        <h3>LLM이 profile summary를 만드는 규칙</h3>
+        <p>위 P Function prompt를 보고서용으로 한국어로 옮긴 버전이다.</p>
+        <pre class='code'># P Function 프롬프트 한국어 번역
+역할:
+- LLM은 Knowledge Graph Specialist로서 entity 또는 relation 설명 목록을 정리하고 종합한다.
+
+작업:
+- 주어진 entity 또는 relation에 대해 여러 description 조각을 하나의 포괄적이고 일관된 summary로 합친다.
+- 입력 description list는 JSON 형식이며, 각 JSON 객체는 Description 필드를 가진다.
+- 출력은 추가 설명 없이 plain text summary만 반환한다.
+
+요약 규칙:
+- 모든 description의 핵심 정보를 빠뜨리지 않고 통합한다.
+- 객관적인 3인칭 관점으로 작성한다.
+- summary 시작 부분에서 entity 또는 relation 이름을 명확히 언급한다.
+- 서로 충돌하는 description이 있으면 같은 이름을 가진 별개 entity/relation인지 먼저 판단한다.
+- 별개 entity/relation이면 각각 분리해 요약하고, 하나의 대상 내부 충돌이면 불확실성을 표시해 조정한다.
+- summary는 지정된 token 길이 이내로 작성한다.
+- 출력 언어는 Korean으로 설정된다.
+
+실제 동작 조건:
+- description이 1개뿐이면 LLM을 호출하지 않고 그대로 profile description으로 저장한다.
+- 같은 entity/relation이 여러 chunk나 source patent에서 반복되면 description list를 만들고 이 P Function prompt로 LLM summary를 생성한다.
+- 생성된 summary는 vdb_entities.json 또는 vdb_relationships.json의 profile content가 되고, embedding 대상이 된다.
+
+우리 실험에서의 의미:
+- P Function은 R Function이 뽑은 여러 중복 설명을 하나의 검색 가능한 profile로 정리하는 LLM 단계다.
+- D Function은 이 profile과 source 정보를 이용해 같은 entity/relation을 병합한다.</pre>
+      </article>
+    </div>
+
+      </div>
+
+      <div class="grid-3">
+        <article class='mini-card'><span class='eyebrow'>codex-proxy</span><h3>gpt-5.5</h3><p>indexing R/P/D, answering, GraphRAG query</p></article><article class='mini-card'><span class='eyebrow'>OpenRouter</span><h3>text-embedding-3-large</h3><p>chunk/entity/relation/query vectors, dim=3072</p></article><article class='mini-card'><span class='eyebrow'>OpenRouter</span><h3>Gemini 3.5 Flash</h3><p>LLM judge only</p></article>
+      </div>
+
+      <div class="panel">
+        <h3>Patent schema and prompt wiring</h3>
+        <div class="grid-2">
+          <div>
+            <div class='table-wrap'><table class='table compact-table'><thead><tr><th>Field group</th><th>Fields</th></tr></thead><tbody><tr><td>Identifier/source</td><td>patent_id, 출원번호, 공개번호, 등록번호</td></tr><tr><td>Technical text</td><td>제목, 요약, AI 목적/솔루션, 대표청구항</td></tr><tr><td>Classification</td><td>중/소분류, IPC/CPC</td></tr><tr><td>Ownership/time</td><td>출원인/권리자, 국가, 출원연도</td></tr></tbody></table></div>
+          </div>
+          <div><pre class='code'># .env PROMPT_DIR=/Users/dabeenkim/Documents/GitHub/HYU-lightRAG/LightRAG-main/prompts ENTITY_TYPE_PROMPT_FILE=patent_ai_semiconductor.yml ENTITY_EXTRACTION_USE_JSON=false # LightRAG addon_params addon_params={ &quot;language&quot;: &quot;Korean&quot;, &quot;entity_type_prompt_file&quot;: os.getenv(&quot;ENTITY_TYPE_PROMPT_FILE&quot;), }</pre></div>
+        </div>
+        <p class="note">특허번호와 출원번호는 source/reference로 보존하고, entity node로는 뽑지 않도록 prompt에서 제외했다.</p>
+      </div>
+
+      <div class="panel">
+
+    <div class="split">
+      <div>
+        <h3>R/P/D 실제 출력</h3>
+        <div class='table-wrap'><table class='table compact-table'><thead><tr><th>Function</th><th>Actual output</th></tr></thead><tbody><tr><td>Input chunk</td><td>16-060058 / 16-060058-chunk-000 / tokens=1200</td></tr><tr><td>R: entities</td><td>29개: 베이스 영역, 소스 영역, 고내압, 온 저항, 항복 저항, 게이트 절연막, 전력 반도체 소자, 전력 반도체 소자 제조 방법</td></tr><tr><td>R: relations</td><td>49개: 층간 절연막 -&gt; 활성 소자부; 능동 소자 전극 -&gt; 제2 도전형 고농도 확산 영역; 능동 소자부 -&gt; 제2 도전형 컬럼 영역; 게이트 패드부 -&gt; 저저항 반도체층; 고내압 -&gt; 전력 반도체 소자</td></tr><tr><td>P: profiles</td><td>vdb_entities.json / vdb_relationships.json에 summary + source_id + vector 저장</td></tr><tr><td>D: dedup</td><td>Entity: 프로세서(16); 메모리(13); 신경망(7) / Relation: 중간 데이터 값 -&gt; 중간 저장 회로(2); 제2 입력 시프트 레지스터 -&gt; 커널 데이터 슬라이스(2); 제2 데이터 버퍼 -&gt; 커널 데이터 슬라이스(2)</td></tr></tbody></table></div>
+      </div>
+      <div class="callout">
+        <h3>Input chunk excerpt</h3>
+        <p>문서 유형: AI 반도체 특허 patent_id: 16-060058 출원번호: 16-060058 공개번호: 2018-0374939 등록번호: 10439056 발명의 명칭: Power semiconductor device and method of manufacturing power semiconductor device 요약: A power semiconductor device according to the present invention has a super junction structure, and includes a low-resistance semiconductor layer, an n−-type column region, p−-type column regions, a base region, trenches, gate insulation films, gate electrodes, source regions, interlayer insulation films, contact holes, metal plugs, p+-type diffusion regions, a source electrode and a gate pad electrode. An active element part includes an n−-type column region between a predetermined p−-type column region disposed closest ...[truncated]</p>
+      </div>
+    </div>
+    <div class="prompt-excerpts rpd-output-examples">
+      <article class="prompt-card">
+        <span class="eyebrow">R Function output example</span>
+        <h3>LLM extraction tuple</h3>
+        <p>16-060058-chunk-000를 R Function에 넣었을 때 LLM cache에 저장된 실제 entity/relation tuple 일부다.</p>
+        <pre class='code'>entity&lt;|#|&gt;전력 반도체 소자&lt;|#|&gt;Architecture&lt;|#|&gt;전력 반도체 소자는 슈퍼 정션 구조를 가지며 고내압 유지, 온 저항 저감, 큰 항복 저항을 목표로 하는 반도체 소자이다.
+entity&lt;|#|&gt;전력 반도체 소자 제조 방법&lt;|#|&gt;Method&lt;|#|&gt;전력 반도체 소자 제조 방법은 슈퍼 정션 구조를 갖는 전력 반도체 소자를 제조하는 방법이다.
+entity&lt;|#|&gt;슈퍼 정션 구조&lt;|#|&gt;Architecture&lt;|#|&gt;슈퍼 정션 구조는 제1 도전형 컬럼 영역과 제2 도전형 컬럼 영역이 교대로 배치되어 형성되는 구조이다.
+entity&lt;|#|&gt;제1 도전형 컬럼 영역&lt;|#|&gt;TechComponent&lt;|#|&gt;제1 도전형 컬럼 영역은 소정 방향을 따라 일정 간격으로 배치되고 트렌치가 존재하는 영역에 형성되는 컬럼 영역이다.
+entity&lt;|#|&gt;제2 도전형 컬럼 영역&lt;|#|&gt;TechComponent&lt;|#|&gt;제2 도전형 컬럼 영역은 제1 도전형 컬럼 영역과 교대로 배치되는 컬럼 영역이다.
+relation&lt;|#|&gt;전력 반도체 소자&lt;|#|&gt;슈퍼 정션 구조&lt;|#|&gt;포함, 구조 형성&lt;|#|&gt;전력 반도체 소자는 제1 도전형 컬럼 영역과 제2 도전형 컬럼 영역이 교대로 배치된 슈퍼 정션 구조를 가진다.
+relation&lt;|#|&gt;슈퍼 정션 구조&lt;|#|&gt;제1 도전형 컬럼 영역&lt;|#|&gt;구성요소, 교대 배치&lt;|#|&gt;슈퍼 정션 구조는 제1 도전형 컬럼 영역을 포함한다.
+relation&lt;|#|&gt;슈퍼 정션 구조&lt;|#|&gt;제2 도전형 컬럼 영역&lt;|#|&gt;구성요소, 교대 배치&lt;|#|&gt;슈퍼 정션 구조는 제2 도전형 컬럼 영역을 포함한다.
+relation&lt;|#|&gt;제1 도전형 컬럼 영역&lt;|#|&gt;제2 도전형 컬럼 영역&lt;|#|&gt;교대 배치, 컬럼 구조&lt;|#|&gt;제1 도전형 컬럼 영역과 제2 도전형 컬럼 영역은 소정 방향을 따라 교대로 배치된다.
+relation&lt;|#|&gt;전력 반도체 소자&lt;|#|&gt;능동 소자부&lt;|#|&gt;포함, 영역 정의&lt;|#|&gt;전력 반도체 소자는 능동 소자 전극이 형성되는 능동 소자부를 정의한다.</pre>
+      </article>
+      <article class="prompt-card">
+        <span class="eyebrow">P Function output example</span>
+        <h3>Profile stored for retrieval</h3>
+        <p>R 결과가 entity/relation별로 병합된 뒤 vector DB에 저장된 profile 예시다. vector 원문은 길어서 생략했다.</p>
+        <pre class='code'># Entity profile output (vdb_entities.json)
+entity_name: 게이트 패드부
+content: 게이트 패드부 / 게이트 패드부는 게이트 패드 전극이 형성되는 영역이다.&lt;SEP&gt;게이트 패드부는 게이트 패드 전극이 형성되는 영역이며 활성 소자부 인접 컬럼 영역 배치의 기준이 되는 부분이다.
+source_id: 16-060058-chunk-001&lt;SEP&gt;16-060058-chunk-000
+file_path: 16-060058
+vector: [3072-dim embedding omitted]
+
+# Relationship profile output (vdb_relationships.json)
+src_id: 제1 도전형 컬럼 영역
+tgt_id: 제2 도전형 컬럼 영역
+content: 교대 배치,배치,사이 영역,컬럼 구조	제1 도전형 컬럼 영역 / 제2 도전형 컬럼 영역 / 제1 도전형 컬럼 영역과 제2 도전형 컬럼 영역은 소정 방향을 따라 교대로 배치된다.&lt;SEP&gt;하나 이상의 제1 도전형 컬럼 영역은 게이트 패드부에 가장 가까운 제2 도전형 컬럼 영역과 트렌치에 접촉하는 제1 도전형 컬럼 영역 사이에 배치된다.
+source_id: 16-060058-chunk-001&lt;SEP&gt;16-060058-chunk-000
+file_path: 16-060058
+vector: [3072-dim embedding omitted]</pre>
+      </article>
+    </div>
+
+      </div>
+
+      <div class="panel">
+        <h3>Graph quality gate</h3>
+        <div class="grid-4"><article class='metric-card compact'><span>Technical relations</span><strong>94.0%</strong><small>기술 구성요소 관계 중심</small></article><article class='metric-card compact'><span>Metadata relations</span><strong>1.0%</strong><small>특허번호/국가/상태 hub 억제</small></article><article class='metric-card compact'><span>Excluded entities</span><strong>0.44%</strong><small>제외 대상 entity 잔존 비율</small></article><article class='metric-card compact'><span>Degree &gt;= 50 hubs</span><strong>0</strong><small>과도한 metadata hub 없음</small></article></div>
+      </div>
+
+      <div class="panel">
+        <h3>Graph visualization and relation table</h3>
+        <p class="note">상세 보고서에서 만든 multi-patent relation cluster를 그대로 사용한다. 단순 hub snapshot보다 LightRAG가 실제로 병합한 entity relation과 source patent를 설명하기 쉽다.</p>
+
+    <section class="viz">
+      <h3>Patent-100 LightRAG multi-patent relation cluster</h3>
+      <p>전체 graph에서 multi-patent relation이 가장 잘 보이는 entity &#x27;인공지능 가속기&#x27; 중심 cluster를 렌더링했다. 선택된 cluster patent=17-196922, 17-459782. node color는 entity type, node size는 전체 graph degree, edge label은 LightRAG relation keywords 기준이다.</p>
+      <svg viewBox="0 0 1120 720" role="img" aria-label="Patent-100 LightRAG multi-patent relation cluster">
+        <rect x="0" y="0" width="1120" height="720" rx="8" fill="#fbfcfd"/>
+        <line class='edge multi-edge' x1='560.0' y1='360.0' x2='759.7' y2='295.1'><title>Source_entity: 인공지능 가속기
+Target_entity: 제1 데이터 버퍼
+Relation keywords: 구성요소,입력 데이터 이동,포함
+Patent_count: 2
+인공지능 가속기는 입력 데이터를 슬라이스 단위로 이동시키는 제1 데이터 버퍼를 포함한다.&lt;SEP&gt;인공지능 가속기는 입력 데이터를 수신하고 슬라이스 단위로 이동시키는 제1 데이터 버퍼를 포함한다.
+source_chunk: 17-459782-chunk-000&lt;SEP&gt;17-196922-chunk-000</title></line><text class='edge-label' x='659.9' y='327.6' text-anchor='middle'><title>Source_entity: 인공지능 가속기
+Target_entity: 제1 데이터 버퍼
+Relation keywords: 구성요소,입력 데이터 이동,포함
+Patent_count: 2
+인공지능 가속기는 입력 데이터를 슬라이스 단위로 이동시키는 제1 데이터 버퍼를 포함한다.&lt;SEP&gt;인공지능 가속기는 입력 데이터를 수신하고 슬라이스 단위로 이동시키는 제1 데이터 버퍼를 포함한다.
+source_chunk: 17-459782-chunk-000&lt;SEP&gt;17-196922-chunk-000</title>구성요소,입력 데이터 이동,포함</text><line class='edge multi-edge' x1='560.0' y1='360.0' x2='683.4' y2='529.9'><title>Source_entity: 인공지능 가속기
+Target_entity: 제2 데이터 버퍼
+Relation keywords: 구성요소,커널 데이터 이동,포함
+Patent_count: 2
+인공지능 가속기는 커널 데이터를 슬라이스 단위로 이동시키는 제2 데이터 버퍼를 포함한다.&lt;SEP&gt;인공지능 가속기는 커널 데이터를 수신하고 슬라이스 단위로 이동시키는 제2 데이터 버퍼를 포함한다.
+source_chunk: 17-459782-chunk-000&lt;SEP&gt;17-196922-chunk-000</title></line><text class='edge-label' x='621.7' y='444.9' text-anchor='middle'><title>Source_entity: 인공지능 가속기
+Target_entity: 제2 데이터 버퍼
+Relation keywords: 구성요소,커널 데이터 이동,포함
+Patent_count: 2
+인공지능 가속기는 커널 데이터를 슬라이스 단위로 이동시키는 제2 데이터 버퍼를 포함한다.&lt;SEP&gt;인공지능 가속기는 커널 데이터를 수신하고 슬라이스 단위로 이동시키는 제2 데이터 버퍼를 포함한다.
+source_chunk: 17-459782-chunk-000&lt;SEP&gt;17-196922-chunk-000</title>구성요소,커널 데이터 이동,포함</text><line class='edge multi-edge' x1='560.0' y1='360.0' x2='560.0' y2='150.0'><title>Source_entity: 인공지능 가속기
+Target_entity: 컨볼루션 연산
+Relation keywords: 가속,수행
+Patent_count: 2
+인공지능 가속기는 신경망에 관련된 컨볼루션 연산을 수행한다.&lt;SEP&gt;인공지능 가속기는 신경망과 관련된 컨볼루션 연산을 수행한다.
+source_chunk: 17-459782-chunk-000&lt;SEP&gt;17-196922-chunk-000</title></line><text class='edge-label' x='560.0' y='255.0' text-anchor='middle'><title>Source_entity: 인공지능 가속기
+Target_entity: 컨볼루션 연산
+Relation keywords: 가속,수행
+Patent_count: 2
+인공지능 가속기는 신경망에 관련된 컨볼루션 연산을 수행한다.&lt;SEP&gt;인공지능 가속기는 신경망과 관련된 컨볼루션 연산을 수행한다.
+source_chunk: 17-459782-chunk-000&lt;SEP&gt;17-196922-chunk-000</title>가속,수행</text><line class='edge multi-edge' x1='360.3' y1='424.9' x2='683.4' y2='190.1'><title>Source_entity: 2차원 시프트 레지스터
+Target_entity: 입력 데이터 슬라이스
+Relation keywords: 2차원 시프트,x-y 방향 시프트,값 이동,데이터 이동
+Patent_count: 2
+2차원 시프트 레지스터는 입력 데이터 슬라이스의 값을 x 및 y 방향으로 이동시킨다.&lt;SEP&gt;2차원 시프트 레지스터는 입력 데이터 슬라이스의 값을 제1 방향과 제2 방향으로 이동시킨다.
+source_chunk: 17-459782-chunk-000&lt;SEP&gt;17-196922-chunk-000</title></line><text class='edge-label' x='521.9' y='307.5' text-anchor='middle'><title>Source_entity: 2차원 시프트 레지스터
+Target_entity: 입력 데이터 슬라이스
+Relation keywords: 2차원 시프트,x-y 방향 시프트,값 이동,데이터 이동
+Patent_count: 2
+2차원 시프트 레지스터는 입력 데이터 슬라이스의 값을 x 및 y 방향으로 이동시킨다.&lt;SEP&gt;2차원 시프트 레지스터는 입력 데이터 슬라이스의 값을 제1 방향과 제2 방향으로 이동시킨다.
+source_chunk: 17-459782-chunk-000&lt;SEP&gt;17-196922-chunk-000</title>2차원 시프트,x-y 방향 시프트,값 이...</text><line class='edge multi-edge' x1='360.3' y1='295.1' x2='560.0' y2='150.0'><title>Source_entity: 곱셈 블록 회로
+Target_entity: 컨볼루션 연산
+Relation keywords: 곱셈 계산,수행,입력-커널 결합
+Patent_count: 2
+곱셈 블록 회로는 입력 데이터와 커널 데이터를 이용해 컨볼루션 연산을 수행한다.&lt;SEP&gt;곱셈 블록 회로는 입력 데이터 값과 커널 데이터 값 사이의 컨볼루션 연산 관련 계산을 수행한다.
+source_chunk: 17-459782-chunk-000&lt;SEP&gt;17-196922-chunk-000</title></line><text class='edge-label' x='460.1' y='222.6' text-anchor='middle'><title>Source_entity: 곱셈 블록 회로
+Target_entity: 컨볼루션 연산
+Relation keywords: 곱셈 계산,수행,입력-커널 결합
+Patent_count: 2
+곱셈 블록 회로는 입력 데이터와 커널 데이터를 이용해 컨볼루션 연산을 수행한다.&lt;SEP&gt;곱셈 블록 회로는 입력 데이터 값과 커널 데이터 값 사이의 컨볼루션 연산 관련 계산을 수행한다.
+source_chunk: 17-459782-chunk-000&lt;SEP&gt;17-196922-chunk-000</title>곱셈 계산,수행,입력-커널 결합</text><line class='edge multi-edge' x1='436.6' y1='190.1' x2='560.0' y2='150.0'><title>Source_entity: 신경망
+Target_entity: 컨볼루션 연산
+Relation keywords: 수행,신경망 연산,적용
+Patent_count: 2
+컨볼루션 연산은 신경망에 관련된 계산으로 수행된다.&lt;SEP&gt;컨볼루션 연산은 신경망 계층의 입력 데이터와 커널 데이터를 대상으로 수행된다.
+source_chunk: 17-459782-chunk-000&lt;SEP&gt;17-196922-chunk-000</title></line><text class='edge-label' x='498.3' y='170.1' text-anchor='middle'><title>Source_entity: 신경망
+Target_entity: 컨볼루션 연산
+Relation keywords: 수행,신경망 연산,적용
+Patent_count: 2
+컨볼루션 연산은 신경망에 관련된 계산으로 수행된다.&lt;SEP&gt;컨볼루션 연산은 신경망 계층의 입력 데이터와 커널 데이터를 대상으로 수행된다.
+source_chunk: 17-459782-chunk-000&lt;SEP&gt;17-196922-chunk-000</title>수행,신경망 연산,적용</text><line class='edge multi-edge' x1='759.7' y1='295.1' x2='683.4' y2='190.1'><title>Source_entity: 제1 데이터 버퍼
+Target_entity: 입력 데이터 슬라이스
+Relation keywords: 다운스트림 이동,데이터 이동,수신,시프트
+Patent_count: 2
+제1 데이터 버퍼는 입력 데이터 슬라이스를 순차적으로 다운스트림으로 이동시킨다.&lt;SEP&gt;제1 데이터 버퍼는 입력 데이터 슬라이스를 슬라이스 단위로 다운스트림 방향으로 이동시킨다.
+source_chunk: 17-459782-chunk-000&lt;SEP&gt;17-196922-chunk-000</title></line><text class='edge-label' x='721.6' y='242.6' text-anchor='middle'><title>Source_entity: 제1 데이터 버퍼
+Target_entity: 입력 데이터 슬라이스
+Relation keywords: 다운스트림 이동,데이터 이동,수신,시프트
+Patent_count: 2
+제1 데이터 버퍼는 입력 데이터 슬라이스를 순차적으로 다운스트림으로 이동시킨다.&lt;SEP&gt;제1 데이터 버퍼는 입력 데이터 슬라이스를 슬라이스 단위로 다운스트림 방향으로 이동시킨다.
+source_chunk: 17-459782-chunk-000&lt;SEP&gt;17-196922-chunk-000</title>다운스트림 이동,데이터 이동,수신,시프트</text><line class='edge multi-edge' x1='759.7' y1='295.1' x2='759.7' y2='424.9'><title>Source_entity: 제1 데이터 버퍼
+Target_entity: 제1 입력 시프트 레지스터
+Relation keywords: 데이터 전송,연결,입력 슬라이스 수신
+Patent_count: 2
+제1 입력 시프트 레지스터는 제1 데이터 버퍼에서 입력 데이터 슬라이스를 수신한다.&lt;SEP&gt;제1 데이터 버퍼는 제1 입력 시프트 레지스터에 결합되어 입력 데이터 슬라이스를 전달한다.
+source_chunk: 17-459782-chunk-000&lt;SEP&gt;17-196922-chunk-000</title></line><text class='edge-label' x='759.7' y='360.0' text-anchor='middle'><title>Source_entity: 제1 데이터 버퍼
+Target_entity: 제1 입력 시프트 레지스터
+Relation keywords: 데이터 전송,연결,입력 슬라이스 수신
+Patent_count: 2
+제1 입력 시프트 레지스터는 제1 데이터 버퍼에서 입력 데이터 슬라이스를 수신한다.&lt;SEP&gt;제1 데이터 버퍼는 제1 입력 시프트 레지스터에 결합되어 입력 데이터 슬라이스를 전달한다.
+source_chunk: 17-459782-chunk-000&lt;SEP&gt;17-196922-chunk-000</title>데이터 전송,연결,입력 슬라이스 수신</text><line class='edge multi-edge' x1='759.7' y1='424.9' x2='360.3' y2='424.9'><title>Source_entity: 제1 입력 시프트 레지스터
+Target_entity: 2차원 시프트 레지스터
+Relation keywords: x-y 방향 시프트,구성,구성요소,데이터 이동
+Patent_count: 2
+제1 입력 시프트 레지스터는 입력 데이터 값을 x 및 y 방향으로 이동하는 2차원 시프트 레지스터에 대응할 수 있다.&lt;SEP&gt;제1 입력 시프트 레지스터는 입력 데이터 슬라이스의 값을 두 방향으로 이동시키는 2차원 시프트 레지스터를 포함한다.
+source_chunk: 17-459782-chunk-000&lt;SEP&gt;17-196922-chunk-000</title></line><text class='edge-label' x='560.0' y='424.9' text-anchor='middle'><title>Source_entity: 제1 입력 시프트 레지스터
+Target_entity: 2차원 시프트 레지스터
+Relation keywords: x-y 방향 시프트,구성,구성요소,데이터 이동
+Patent_count: 2
+제1 입력 시프트 레지스터는 입력 데이터 값을 x 및 y 방향으로 이동하는 2차원 시프트 레지스터에 대응할 수 있다.&lt;SEP&gt;제1 입력 시프트 레지스터는 입력 데이터 슬라이스의 값을 두 방향으로 이동시키는 2차원 시프트 레지스터를 포함한다.
+source_chunk: 17-459782-chunk-000&lt;SEP&gt;17-196922-chunk-000</title>x-y 방향 시프트,구성,구성요소,데이터...</text><line class='edge multi-edge' x1='759.7' y1='424.9' x2='683.4' y2='190.1'><title>Source_entity: 제1 입력 시프트 레지스터
+Target_entity: 입력 데이터 슬라이스
+Relation keywords: 데이터 이동,데이터 전송,수신
+Patent_count: 2
+제1 입력 시프트 레지스터는 제1 데이터 버퍼에서 입력 데이터 슬라이스를 수신한다.&lt;SEP&gt;제1 입력 시프트 레지스터는 제1 데이터 버퍼로부터 입력 데이터 슬라이스를 수신한다.
+source_chunk: 17-459782-chunk-000&lt;SEP&gt;17-196922-chunk-000</title></line><text class='edge-label' x='721.6' y='307.5' text-anchor='middle'><title>Source_entity: 제1 입력 시프트 레지스터
+Target_entity: 입력 데이터 슬라이스
+Relation keywords: 데이터 이동,데이터 전송,수신
+Patent_count: 2
+제1 입력 시프트 레지스터는 제1 데이터 버퍼에서 입력 데이터 슬라이스를 수신한다.&lt;SEP&gt;제1 입력 시프트 레지스터는 제1 데이터 버퍼로부터 입력 데이터 슬라이스를 수신한다.
+source_chunk: 17-459782-chunk-000&lt;SEP&gt;17-196922-chunk-000</title>데이터 이동,데이터 전송,수신</text><line class='edge multi-edge' x1='683.4' y1='529.9' x2='436.6' y2='529.9'><title>Source_entity: 제2 데이터 버퍼
+Target_entity: 제2 입력 시프트 레지스터
+Relation keywords: 데이터 전송,연결,커널 슬라이스 수신
+Patent_count: 2
+제2 입력 시프트 레지스터는 제2 데이터 버퍼에서 커널 데이터 슬라이스를 수신한다.&lt;SEP&gt;제2 데이터 버퍼는 제2 입력 시프트 레지스터에 결합되어 커널 데이터 슬라이스를 전달한다.
+source_chunk: 17-459782-chunk-000&lt;SEP&gt;17-196922-chunk-000</title></line><text class='edge-label' x='560.0' y='529.9' text-anchor='middle'><title>Source_entity: 제2 데이터 버퍼
+Target_entity: 제2 입력 시프트 레지스터
+Relation keywords: 데이터 전송,연결,커널 슬라이스 수신
+Patent_count: 2
+제2 입력 시프트 레지스터는 제2 데이터 버퍼에서 커널 데이터 슬라이스를 수신한다.&lt;SEP&gt;제2 데이터 버퍼는 제2 입력 시프트 레지스터에 결합되어 커널 데이터 슬라이스를 전달한다.
+source_chunk: 17-459782-chunk-000&lt;SEP&gt;17-196922-chunk-000</title>데이터 전송,연결,커널 슬라이스 수신</text><line class='edge multi-edge' x1='683.4' y1='529.9' x2='560.0' y2='570.0'><title>Source_entity: 제2 데이터 버퍼
+Target_entity: 커널 데이터 슬라이스
+Relation keywords: 다운스트림 이동,데이터 이동,수신,시프트
+Patent_count: 2
+제2 데이터 버퍼는 커널 데이터 슬라이스를 순차적으로 다운스트림으로 이동시킨다.&lt;SEP&gt;제2 데이터 버퍼는 커널 데이터 슬라이스를 슬라이스 단위로 다운스트림 방향으로 이동시킨다.
+source_chunk: 17-459782-chunk-000&lt;SEP&gt;17-196922-chunk-000</title></line><text class='edge-label' x='621.7' y='549.9' text-anchor='middle'><title>Source_entity: 제2 데이터 버퍼
+Target_entity: 커널 데이터 슬라이스
+Relation keywords: 다운스트림 이동,데이터 이동,수신,시프트
+Patent_count: 2
+제2 데이터 버퍼는 커널 데이터 슬라이스를 순차적으로 다운스트림으로 이동시킨다.&lt;SEP&gt;제2 데이터 버퍼는 커널 데이터 슬라이스를 슬라이스 단위로 다운스트림 방향으로 이동시킨다.
+source_chunk: 17-459782-chunk-000&lt;SEP&gt;17-196922-chunk-000</title>다운스트림 이동,데이터 이동,수신,시프트</text><line class='edge multi-edge' x1='436.6' y1='529.9' x2='560.0' y2='570.0'><title>Source_entity: 제2 입력 시프트 레지스터
+Target_entity: 커널 데이터 슬라이스
+Relation keywords: 데이터 전송,수신
+Patent_count: 2
+제2 입력 시프트 레지스터는 제2 데이터 버퍼에서 커널 데이터 슬라이스를 수신한다.&lt;SEP&gt;제2 입력 시프트 레지스터는 제2 데이터 버퍼로부터 커널 데이터 슬라이스를 수신한다.
+source_chunk: 17-459782-chunk-000&lt;SEP&gt;17-196922-chunk-000</title></line><text class='edge-label' x='498.3' y='549.9' text-anchor='middle'><title>Source_entity: 제2 입력 시프트 레지스터
+Target_entity: 커널 데이터 슬라이스
+Relation keywords: 데이터 전송,수신
+Patent_count: 2
+제2 입력 시프트 레지스터는 제2 데이터 버퍼에서 커널 데이터 슬라이스를 수신한다.&lt;SEP&gt;제2 입력 시프트 레지스터는 제2 데이터 버퍼로부터 커널 데이터 슬라이스를 수신한다.
+source_chunk: 17-459782-chunk-000&lt;SEP&gt;17-196922-chunk-000</title>데이터 전송,수신</text><line class='edge' x1='560.0' y1='360.0' x2='436.6' y2='190.1'><title>Source_entity: 인공지능 가속기
+Target_entity: 신경망
+Relation keywords: 가속,신경망 계산
+Patent_count: 1
+인공지능 가속기는 신경망과 관련된 계산을 수행한다.
+source_chunk: 17-459782-chunk-000</title></line><text class='edge-label' x='498.3' y='275.1' text-anchor='middle'><title>Source_entity: 인공지능 가속기
+Target_entity: 신경망
+Relation keywords: 가속,신경망 계산
+Patent_count: 1
+인공지능 가속기는 신경망과 관련된 계산을 수행한다.
+source_chunk: 17-459782-chunk-000</title>가속,신경망 계산</text><line class='edge' x1='560.0' y1='360.0' x2='867.1' y2='430.1'><title>Source_entity: 인공지능 가속기
+Target_entity: 입력 레지스터
+Relation keywords: 데이터셋 저장,포함
+Patent_count: 1
+인공지능 가속기는 신경망 레이어의 입력 데이터셋을 저장하는 입력 레지스터를 포함한다.
+source_chunk: 17-459782-chunk-000</title></line><text class='edge-label' x='713.6' y='395.0' text-anchor='middle'><title>Source_entity: 인공지능 가속기
+Target_entity: 입력 레지스터
+Relation keywords: 데이터셋 저장,포함
+Patent_count: 1
+인공지능 가속기는 신경망 레이어의 입력 데이터셋을 저장하는 입력 레지스터를 포함한다.
+source_chunk: 17-459782-chunk-000</title>데이터셋 저장,포함</text><line class='edge' x1='360.3' y1='295.1' x2='806.3' y2='163.6'><title>Source_entity: 곱셈 블록 회로
+Target_entity: 고속 레지스터
+Relation keywords: 계산 입력,연결
+Patent_count: 1
+곱셈 블록 회로는 고속 레지스터와 통신하며 저장된 커널 값을 이용해 신경망 관련 계산을 수행한다.
+source_chunk: 17-459782-chunk-000</title></line><text class='edge-label' x='583.3' y='229.4' text-anchor='middle'><title>Source_entity: 곱셈 블록 회로
+Target_entity: 고속 레지스터
+Relation keywords: 계산 입력,연결
+Patent_count: 1
+곱셈 블록 회로는 고속 레지스터와 통신하며 저장된 커널 값을 이용해 신경망 관련 계산을 수행한다.
+source_chunk: 17-459782-chunk-000</title>계산 입력,연결</text><line class='edge' x1='360.3' y1='295.1' x2='683.4' y2='190.1'><title>Source_entity: 곱셈 블록 회로
+Target_entity: 입력 데이터 슬라이스
+Relation keywords: 계산,컨볼루션
+Patent_count: 1
+곱셈 블록 회로는 입력 데이터 슬라이스의 값을 컨볼루션 연산 관련 계산에 사용한다.
+source_chunk: 17-196922-chunk-000</title></line><text class='edge-label' x='521.9' y='242.6' text-anchor='middle'><title>Source_entity: 곱셈 블록 회로
+Target_entity: 입력 데이터 슬라이스
+Relation keywords: 계산,컨볼루션
+Patent_count: 1
+곱셈 블록 회로는 입력 데이터 슬라이스의 값을 컨볼루션 연산 관련 계산에 사용한다.
+source_chunk: 17-196922-chunk-000</title>계산,컨볼루션</text><line class='edge' x1='360.3' y1='295.1' x2='696.7' y2='643.8'><title>Source_entity: 곱셈 블록 회로
+Target_entity: 제1 커널
+Relation keywords: 계산,단일 클록 주기
+Patent_count: 1
+곱셈 블록 회로는 제1 커널을 단일 클록 주기에서 계산한다.
+source_chunk: 17-459782-chunk-000</title></line><text class='edge-label' x='528.5' y='469.5' text-anchor='middle'><title>Source_entity: 곱셈 블록 회로
+Target_entity: 제1 커널
+Relation keywords: 계산,단일 클록 주기
+Patent_count: 1
+곱셈 블록 회로는 제1 커널을 단일 클록 주기에서 계산한다.
+source_chunk: 17-459782-chunk-000</title>계산,단일 클록 주기</text><line class='edge' x1='360.3' y1='295.1' x2='423.3' y2='643.8'><title>Source_entity: 곱셈 블록 회로
+Target_entity: 제2 커널
+Relation keywords: 계산,단일 클록 주기
+Patent_count: 1
+곱셈 블록 회로는 제2 커널을 단일 클록 주기에서 계산한다.
+source_chunk: 17-459782-chunk-000</title></line><text class='edge-label' x='391.8' y='469.5' text-anchor='middle'><title>Source_entity: 곱셈 블록 회로
+Target_entity: 제2 커널
+Relation keywords: 계산,단일 클록 주기
+Patent_count: 1
+곱셈 블록 회로는 제2 커널을 단일 클록 주기에서 계산한다.
+source_chunk: 17-459782-chunk-000</title>계산,단일 클록 주기</text><line class='edge' x1='360.3' y1='295.1' x2='313.7' y2='163.6'><title>Source_entity: 곱셈 블록 회로
+Target_entity: 출력 버퍼
+Relation keywords: 연결,출력 수신
+Patent_count: 1
+출력 버퍼는 곱셈 블록 회로에 결합되어 계산 출력을 수신한다.
+source_chunk: 17-196922-chunk-000</title></line><text class='edge-label' x='337.0' y='229.4' text-anchor='middle'><title>Source_entity: 곱셈 블록 회로
+Target_entity: 출력 버퍼
+Relation keywords: 연결,출력 수신
+Patent_count: 1
+출력 버퍼는 곱셈 블록 회로에 결합되어 계산 출력을 수신한다.
+source_chunk: 17-196922-chunk-000</title>연결,출력 수신</text><line class='edge' x1='360.3' y1='295.1' x2='560.0' y2='570.0'><title>Source_entity: 곱셈 블록 회로
+Target_entity: 커널 데이터 슬라이스
+Relation keywords: 계산,컨볼루션
+Patent_count: 1
+곱셈 블록 회로는 커널 데이터 슬라이스의 값을 컨볼루션 연산 관련 계산에 사용한다.
+source_chunk: 17-196922-chunk-000</title></line><text class='edge-label' x='460.1' y='432.6' text-anchor='middle'><title>Source_entity: 곱셈 블록 회로
+Target_entity: 커널 데이터 슬라이스
+Relation keywords: 계산,컨볼루션
+Patent_count: 1
+곱셈 블록 회로는 커널 데이터 슬라이스의 값을 컨볼루션 연산 관련 계산에 사용한다.
+source_chunk: 17-196922-chunk-000</title>계산,컨볼루션</text><line class='edge' x1='560.0' y1='45.0' x2='683.4' y2='190.1'><title>Source_entity: 입력 데이터
+Target_entity: 입력 데이터 슬라이스
+Relation keywords: 분할,슬라이스 이동
+Patent_count: 1
+입력 데이터는 슬라이스 단위로 다운스트림으로 이동된다.
+source_chunk: 17-459782-chunk-000</title></line><text class='edge-label' x='621.7' y='117.6' text-anchor='middle'><title>Source_entity: 입력 데이터
+Target_entity: 입력 데이터 슬라이스
+Relation keywords: 분할,슬라이스 이동
+Patent_count: 1
+입력 데이터는 슬라이스 단위로 다운스트림으로 이동된다.
+source_chunk: 17-459782-chunk-000</title>분할,슬라이스 이동</text><line class='edge' x1='759.7' y1='295.1' x2='560.0' y2='45.0'><title>Source_entity: 제1 데이터 버퍼
+Target_entity: 입력 데이터
+Relation keywords: 데이터 이동,수신
+Patent_count: 1
+제1 데이터 버퍼는 신경망 레이어의 입력 데이터를 수신하고 이동시킨다.
+source_chunk: 17-459782-chunk-000</title></line><text class='edge-label' x='659.9' y='170.1' text-anchor='middle'><title>Source_entity: 제1 데이터 버퍼
+Target_entity: 입력 데이터
+Relation keywords: 데이터 이동,수신
+Patent_count: 1
+제1 데이터 버퍼는 신경망 레이어의 입력 데이터를 수신하고 이동시킨다.
+source_chunk: 17-459782-chunk-000</title>데이터 이동,수신</text><line class='edge' x1='759.7' y1='295.1' x2='313.7' y2='163.6'><title>Source_entity: 제1 데이터 버퍼
+Target_entity: 출력 버퍼
+Relation keywords: 데이터 전송,후속 계층 입력
+Patent_count: 1
+출력 버퍼는 곱셈 블록 회로의 출력을 후속 신경망 계층의 입력 데이터로 제1 데이터 버퍼에 다시 전달한다.
+source_chunk: 17-196922-chunk-000</title></line><text class='edge-label' x='536.7' y='229.4' text-anchor='middle'><title>Source_entity: 제1 데이터 버퍼
+Target_entity: 출력 버퍼
+Relation keywords: 데이터 전송,후속 계층 입력
+Patent_count: 1
+출력 버퍼는 곱셈 블록 회로의 출력을 후속 신경망 계층의 입력 데이터로 제1 데이터 버퍼에 다시 전달한다.
+source_chunk: 17-196922-chunk-000</title>데이터 전송,후속 계층 입력</text><line class='edge' x1='759.7' y1='424.9' x2='360.3' y2='295.1'><title>Source_entity: 제1 입력 시프트 레지스터
+Target_entity: 곱셈 블록 회로
+Relation keywords: 연결,입력 데이터 계산
+Patent_count: 1
+곱셈 블록 회로는 제1 입력 시프트 레지스터에 결합되어 입력 데이터 슬라이스의 값을 계산에 사용한다.
+source_chunk: 17-196922-chunk-000</title></line><text class='edge-label' x='560.0' y='360.0' text-anchor='middle'><title>Source_entity: 제1 입력 시프트 레지스터
+Target_entity: 곱셈 블록 회로
+Relation keywords: 연결,입력 데이터 계산
+Patent_count: 1
+곱셈 블록 회로는 제1 입력 시프트 레지스터에 결합되어 입력 데이터 슬라이스의 값을 계산에 사용한다.
+source_chunk: 17-196922-chunk-000</title>연결,입력 데이터 계산</text><line class='edge' x1='683.4' y1='529.9' x2='252.9' y2='430.1'><title>Source_entity: 제2 데이터 버퍼
+Target_entity: 커널 데이터
+Relation keywords: 데이터 이동,수신
+Patent_count: 1
+제2 데이터 버퍼는 신경망 레이어의 커널 데이터를 수신하고 이동시킨다.
+source_chunk: 17-459782-chunk-000</title></line><text class='edge-label' x='468.2' y='480.0' text-anchor='middle'><title>Source_entity: 제2 데이터 버퍼
+Target_entity: 커널 데이터
+Relation keywords: 데이터 이동,수신
+Patent_count: 1
+제2 데이터 버퍼는 신경망 레이어의 커널 데이터를 수신하고 이동시킨다.
+source_chunk: 17-459782-chunk-000</title>데이터 이동,수신</text><line class='edge' x1='436.6' y1='529.9' x2='360.3' y2='295.1'><title>Source_entity: 제2 입력 시프트 레지스터
+Target_entity: 곱셈 블록 회로
+Relation keywords: 연결,커널 데이터 계산
+Patent_count: 1
+곱셈 블록 회로는 제2 입력 시프트 레지스터에 결합되어 커널 데이터 슬라이스의 값을 계산에 사용한다.
+source_chunk: 17-196922-chunk-000</title></line><text class='edge-label' x='398.4' y='412.5' text-anchor='middle'><title>Source_entity: 제2 입력 시프트 레지스터
+Target_entity: 곱셈 블록 회로
+Relation keywords: 연결,커널 데이터 계산
+Patent_count: 1
+곱셈 블록 회로는 제2 입력 시프트 레지스터에 결합되어 커널 데이터 슬라이스의 값을 계산에 사용한다.
+source_chunk: 17-196922-chunk-000</title>연결,커널 데이터 계산</text><line class='edge' x1='252.9' y1='430.1' x2='560.0' y2='570.0'><title>Source_entity: 커널 데이터
+Target_entity: 커널 데이터 슬라이스
+Relation keywords: 분할,슬라이스 이동
+Patent_count: 1
+커널 데이터는 슬라이스 단위로 다운스트림으로 이동된다.
+source_chunk: 17-459782-chunk-000</title></line><text class='edge-label' x='406.4' y='500.0' text-anchor='middle'><title>Source_entity: 커널 데이터
+Target_entity: 커널 데이터 슬라이스
+Relation keywords: 분할,슬라이스 이동
+Patent_count: 1
+커널 데이터는 슬라이스 단위로 다운스트림으로 이동된다.
+source_chunk: 17-459782-chunk-000</title>분할,슬라이스 이동</text><line class='edge' x1='560.0' y1='150.0' x2='560.0' y2='45.0'><title>Source_entity: 컨볼루션 연산
+Target_entity: 입력 데이터
+Relation keywords: 결합,연산 입력
+Patent_count: 1
+컨볼루션 연산은 입력 데이터를 커널 데이터와 결합해 수행된다.
+source_chunk: 17-459782-chunk-000</title></line><line class='edge' x1='560.0' y1='150.0' x2='252.9' y2='430.1'><title>Source_entity: 컨볼루션 연산
+Target_entity: 커널 데이터
+Relation keywords: 결합,연산 입력
+Patent_count: 1
+컨볼루션 연산은 커널 데이터를 입력 데이터와 결합해 수행된다.
+source_chunk: 17-459782-chunk-000</title></line>
+        <g transform='translate(560.0,360.0)'><circle r='14.5' fill='#0f766e' opacity='0.9'><title>인공지능 가속기 | degree=5 | type=architecture</title></circle><text text-anchor='middle' y='28.5'><tspan x='0' dy='0'>인공지능 가속기</tspan></text></g><g transform='translate(560.0,150.0)'><circle r='15.4' fill='#9333ea' opacity='0.9'><title>컨볼루션 연산 | degree=6 | type=operation</title></circle><text text-anchor='middle' y='29.4'><tspan x='0' dy='0'>컨볼루션 연산</tspan></text></g><g transform='translate(683.4,190.1)'><circle r='14.5' fill='#7c3aed' opacity='0.9'><title>입력 데이터 슬라이스 | degree=5 | type=other</title></circle><text text-anchor='middle' y='28.5'><tspan x='0' dy='0'>입력 데이터 슬라이스</tspan></text></g><g transform='translate(759.7,295.1)'><circle r='14.5' fill='#2563eb' opacity='0.9'><title>제1 데이터 버퍼 | degree=5 | type=techcomponent</title></circle><text text-anchor='middle' y='28.5'><tspan x='0' dy='0'>제1 데이터 버퍼</tspan></text></g><g transform='translate(759.7,424.9)'><circle r='13.6' fill='#2563eb' opacity='0.9'><title>제1 입력 시프트 레지스터 | degree=4 | type=techcomponent</title></circle><text text-anchor='middle' y='27.6'><tspan x='0' dy='0'>제1 입력 시프트</tspan><tspan x='0' dy='13'>레지스터</tspan></text></g><g transform='translate(683.4,529.9)'><circle r='13.6' fill='#2563eb' opacity='0.9'><title>제2 데이터 버퍼 | degree=4 | type=techcomponent</title></circle><text text-anchor='middle' y='27.6'><tspan x='0' dy='0'>제2 데이터 버퍼</tspan></text></g><g transform='translate(560.0,570.0)'><circle r='13.6' fill='#7c3aed' opacity='0.9'><title>커널 데이터 슬라이스 | degree=4 | type=other</title></circle><text text-anchor='middle' y='27.6'><tspan x='0' dy='0'>커널 데이터 슬라이스</tspan></text></g><g transform='translate(436.6,529.9)'><circle r='13' fill='#2563eb' opacity='0.9'><title>제2 입력 시프트 레지스터 | degree=3 | type=techcomponent</title></circle><text text-anchor='middle' y='27'><tspan x='0' dy='0'>제2 입력 시프트</tspan><tspan x='0' dy='13'>레지스터</tspan></text></g><g transform='translate(360.3,424.9)'><circle r='13' fill='#2563eb' opacity='0.9'><title>2차원 시프트 레지스터 | degree=2 | type=techcomponent</title></circle><text text-anchor='middle' y='27'><tspan x='0' dy='0'>2차원 시프트 레지스터</tspan></text></g><g transform='translate(360.3,295.1)'><circle r='18.1' fill='#2563eb' opacity='0.9'><title>곱셈 블록 회로 | degree=9 | type=techcomponent</title></circle><text text-anchor='middle' y='32.1'><tspan x='0' dy='0'>곱셈 블록 회로</tspan></text></g><g transform='translate(436.6,190.1)'><circle r='16.3' fill='#475569' opacity='0.9'><title>신경망 | degree=7 | type=applicationdomain</title></circle><text text-anchor='middle' y='30.3'><tspan x='0' dy='0'>신경망</tspan></text></g><g transform='translate(560.0,45.0)'><circle r='19.0' fill='#7c3aed' opacity='0.9'><title>입력 데이터 | degree=10 | type=other</title></circle><text text-anchor='middle' y='33.0'><tspan x='0' dy='0'>입력 데이터</tspan></text></g><g transform='translate(806.3,163.6)'><circle r='14.5' fill='#2563eb' opacity='0.9'><title>고속 레지스터 | degree=5 | type=techcomponent</title></circle><text text-anchor='middle' y='28.5'><tspan x='0' dy='0'>고속 레지스터</tspan></text></g><g transform='translate(867.1,430.1)'><circle r='13.6' fill='#2563eb' opacity='0.9'><title>입력 레지스터 | degree=4 | type=techcomponent</title></circle><text text-anchor='middle' y='27.6'><tspan x='0' dy='0'>입력 레지스터</tspan></text></g><g transform='translate(696.7,643.8)'><circle r='13' fill='#7c3aed' opacity='0.9'><title>제1 커널 | degree=3 | type=other</title></circle><text text-anchor='middle' y='27'><tspan x='0' dy='0'>제1 커널</tspan></text></g><g transform='translate(423.3,643.8)'><circle r='13' fill='#7c3aed' opacity='0.9'><title>제2 커널 | degree=3 | type=other</title></circle><text text-anchor='middle' y='27'><tspan x='0' dy='0'>제2 커널</tspan></text></g><g transform='translate(252.9,430.1)'><circle r='13' fill='#7c3aed' opacity='0.9'><title>커널 데이터 | degree=3 | type=other</title></circle><text text-anchor='middle' y='27'><tspan x='0' dy='0'>커널 데이터</tspan></text></g><g transform='translate(313.7,163.6)'><circle r='13' fill='#2563eb' opacity='0.9'><title>출력 버퍼 | degree=2 | type=techcomponent</title></circle><text text-anchor='middle' y='27'><tspan x='0' dy='0'>출력 버퍼</tspan></text></g>
+      </svg>
+      <div class='graph-legend'><strong>노드 색상</strong><span class='legend-item'><span class='legend-dot' style='background:#475569'></span>응용 분야</span><span class='legend-item'><span class='legend-dot' style='background:#0f766e'></span>아키텍처</span><span class='legend-item'><span class='legend-dot' style='background:#9333ea'></span>연산/동작</span><span class='legend-item'><span class='legend-dot' style='background:#7c3aed'></span>기타</span><span class='legend-item'><span class='legend-dot' style='background:#2563eb'></span>기술 구성요소</span><span class='legend-note'>노드 크기 = 그래프 degree, 굵은 파란 엣지 = Patent_count &gt; 1, 엣지 라벨 = 관계 키워드</span></div>
+    </section>
+    <h4>Relation samples shown in the graph</h4><p class='note'>표는 multi-patent relation을 먼저 정렬한다. <code>Patent_count &gt; 1</code>이면 동일한 entity relation이 둘 이상의 source patent에서 병합된 edge다.</p><div class='table-wrap'><table class='relation-table'><thead><tr><th>Source_entity</th><th>Relation</th><th>Target_entity</th><th>Description</th><th>Source_patents</th><th>Patent_count</th></tr></thead><tbody><tr><td>인공지능 가속기</td><td>구성요소,입력 데이터 이동,포함</td><td>제1 데이터 버퍼</td><td>인공지능 가속기는 입력 데이터를 슬라이스 단위로 이동시키는 제1 데이터 버퍼를 포함한다.&lt;SEP&gt;인공지능 가속기는 입력 데이터를 수신하고 슬라이스 단위로 이동시키는 제1 데이터 버퍼를 포함한다.</td><td>17-459782
+&lt;SEP&gt;
+17-196922</td><td>2</td></tr><tr><td>인공지능 가속기</td><td>구성요소,커널 데이터 이동,포함</td><td>제2 데이터 버퍼</td><td>인공지능 가속기는 커널 데이터를 슬라이스 단위로 이동시키는 제2 데이터 버퍼를 포함한다.&lt;SEP&gt;인공지능 가속기는 커널 데이터를 수신하고 슬라이스 단위로 이동시키는 제2 데이터 버퍼를 포함한다.</td><td>17-459782
+&lt;SEP&gt;
+17-196922</td><td>2</td></tr><tr><td>인공지능 가속기</td><td>가속,수행</td><td>컨볼루션 연산</td><td>인공지능 가속기는 신경망에 관련된 컨볼루션 연산을 수행한다.&lt;SEP&gt;인공지능 가속기는 신경망과 관련된 컨볼루션 연산을 수행한다.</td><td>17-459782
+&lt;SEP&gt;
+17-196922</td><td>2</td></tr><tr><td>2차원 시프트 레지스터</td><td>2차원 시프트,x-y 방향 시프트,값 이동,데이터 이동</td><td>입력 데이터 슬라이스</td><td>2차원 시프트 레지스터는 입력 데이터 슬라이스의 값을 x 및 y 방향으로 이동시킨다.&lt;SEP&gt;2차원 시프트 레지스터는 입력 데이터 슬라이스의 값을 제1 방향과 제2 방향으로 이동시킨다.</td><td>17-459782
+&lt;SEP&gt;
+17-196922</td><td>2</td></tr><tr><td>곱셈 블록 회로</td><td>곱셈 계산,수행,입력-커널 결합</td><td>컨볼루션 연산</td><td>곱셈 블록 회로는 입력 데이터와 커널 데이터를 이용해 컨볼루션 연산을 수행한다.&lt;SEP&gt;곱셈 블록 회로는 입력 데이터 값과 커널 데이터 값 사이의 컨볼루션 연산 관련 계산을 수행한다.</td><td>17-459782
+&lt;SEP&gt;
+17-196922</td><td>2</td></tr><tr><td>신경망</td><td>수행,신경망 연산,적용</td><td>컨볼루션 연산</td><td>컨볼루션 연산은 신경망에 관련된 계산으로 수행된다.&lt;SEP&gt;컨볼루션 연산은 신경망 계층의 입력 데이터와 커널 데이터를 대상으로 수행된다.</td><td>17-459782
+&lt;SEP&gt;
+17-196922</td><td>2</td></tr><tr><td>제1 데이터 버퍼</td><td>다운스트림 이동,데이터 이동,수신,시프트</td><td>입력 데이터 슬라이스</td><td>제1 데이터 버퍼는 입력 데이터 슬라이스를 순차적으로 다운스트림으로 이동시킨다.&lt;SEP&gt;제1 데이터 버퍼는 입력 데이터 슬라이스를 슬라이스 단위로 다운스트림 방향으로 이동시킨다.</td><td>17-459782
+&lt;SEP&gt;
+17-196922</td><td>2</td></tr><tr><td>제1 데이터 버퍼</td><td>데이터 전송,연결,입력 슬라이스 수신</td><td>제1 입력 시프트 레지스터</td><td>제1 입력 시프트 레지스터는 제1 데이터 버퍼에서 입력 데이터 슬라이스를 수신한다.&lt;SEP&gt;제1 데이터 버퍼는 제1 입력 시프트 레지스터에 결합되어 입력 데이터 슬라이스를 전달한다.</td><td>17-459782
+&lt;SEP&gt;
+17-196922</td><td>2</td></tr><tr><td>제1 입력 시프트 레지스터</td><td>x-y 방향 시프트,구성,구성요소,데이터 이동</td><td>2차원 시프트 레지스터</td><td>제1 입력 시프트 레지스터는 입력 데이터 값을 x 및 y 방향으로 이동하는 2차원 시프트 레지스터에 대응할 수 있다.&lt;SEP&gt;제1 입력 시프트 레지스터는 입력 데이터 슬라이스의 값을 두 방향으로 이동시키는 2차원 시프트 레지스터를 포함한다.</td><td>17-459782
+&lt;SEP&gt;
+17-196922</td><td>2</td></tr><tr><td>제1 입력 시프트 레지스터</td><td>데이터 이동,데이터 전송,수신</td><td>입력 데이터 슬라이스</td><td>제1 입력 시프트 레지스터는 제1 데이터 버퍼에서 입력 데이터 슬라이스를 수신한다.&lt;SEP&gt;제1 입력 시프트 레지스터는 제1 데이터 버퍼로부터 입력 데이터 슬라이스를 수신한다.</td><td>17-459782
+&lt;SEP&gt;
+17-196922</td><td>2</td></tr><tr><td>제2 데이터 버퍼</td><td>데이터 전송,연결,커널 슬라이스 수신</td><td>제2 입력 시프트 레지스터</td><td>제2 입력 시프트 레지스터는 제2 데이터 버퍼에서 커널 데이터 슬라이스를 수신한다.&lt;SEP&gt;제2 데이터 버퍼는 제2 입력 시프트 레지스터에 결합되어 커널 데이터 슬라이스를 전달한다.</td><td>17-459782
+&lt;SEP&gt;
+17-196922</td><td>2</td></tr><tr><td>제2 데이터 버퍼</td><td>다운스트림 이동,데이터 이동,수신,시프트</td><td>커널 데이터 슬라이스</td><td>제2 데이터 버퍼는 커널 데이터 슬라이스를 순차적으로 다운스트림으로 이동시킨다.&lt;SEP&gt;제2 데이터 버퍼는 커널 데이터 슬라이스를 슬라이스 단위로 다운스트림 방향으로 이동시킨다.</td><td>17-459782
+&lt;SEP&gt;
+17-196922</td><td>2</td></tr><tr><td>제2 입력 시프트 레지스터</td><td>데이터 전송,수신</td><td>커널 데이터 슬라이스</td><td>제2 입력 시프트 레지스터는 제2 데이터 버퍼에서 커널 데이터 슬라이스를 수신한다.&lt;SEP&gt;제2 입력 시프트 레지스터는 제2 데이터 버퍼로부터 커널 데이터 슬라이스를 수신한다.</td><td>17-459782
+&lt;SEP&gt;
+17-196922</td><td>2</td></tr><tr><td>인공지능 가속기</td><td>가속,신경망 계산</td><td>신경망</td><td>인공지능 가속기는 신경망과 관련된 계산을 수행한다.</td><td>17-459782</td><td>1</td></tr><tr><td>인공지능 가속기</td><td>데이터셋 저장,포함</td><td>입력 레지스터</td><td>인공지능 가속기는 신경망 레이어의 입력 데이터셋을 저장하는 입력 레지스터를 포함한다.</td><td>17-459782</td><td>1</td></tr><tr><td>곱셈 블록 회로</td><td>계산 입력,연결</td><td>고속 레지스터</td><td>곱셈 블록 회로는 고속 레지스터와 통신하며 저장된 커널 값을 이용해 신경망 관련 계산을 수행한다.</td><td>17-459782</td><td>1</td></tr><tr><td>곱셈 블록 회로</td><td>계산,컨볼루션</td><td>입력 데이터 슬라이스</td><td>곱셈 블록 회로는 입력 데이터 슬라이스의 값을 컨볼루션 연산 관련 계산에 사용한다.</td><td>17-196922</td><td>1</td></tr><tr><td>곱셈 블록 회로</td><td>계산,단일 클록 주기</td><td>제1 커널</td><td>곱셈 블록 회로는 제1 커널을 단일 클록 주기에서 계산한다.</td><td>17-459782</td><td>1</td></tr><tr><td>곱셈 블록 회로</td><td>계산,단일 클록 주기</td><td>제2 커널</td><td>곱셈 블록 회로는 제2 커널을 단일 클록 주기에서 계산한다.</td><td>17-459782</td><td>1</td></tr><tr><td>곱셈 블록 회로</td><td>연결,출력 수신</td><td>출력 버퍼</td><td>출력 버퍼는 곱셈 블록 회로에 결합되어 계산 출력을 수신한다.</td><td>17-196922</td><td>1</td></tr></tbody></table></div>
+        <div class="single-graph-block">
+          <h3>Single patent graph example</h3>
+          <p class="note">아래는 특허 <code>16-599306</code> 하나에서 나온 entity/relation만 렌더링한 예시다. 전체 graph가 특허번호 중심 계층 구조가 아니라, source chunk에서 추출된 기술 entity 간 관계 graph라는 점을 보여준다.</p>
+
+    <section class="viz">
+      <h3>Single patent graph example: 16-599306</h3>
+      <p>특허 16-599306에서 source chunk 기준으로 추출된 기술 entity/relation만 렌더링했다. patent_id는 source/reference로 남고 entity node로 쓰지 않는다.</p>
+      <svg viewBox="0 0 1120 720" role="img" aria-label="Single patent graph example: 16-599306">
+        <rect x="0" y="0" width="1120" height="720" rx="8" fill="#fbfcfd"/>
+        <line class='edge' x1='560.0' y1='150.0' x2='360.3' y2='295.1'><title>Source_entity: 입력 데이터
+Target_entity: 신경 프로세싱 유닛
+Relation keywords: 사용 케이스,수신
+Patent_count: 1
+신경 프로세싱 유닛은 사용 케이스와 연관된 입력 데이터를 수신한다.
+source_chunk: 16-599306-chunk-000</title></line><text class='edge-label' x='460.1' y='222.6' text-anchor='middle'><title>Source_entity: 입력 데이터
+Target_entity: 신경 프로세싱 유닛
+Relation keywords: 사용 케이스,수신
+Patent_count: 1
+신경 프로세싱 유닛은 사용 케이스와 연관된 입력 데이터를 수신한다.
+source_chunk: 16-599306-chunk-000</title>사용 케이스,수신</text><line class='edge' x1='560.0' y1='150.0' x2='560.0' y2='360.0'><title>Source_entity: 입력 데이터
+Target_entity: 가중치 세트
+Relation keywords: 가중치 획득,연관
+Patent_count: 1
+가중치 세트는 입력 데이터와 연관되어 획득된다.
+source_chunk: 16-599306-chunk-000</title></line><text class='edge-label' x='560.0' y='255.0' text-anchor='middle'><title>Source_entity: 입력 데이터
+Target_entity: 가중치 세트
+Relation keywords: 가중치 획득,연관
+Patent_count: 1
+가중치 세트는 입력 데이터와 연관되어 획득된다.
+source_chunk: 16-599306-chunk-000</title>가중치 획득,연관</text><line class='edge' x1='560.0' y1='150.0' x2='683.4' y2='190.1'><title>Source_entity: 입력 데이터
+Target_entity: 출력 생성
+Relation keywords: 수행,출력 생성
+Patent_count: 1
+출력 생성은 입력 데이터를 이용해 결과를 생성한다.
+source_chunk: 16-599306-chunk-000</title></line><text class='edge-label' x='621.7' y='170.1' text-anchor='middle'><title>Source_entity: 입력 데이터
+Target_entity: 출력 생성
+Relation keywords: 수행,출력 생성
+Patent_count: 1
+출력 생성은 입력 데이터를 이용해 결과를 생성한다.
+source_chunk: 16-599306-chunk-000</title>수행,출력 생성</text><line class='edge' x1='360.3' y1='295.1' x2='360.3' y2='424.9'><title>Source_entity: 신경 프로세싱 유닛
+Target_entity: 로직 엘리먼트
+Relation keywords: 구성요소,포함
+Patent_count: 1
+신경 프로세싱 유닛은 하나 이상의 로직 엘리먼트를 포함한다.
+source_chunk: 16-599306-chunk-000</title></line><text class='edge-label' x='360.3' y='360.0' text-anchor='middle'><title>Source_entity: 신경 프로세싱 유닛
+Target_entity: 로직 엘리먼트
+Relation keywords: 구성요소,포함
+Patent_count: 1
+신경 프로세싱 유닛은 하나 이상의 로직 엘리먼트를 포함한다.
+source_chunk: 16-599306-chunk-000</title>구성요소,포함</text><line class='edge' x1='374.8' y1='614.8' x2='759.7' y2='295.1'><title>Source_entity: 인공 신경망
+Target_entity: MAC 블록
+Relation keywords: 신경망 응용,적용
+Patent_count: 1
+MAC 블록은 인공 신경망 응용을 위해 구성된다.
+source_chunk: 16-599306-chunk-000</title></line><text class='edge-label' x='567.3' y='455.0' text-anchor='middle'><title>Source_entity: 인공 신경망
+Target_entity: MAC 블록
+Relation keywords: 신경망 응용,적용
+Patent_count: 1
+MAC 블록은 인공 신경망 응용을 위해 구성된다.
+source_chunk: 16-599306-chunk-000</title>신경망 응용,적용</text><line class='edge' x1='859.6' y1='262.7' x2='759.7' y2='295.1'><title>Source_entity: MAC 블록 구성 방법
+Target_entity: MAC 블록
+Relation keywords: 구성,신경망 연산
+Patent_count: 1
+MAC 블록 구성 방법은 인공 신경망을 위한 MAC 블록을 구성한다.
+source_chunk: 16-599306-chunk-000</title></line><text class='edge-label' x='809.7' y='278.9' text-anchor='middle'><title>Source_entity: MAC 블록 구성 방법
+Target_entity: MAC 블록
+Relation keywords: 구성,신경망 연산
+Patent_count: 1
+MAC 블록 구성 방법은 인공 신경망을 위한 MAC 블록을 구성한다.
+source_chunk: 16-599306-chunk-000</title>구성,신경망 연산</text><line class='edge' x1='360.3' y1='424.9' x2='436.6' y2='190.1'><title>Source_entity: 로직 엘리먼트
+Target_entity: 전력 차단
+Relation keywords: power-collapse,전력 제어
+Patent_count: 1
+로직 엘리먼트는 retention flop에 대응하며 전력 차단될 수 있다.
+source_chunk: 16-599306-chunk-000</title></line><text class='edge-label' x='398.4' y='307.5' text-anchor='middle'><title>Source_entity: 로직 엘리먼트
+Target_entity: 전력 차단
+Relation keywords: power-collapse,전력 제어
+Patent_count: 1
+로직 엘리먼트는 retention flop에 대응하며 전력 차단될 수 있다.
+source_chunk: 16-599306-chunk-000</title>power-collapse,전력 제어</text><line class='edge' x1='560.0' y1='360.0' x2='745.2' y2='614.8'><title>Source_entity: 가중치 세트
+Target_entity: 가중치 버퍼
+Relation keywords: 저장,제공
+Patent_count: 1
+가중치 버퍼는 입력과 연관된 가중치 세트를 제공한다.
+source_chunk: 16-599306-chunk-000</title></line><text class='edge-label' x='652.6' y='487.4' text-anchor='middle'><title>Source_entity: 가중치 세트
+Target_entity: 가중치 버퍼
+Relation keywords: 저장,제공
+Patent_count: 1
+가중치 버퍼는 입력과 연관된 가중치 세트를 제공한다.
+source_chunk: 16-599306-chunk-000</title>저장,제공</text><line class='edge' x1='560.0' y1='360.0' x2='560.0' y2='45.0'><title>Source_entity: 가중치 세트
+Target_entity: 정밀도 선택
+Relation keywords: 정밀도 선택,제어
+Patent_count: 1
+정밀도 선택은 가중치 세트에 적용할 precision을 선택한다.
+source_chunk: 16-599306-chunk-000</title></line><text class='edge-label' x='560.0' y='202.5' text-anchor='middle'><title>Source_entity: 가중치 세트
+Target_entity: 정밀도 선택
+Relation keywords: 정밀도 선택,제어
+Patent_count: 1
+정밀도 선택은 가중치 세트에 적용할 precision을 선택한다.
+source_chunk: 16-599306-chunk-000</title>정밀도 선택,제어</text><line class='edge' x1='560.0' y1='360.0' x2='560.0' y2='570.0'><title>Source_entity: 가중치 세트
+Target_entity: 가중치 수정
+Relation keywords: 수정,정밀도 적용
+Patent_count: 1
+가중치 수정은 선택된 정밀도에 기초하여 가중치 세트를 변경한다.
+source_chunk: 16-599306-chunk-000</title></line><text class='edge-label' x='560.0' y='465.0' text-anchor='middle'><title>Source_entity: 가중치 세트
+Target_entity: 가중치 수정
+Relation keywords: 수정,정밀도 적용
+Patent_count: 1
+가중치 수정은 선택된 정밀도에 기초하여 가중치 세트를 변경한다.
+source_chunk: 16-599306-chunk-000</title>수정,정밀도 적용</text><line class='edge' x1='560.0' y1='360.0' x2='683.4' y2='190.1'><title>Source_entity: 가중치 세트
+Target_entity: 출력 생성
+Relation keywords: 수행,출력 생성
+Patent_count: 1
+출력 생성은 수정된 가중치 세트를 이용해 결과를 생성한다.
+source_chunk: 16-599306-chunk-000</title></line><text class='edge-label' x='621.7' y='275.1' text-anchor='middle'><title>Source_entity: 가중치 세트
+Target_entity: 출력 생성
+Relation keywords: 수행,출력 생성
+Patent_count: 1
+출력 생성은 수정된 가중치 세트를 이용해 결과를 생성한다.
+source_chunk: 16-599306-chunk-000</title>수행,출력 생성</text><line class='edge' x1='560.0' y1='360.0' x2='683.4' y2='529.9'><title>Source_entity: 가중치 세트
+Target_entity: retention flop
+Relation keywords: 유지,저장
+Patent_count: 1
+retention flop은 수정된 가중치 세트를 저장하고 유지한다.
+source_chunk: 16-599306-chunk-000</title></line><text class='edge-label' x='621.7' y='444.9' text-anchor='middle'><title>Source_entity: 가중치 세트
+Target_entity: retention flop
+Relation keywords: 유지,저장
+Patent_count: 1
+retention flop은 수정된 가중치 세트를 저장하고 유지한다.
+source_chunk: 16-599306-chunk-000</title>유지,저장</text><line class='edge' x1='560.0' y1='45.0' x2='436.6' y2='529.9'><title>Source_entity: 정밀도 선택
+Target_entity: 가중치 정밀도
+Relation keywords: precision 설정,선택
+Patent_count: 1
+정밀도 선택은 가중치 세트에 적용할 가중치 정밀도를 선택한다.
+source_chunk: 16-599306-chunk-000</title></line><text class='edge-label' x='498.3' y='287.4' text-anchor='middle'><title>Source_entity: 정밀도 선택
+Target_entity: 가중치 정밀도
+Relation keywords: precision 설정,선택
+Patent_count: 1
+정밀도 선택은 가중치 세트에 적용할 가중치 정밀도를 선택한다.
+source_chunk: 16-599306-chunk-000</title>precision 설정,선택</text><line class='edge' x1='560.0' y1='570.0' x2='436.6' y2='529.9'><title>Source_entity: 가중치 수정
+Target_entity: 가중치 정밀도
+Relation keywords: 수정,정밀도 적용
+Patent_count: 1
+가중치 수정은 선택된 가중치 정밀도에 기초하여 가중치 세트를 변경한다.
+source_chunk: 16-599306-chunk-000</title></line><text class='edge-label' x='498.3' y='549.9' text-anchor='middle'><title>Source_entity: 가중치 수정
+Target_entity: 가중치 정밀도
+Relation keywords: 수정,정밀도 적용
+Patent_count: 1
+가중치 수정은 선택된 가중치 정밀도에 기초하여 가중치 세트를 변경한다.
+source_chunk: 16-599306-chunk-000</title>수정,정밀도 적용</text><line class='edge' x1='260.4' y1='262.7' x2='683.4' y2='190.1'><title>Source_entity: 활성화 함수
+Target_entity: 출력 생성
+Relation keywords: 수행,함수 적용
+Patent_count: 1
+출력 생성은 활성화 함수에 부분적으로 기초하여 결과를 생성한다.
+source_chunk: 16-599306-chunk-000</title></line><text class='edge-label' x='471.9' y='226.4' text-anchor='middle'><title>Source_entity: 활성화 함수
+Target_entity: 출력 생성
+Relation keywords: 수행,함수 적용
+Patent_count: 1
+출력 생성은 활성화 함수에 부분적으로 기초하여 결과를 생성한다.
+source_chunk: 16-599306-chunk-000</title>수행,함수 적용</text><line class='edge' x1='683.4' y1='529.9' x2='759.7' y2='424.9'><title>Source_entity: retention flop
+Target_entity: always-on output driver
+Relation keywords: 구성요소,저장 유지
+Patent_count: 1
+retention flop은 always-on output driver를 포함한다.
+source_chunk: 16-599306-chunk-000</title></line><text class='edge-label' x='721.6' y='477.4' text-anchor='middle'><title>Source_entity: retention flop
+Target_entity: always-on output driver
+Relation keywords: 구성요소,저장 유지
+Patent_count: 1
+retention flop은 always-on output driver를 포함한다.
+source_chunk: 16-599306-chunk-000</title>구성요소,저장 유지</text><line class='edge' x1='759.7' y1='424.9' x2='436.6' y2='190.1'><title>Source_entity: always-on output driver
+Target_entity: 전력 차단
+Relation keywords: 저장 유지,전력 유지
+Patent_count: 1
+always-on output driver는 전력 차단 상황에서 retention flop이 저장된 가중치 세트를 유지하도록 한다.
+source_chunk: 16-599306-chunk-000</title></line><text class='edge-label' x='598.1' y='307.5' text-anchor='middle'><title>Source_entity: always-on output driver
+Target_entity: 전력 차단
+Relation keywords: 저장 유지,전력 유지
+Patent_count: 1
+always-on output driver는 전력 차단 상황에서 retention flop이 저장된 가중치 세트를 유지하도록 한다.
+source_chunk: 16-599306-chunk-000</title>저장 유지,전력 유지</text>
+        <g transform='translate(560.0,360.0)'><circle r='15.4' fill='#7c3aed' opacity='0.9'><title>가중치 세트 | degree=6 | type=other</title></circle><text text-anchor='middle' y='29.4'><tspan x='0' dy='0'>가중치 세트</tspan></text></g><g transform='translate(560.0,150.0)'><circle r='13' fill='#7c3aed' opacity='0.9'><title>입력 데이터 | degree=3 | type=other</title></circle><text text-anchor='middle' y='27'><tspan x='0' dy='0'>입력 데이터</tspan></text></g><g transform='translate(683.4,190.1)'><circle r='13' fill='#9333ea' opacity='0.9'><title>출력 생성 | degree=3 | type=operation</title></circle><text text-anchor='middle' y='27'><tspan x='0' dy='0'>출력 생성</tspan></text></g><g transform='translate(759.7,295.1)'><circle r='13' fill='#2563eb' opacity='0.9'><title>MAC 블록 | degree=2 | type=techcomponent</title></circle><text text-anchor='middle' y='27'><tspan x='0' dy='0'>MAC 블록</tspan></text></g><g transform='translate(759.7,424.9)'><circle r='13' fill='#2563eb' opacity='0.9'><title>always-on output driver | degree=2 | type=techcomponent</title></circle><text text-anchor='middle' y='27'><tspan x='0' dy='0'>always-on</tspan><tspan x='0' dy='13'>output</tspan></text></g><g transform='translate(683.4,529.9)'><circle r='13' fill='#2563eb' opacity='0.9'><title>retention flop | degree=2 | type=techcomponent</title></circle><text text-anchor='middle' y='27'><tspan x='0' dy='0'>retention</tspan><tspan x='0' dy='13'>flop</tspan></text></g><g transform='translate(560.0,570.0)'><circle r='13' fill='#9333ea' opacity='0.9'><title>가중치 수정 | degree=2 | type=operation</title></circle><text text-anchor='middle' y='27'><tspan x='0' dy='0'>가중치 수정</tspan></text></g><g transform='translate(436.6,529.9)'><circle r='13' fill='#dc2626' opacity='0.9'><title>가중치 정밀도 | degree=2 | type=performancemetric</title></circle><text text-anchor='middle' y='27'><tspan x='0' dy='0'>가중치 정밀도</tspan></text></g><g transform='translate(360.3,424.9)'><circle r='13' fill='#2563eb' opacity='0.9'><title>로직 엘리먼트 | degree=2 | type=techcomponent</title></circle><text text-anchor='middle' y='27'><tspan x='0' dy='0'>로직 엘리먼트</tspan></text></g><g transform='translate(360.3,295.1)'><circle r='13' fill='#0f766e' opacity='0.9'><title>신경 프로세싱 유닛 | degree=2 | type=architecture</title></circle><text text-anchor='middle' y='27'><tspan x='0' dy='0'>신경 프로세싱 유닛</tspan></text></g><g transform='translate(436.6,190.1)'><circle r='13' fill='#9333ea' opacity='0.9'><title>전력 차단 | degree=2 | type=operation</title></circle><text text-anchor='middle' y='27'><tspan x='0' dy='0'>전력 차단</tspan></text></g><g transform='translate(560.0,45.0)'><circle r='13' fill='#9333ea' opacity='0.9'><title>정밀도 선택 | degree=2 | type=operation</title></circle><text text-anchor='middle' y='27'><tspan x='0' dy='0'>정밀도 선택</tspan></text></g><g transform='translate(859.6,262.7)'><circle r='13' fill='#d97706' opacity='0.9'><title>MAC 블록 구성 방법 | degree=1 | type=method</title></circle><text text-anchor='middle' y='27'><tspan x='0' dy='0'>MAC 블록 구성 방법</tspan></text></g><g transform='translate(745.2,614.8)'><circle r='13' fill='#2563eb' opacity='0.9'><title>가중치 버퍼 | degree=1 | type=techcomponent</title></circle><text text-anchor='middle' y='27'><tspan x='0' dy='0'>가중치 버퍼</tspan></text></g><g transform='translate(374.8,614.8)'><circle r='13' fill='#475569' opacity='0.9'><title>인공 신경망 | degree=1 | type=applicationdomain</title></circle><text text-anchor='middle' y='27'><tspan x='0' dy='0'>인공 신경망</tspan></text></g><g transform='translate(260.4,262.7)'><circle r='13' fill='#9333ea' opacity='0.9'><title>활성화 함수 | degree=1 | type=operation</title></circle><text text-anchor='middle' y='27'><tspan x='0' dy='0'>활성화 함수</tspan></text></g>
+      </svg>
+      <div class='graph-legend'><strong>노드 색상</strong><span class='legend-item'><span class='legend-dot' style='background:#475569'></span>응용 분야</span><span class='legend-item'><span class='legend-dot' style='background:#0f766e'></span>아키텍처</span><span class='legend-item'><span class='legend-dot' style='background:#d97706'></span>방법/공정</span><span class='legend-item'><span class='legend-dot' style='background:#9333ea'></span>연산/동작</span><span class='legend-item'><span class='legend-dot' style='background:#7c3aed'></span>기타</span><span class='legend-item'><span class='legend-dot' style='background:#dc2626'></span>성능 지표</span><span class='legend-item'><span class='legend-dot' style='background:#2563eb'></span>기술 구성요소</span><span class='legend-note'>노드 크기 = 그래프 degree, 굵은 파란 엣지 = Patent_count &gt; 1, 엣지 라벨 = 관계 키워드</span></div>
+    </section>
+    <h4>Single patent relation details</h4><div class='table-wrap'><table class='relation-table'><thead><tr><th>Source_entity</th><th>Relation</th><th>Target_entity</th><th>Description</th><th>Source_patents</th><th>Patent_count</th></tr></thead><tbody><tr><td>입력 데이터</td><td>사용 케이스,수신</td><td>신경 프로세싱 유닛</td><td>신경 프로세싱 유닛은 사용 케이스와 연관된 입력 데이터를 수신한다.</td><td>16-599306</td><td>1</td></tr><tr><td>입력 데이터</td><td>가중치 획득,연관</td><td>가중치 세트</td><td>가중치 세트는 입력 데이터와 연관되어 획득된다.</td><td>16-599306</td><td>1</td></tr><tr><td>입력 데이터</td><td>수행,출력 생성</td><td>출력 생성</td><td>출력 생성은 입력 데이터를 이용해 결과를 생성한다.</td><td>16-599306</td><td>1</td></tr><tr><td>신경 프로세싱 유닛</td><td>구성요소,포함</td><td>로직 엘리먼트</td><td>신경 프로세싱 유닛은 하나 이상의 로직 엘리먼트를 포함한다.</td><td>16-599306</td><td>1</td></tr><tr><td>인공 신경망</td><td>신경망 응용,적용</td><td>MAC 블록</td><td>MAC 블록은 인공 신경망 응용을 위해 구성된다.</td><td>16-599306</td><td>1</td></tr><tr><td>MAC 블록 구성 방법</td><td>구성,신경망 연산</td><td>MAC 블록</td><td>MAC 블록 구성 방법은 인공 신경망을 위한 MAC 블록을 구성한다.</td><td>16-599306</td><td>1</td></tr><tr><td>로직 엘리먼트</td><td>power-collapse,전력 제어</td><td>전력 차단</td><td>로직 엘리먼트는 retention flop에 대응하며 전력 차단될 수 있다.</td><td>16-599306</td><td>1</td></tr><tr><td>가중치 세트</td><td>저장,제공</td><td>가중치 버퍼</td><td>가중치 버퍼는 입력과 연관된 가중치 세트를 제공한다.</td><td>16-599306</td><td>1</td></tr><tr><td>가중치 세트</td><td>정밀도 선택,제어</td><td>정밀도 선택</td><td>정밀도 선택은 가중치 세트에 적용할 precision을 선택한다.</td><td>16-599306</td><td>1</td></tr><tr><td>가중치 세트</td><td>수정,정밀도 적용</td><td>가중치 수정</td><td>가중치 수정은 선택된 정밀도에 기초하여 가중치 세트를 변경한다.</td><td>16-599306</td><td>1</td></tr><tr><td>가중치 세트</td><td>수행,출력 생성</td><td>출력 생성</td><td>출력 생성은 수정된 가중치 세트를 이용해 결과를 생성한다.</td><td>16-599306</td><td>1</td></tr><tr><td>가중치 세트</td><td>유지,저장</td><td>retention flop</td><td>retention flop은 수정된 가중치 세트를 저장하고 유지한다.</td><td>16-599306</td><td>1</td></tr><tr><td>정밀도 선택</td><td>precision 설정,선택</td><td>가중치 정밀도</td><td>정밀도 선택은 가중치 세트에 적용할 가중치 정밀도를 선택한다.</td><td>16-599306</td><td>1</td></tr><tr><td>가중치 수정</td><td>수정,정밀도 적용</td><td>가중치 정밀도</td><td>가중치 수정은 선택된 가중치 정밀도에 기초하여 가중치 세트를 변경한다.</td><td>16-599306</td><td>1</td></tr><tr><td>활성화 함수</td><td>수행,함수 적용</td><td>출력 생성</td><td>출력 생성은 활성화 함수에 부분적으로 기초하여 결과를 생성한다.</td><td>16-599306</td><td>1</td></tr><tr><td>retention flop</td><td>구성요소,저장 유지</td><td>always-on output driver</td><td>retention flop은 always-on output driver를 포함한다.</td><td>16-599306</td><td>1</td></tr><tr><td>always-on output driver</td><td>저장 유지,전력 유지</td><td>전력 차단</td><td>always-on output driver는 전력 차단 상황에서 retention flop이 저장된 가중치 세트를 유지하도록 한다.</td><td>16-599306</td><td>1</td></tr></tbody></table></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>Entity type distribution</h3>
+        <div class='bar-chart'>
+    <div class="bar-row">
+      <div class="bar-label"><strong>기술 구성요소</strong><span>41.4%</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:100.0%"></div></div>
+      <div class="bar-value">660</div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label"><strong>연산/동작</strong><span>16.9%</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:40.9%"></div></div>
+      <div class="bar-value">270</div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label"><strong>기타 기술 엔티티</strong><span>13.0%</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:31.5%"></div></div>
+      <div class="bar-value">208</div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label"><strong>아키텍처</strong><span>10.8%</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:26.1%"></div></div>
+      <div class="bar-value">172</div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label"><strong>성능 지표</strong><span>6.6%</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:15.9%"></div></div>
+      <div class="bar-value">105</div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label"><strong>방법/공정</strong><span>6.3%</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:15.3%"></div></div>
+      <div class="bar-value">101</div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label"><strong>재료/소자</strong><span>2.5%</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:6.1%"></div></div>
+      <div class="bar-value">40</div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label"><strong>응용 분야</strong><span>2.5%</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:6.1%"></div></div>
+      <div class="bar-value">40</div>
+    </div>
+    </div>
+      </div>
+
+      <div class="panel">
+        <h3>Retrieval mode infographic</h3>
+        <div class="mode-grid">
+            <article class="mode-card">
+              <h3>naive</h3>
+              <strong>51.479s</strong>
+              <p>평균 검색 근거: Entity 개수=0.0, Relation 개수=0.0, Chunk 개수=10.0</p>
+            </article>
+
+            <article class="mode-card">
+              <h3>local</h3>
+              <strong>111.931s</strong>
+              <p>평균 검색 근거: Entity 개수=10.0, Relation 개수=30.8, Chunk 개수=8.6</p>
+            </article>
+
+            <article class="mode-card">
+              <h3>global</h3>
+              <strong>104.758s</strong>
+              <p>평균 검색 근거: Entity 개수=17.2, Relation 개수=10.0, Chunk 개수=9.5</p>
+            </article>
+
+            <article class="mode-card">
+              <h3>hybrid</h3>
+              <strong>103.627s</strong>
+              <p>평균 검색 근거: Entity 개수=24.7, Relation 개수=41.5, Chunk 개수=10.0</p>
+            </article>
+            </div>
+        <h3>AA-1 actual retrieval trace</h3>
+        <div class='table-wrap'><table class='table compact-table'><thead><tr><th>Mode</th><th>Meaning</th><th>Retrieved</th><th>Sources</th><th>Keywords</th></tr></thead><tbody><tr><td>naive</td><td>chunk only</td><td>Entity 개수=0, Relation 개수=0, Chunk 개수=10</td><td>10</td><td></td></tr><tr><td>local</td><td>entity 주변 확장</td><td>Entity 개수=10, Relation 개수=69, Chunk 개수=10</td><td>26</td><td>AI 코어 및 가속기 특허, 신경망 연산 가속기 구조, 연산 병렬성 향상, AI 코어, 가속기, 특허, 신경망 연산, 연산 병렬성</td></tr><tr><td>global</td><td>relation/theme top-k</td><td>Entity 개수=18, Relation 개수=10, Chunk 개수=10</td><td>15</td><td>인공지능 코어 및 가속기 특허, 신경망 연산 가속기 구조, 연산 병렬성 향상, 인공지능 코어, 가속기 특허, 신경망 연산, 가속기 구조, 연산 병렬성</td></tr><tr><td>hybrid</td><td>local + global 병합</td><td>Entity 개수=24, Relation 개수=36, Chunk 개수=10</td><td>20</td><td>AI 코어, 가속기 특허, 신경망 연산 가속기 구조, 연산 병렬성 향상 방식, 신경망 연산, 가속기 구조, 연산 병렬성</td></tr></tbody></table></div>
+      </div>
+    </section>
+
+    <section id="qa-test" class="section">
+      <div class="section-head">
+        <h2>2. QA Retrieval Test</h2>
+        <p>질문이 들어왔을 때 LightRAG가 keyword를 나누고, local/global retrieval을 따로 수행한 뒤 hybrid 답변으로 합치는지 실제 query 결과로 확인한다.</p>
+      </div>
+      <div class="panel">
+        <h3>Local / Global / Hybrid split on real questions</h3>
+        <div class='qa-test-grid'>
+            <article class="qa-test-card">
+              <span class="eyebrow">Category-specific · AA-1</span>
+              <h3>AI 가속기 병렬성</h3>
+              <p class="qa-question">AI 코어 및 가속기 특허에서 신경망 연산 가속기 구조는 어떤 방식으로 연산 병렬성을 높이는가?</p>
+              <div class='table-wrap'><table class='table compact-table qa-mode-table'><thead><tr><th>Mode</th><th>Keyword path</th><th>Keywords</th><th>Retrieved</th><th>Sources</th></tr></thead><tbody><tr><td>local</td><td>low-level keyword -&gt; entity 주변 확장</td><td>AI 코어, 가속기, 특허, 신경망 연산, 연산 병렬성</td><td>Entity 개수=10, Relation 개수=69, Chunk 개수=10</td><td>26</td></tr><tr><td>global</td><td>high-level keyword -&gt; relation/theme top-k</td><td>인공지능 코어 및 가속기 특허, 신경망 연산 가속기 구조, 연산 병렬성 향상</td><td>Entity 개수=18, Relation 개수=10, Chunk 개수=10</td><td>15</td></tr><tr><td>hybrid</td><td>local + global context merge</td><td>AI 코어, 가속기 특허, 신경망 연산 가속기 구조, 연산 병렬성 향상 방식 / 신경망 연산, 가속기 구조, 연산 병렬성</td><td>Entity 개수=24, Relation 개수=36, Chunk 개수=10</td><td>20</td></tr></tbody></table></div>
+              <div class="qa-hybrid-answer">
+                <strong>Hybrid answer excerpt</strong>
+                <p>신경망 연산 가속기 구조의 연산 병렬성 향상 방식 제공된 문맥에서 <strong>AI 코어 및 가속기 특허의 신경망 연산 가속기 구조</strong>는 주로 <strong>명령 처리 구조화</strong>, <strong>데이터 슬라이스 단위 처리</strong>, <strong>행렬 연산 병렬화</strong>, <strong>다중 처리 요소 활용</strong>을 통해 연산 효율과 병렬성을 높인다. 첫째, <strong>데이터 처리 장치</strong>는 제어 모듈 안에 <strong>명령 캐시 유닛, 명령 처리 유닛, 저장 큐 유닛</strong>을 두어 인공 신경망 연산과 관련된 계산 명령을 저장하고, 이를 해석해 <strong>복수의 연산 명령</strong>으로 분해한다. 저장 큐는 실행할 연산 명령 또는 계산 명령을 큐 순서에 따라 저장하므로, 신경망 모델 연산 시 명령 흐름을 체계화해 연산 효율을 높이는 구조로 설명된다. 둘째, 컨볼루션 기반 인공지능 가속기 구조에서는 <strong>입력 데이터와 커널 데이터를 각각 별도의 데이터 버퍼에서 수신</strong>하고, 이를 <strong>슬라이스 단위로 이동</strong>시킨다. 입력 데이터는 제1 데이터 버퍼와 2차원 시프트 레지스터를 통해 이동하고, 커널 데이터는 제2 데이터 버퍼와 입력 시프트 레지스터를 통해 전달된다. 이후 ...[truncated]</p>
+              </div>
+            </article>
+
+            <article class="qa-test-card">
+              <span class="eyebrow">Cross-category · X-2</span>
+              <h3>PIM vs NPU</h3>
+              <p class="qa-question">PIM과 NPU 방식은 데이터 이동 비용을 줄이는 관점에서 어떻게 다르게 접근하는가?</p>
+              <div class='table-wrap'><table class='table compact-table qa-mode-table'><thead><tr><th>Mode</th><th>Keyword path</th><th>Keywords</th><th>Retrieved</th><th>Sources</th></tr></thead><tbody><tr><td>local</td><td>low-level keyword -&gt; entity 주변 확장</td><td>PIM, NPU, 데이터 이동 비용, 데이터 이동</td><td>Entity 개수=10, Relation 개수=18, Chunk 개수=6</td><td>6</td></tr><tr><td>global</td><td>high-level keyword -&gt; relation/theme top-k</td><td>PIM과 NPU 방식, 데이터 이동 비용 절감, 접근 방식 차이</td><td>Entity 개수=19, Relation 개수=10, Chunk 개수=10</td><td>24</td></tr><tr><td>hybrid</td><td>local + global context merge</td><td>데이터 이동 비용 감소, 접근 방식 비교 / PIM, NPU, 데이터 이동 비용</td><td>Entity 개수=25, Relation 개수=26, Chunk 개수=10</td><td>14</td></tr></tbody></table></div>
+              <div class="qa-hybrid-answer">
+                <strong>Hybrid answer excerpt</strong>
+                <p>관점 차이 <strong>PIM 방식</strong>은 데이터를 연산 장치로 가져오기보다, <strong>메모리 내부 또는 메모리 가까이에서 연산이 일어나도록</strong> 배치하는 접근이다. 예를 들어 계산 그래프의 노드를 메모리 블록에 할당하고, 앞 노드의 출력 데이터를 다음 노드 실행에 쓰도록 하며, 메모리 블록 어셈블리 내부의 데이터 커플링을 통해 블록 간 데이터 전송을 지원한다[1]. 또한 PIM 모듈은 작업 메모리에 올라간 데이터셋에 대해 조인 연산을 수행하도록 구성될 수 있다[2]. 즉, 데이터 이동 비용을 줄이는 핵심은 <strong>데이터가 있는 곳에서 처리하고, 메모리 내부 경로를 활용하는 것</strong>이다. 반면 <strong>NPU 방식</strong>은 신경망 연산에 필요한 데이터 흐름을 <strong>가속기 내부 버퍼, 레지스터, MAC 블록 중심으로 조직화</strong>하는 접근이다. 신경망 하드웨어 가속기는 입력 데이터와 커널 데이터를 각각 버퍼로 받고, 이를 슬라이스 단위로 downstream으로 이동시키며, 시프트 레지스터와 곱셈 블록을 통해 컨볼루션 연산을 수행한다[8]. 또 다른 방식에서는 입력 데이터셋을 입력 레지스터에 저장하고, 더 ...[truncated]</p>
+              </div>
+            </article>
+
+            <article class="qa-test-card">
+              <span class="eyebrow">Fact-check · F-1</span>
+              <h3>특허 16-060058</h3>
+              <p class="qa-question">특허 16-060058의 주요 구성요소, 해결하려는 문제, 대표청구항의 기술 범위를 설명하라.</p>
+              <div class='table-wrap'><table class='table compact-table qa-mode-table'><thead><tr><th>Mode</th><th>Keyword path</th><th>Keywords</th><th>Retrieved</th><th>Sources</th></tr></thead><tbody><tr><td>local</td><td>low-level keyword -&gt; entity 주변 확장</td><td>특허 16-060058, 대표청구항</td><td>Entity 개수=10, Relation 개수=19, Chunk 개수=9</td><td>9</td></tr><tr><td>global</td><td>high-level keyword -&gt; relation/theme top-k</td><td>특허 분석, 주요 구성요소, 해결하려는 문제, 대표청구항의 기술 범위</td><td>Entity 개수=18, Relation 개수=10, Chunk 개수=9</td><td>9</td></tr><tr><td>hybrid</td><td>local + global context merge</td><td>특허 분석, 주요 구성요소, 해결하려는 문제, 대표청구항 기술 범위 / 특허 16-060058, 대표청구항, 기술 범위</td><td>Entity 개수=27, Relation 개수=30, Chunk 개수=10</td><td>17</td></tr></tbody></table></div>
+              <div class="qa-hybrid-answer">
+                <strong>Hybrid answer excerpt</strong>
+                <p>특허 16-060058 개요 특허 <strong>16-060058</strong>은 <strong>“Power semiconductor device and method of manufacturing power semiconductor device”</strong>에 관한 AI 반도체 특허로, <strong>슈퍼 정션 구조를 갖는 전력 반도체 소자</strong>를 다룬다. 주요 구성요소 이 전력 반도체 소자는 <strong>제1 도전형 컬럼 영역과 제2 도전형 컬럼 영역이 교대로 배치된 슈퍼 정션 구조</strong>를 기반으로 한다. 주요 구성요소로는 <strong>저저항 반도체층</strong>, <strong>n−형 컬럼 영역</strong>, <strong>p−형 컬럼 영역</strong>, <strong>베이스 영역</strong>, <strong>트렌치</strong>, <strong>게이트 절연막</strong>, <strong>게이트 전극</strong>, <strong>소스 영역</strong>, <strong>층간 절연막</strong>, <strong>콘택트 홀</strong>, <strong>금속 플러그</strong>, <strong>p+형 확산 영역</strong>, <strong>소스 전극</strong>, <strong>게이트 패드 전극</strong>이 포함된다. 대표청구항에서는 소자를 상면 측에서 보았을 때 <strong>활성 소자부</strong>와 <strong>게이트 패드부</strong>를 정의한다. 활성 소자부에는 저저항 반도체층, 복수의 제1 도전형 컬럼 영역, 복수의 제2 도전형 ...[truncated]</p>
+              </div>
+            </article>
+            </div>
+      </div>
+    </section>
+
+    <section id="comparison" class="section">
+      <div class="section-head">
+        <h2>3. LightRAG vs GraphRAG Comparison</h2>
+        <p>비교 결과는 논문 형식에 맞춘 세 개 표로만 정리한다. raw judge JSON과 복구 내역은 appendix 링크에 보존했다.</p>
+      </div>
+      <div class="panel">
+
+    <div class="table-wrap">
+      <table class="paper-table paper-win-table">
+        <caption>Table 1: Win rates (%) of baselines vs. LightRAG on Patent-100.</caption>
+        <thead>
+          <tr><th rowspan="2">Dimension</th><th colspan='2'>NaiveRAG vs LightRAG</th><th colspan='2'>GraphRAG vs LightRAG</th></tr>
+          <tr><th>NaiveRAG</th><th>LightRAG</th><th>GraphRAG</th><th>LightRAG</th></tr>
+        </thead>
+        <tbody><tr><td>포괄성</td><td class='num'>63.3%</td><td class='num emph'>36.7%</td><td class='num'>76.7%</td><td class='num emph'>23.3%</td></tr><tr><td>다양성</td><td class='num'>56.7%</td><td class='num emph'>43.3%</td><td class='num'>76.7%</td><td class='num emph'>23.3%</td></tr><tr><td>활용성</td><td class='num'>60.0%</td><td class='num emph'>40.0%</td><td class='num'>73.3%</td><td class='num emph'>26.7%</td></tr><tr><td>종합</td><td class='num'>60.0%</td><td class='num emph'>40.0%</td><td class='num'>73.3%</td><td class='num emph'>26.7%</td></tr></tbody>
+      </table>
+    </div>
+    <p class="note">Length-normalized, verbosity-aware judge 기준이다. Tie는 양측에 0.5승씩 분배했다. 여기서 GraphRAG는 Microsoft GraphRAG의 global/community-report query mode를 의미한다.</p>
+
+
+    <div class="table-wrap">
+      <table class="paper-table paper-ablation-table">
+        <caption>Table 2: Performance of LightRAG retrieval modes, using NaiveRAG as reference.</caption>
+        <thead>
+          <tr>
+            <th>Mode</th>
+            <th>Retrieval path</th>
+            <th>Avg retrieved context</th>
+            <th>Avg source patents</th>
+            <th>Avg answer chars</th>
+            <th>Avg latency(s)</th>
+          </tr>
+        </thead>
+        <tbody>
+            <tr>
+              <td>NaiveRAG</td>
+              <td>chunk only reference</td>
+              <td>Entity 개수=0.0, Relation 개수=0.0, Chunk 개수=10.0</td>
+              <td class="num">17.7</td>
+              <td class="num">1404.6</td>
+              <td class="num">51.5</td>
+            </tr>
+
+            <tr>
+              <td>LightRAG-Local</td>
+              <td>low-level keyword -&gt; entity 주변 확장</td>
+              <td>Entity 개수=10.0, Relation 개수=30.8, Chunk 개수=8.6</td>
+              <td class="num">19.4</td>
+              <td class="num">1133.5</td>
+              <td class="num">111.9</td>
+            </tr>
+
+            <tr>
+              <td>LightRAG-Global</td>
+              <td>high-level keyword -&gt; relation/theme top-k</td>
+              <td>Entity 개수=17.2, Relation 개수=10.0, Chunk 개수=9.5</td>
+              <td class="num">21.7</td>
+              <td class="num">1194.0</td>
+              <td class="num">104.8</td>
+            </tr>
+
+            <tr>
+              <td>LightRAG-Hybrid</td>
+              <td>local + global context merge</td>
+              <td>Entity 개수=24.7, Relation 개수=41.5, Chunk 개수=10.0</td>
+              <td class="num">29.8</td>
+              <td class="num">1324.5</td>
+              <td class="num">103.6</td>
+            </tr>
+            </tbody>
+      </table>
+    </div>
+
+
+    <div class="table-wrap">
+      <table class="paper-table paper-case-table">
+        <caption>Table 3: Case study: comparison between LightRAG and GraphRAG.</caption>
+        <tbody>
+          <tr><th>Query</th><td>연산 가속기, 메모리 아키텍처, 패키징 기술은 AI 반도체에서 어떤 기술적 의존 관계를 갖는가?</td></tr>
+          <tr><th>GraphRAG</th><td><strong>요약</strong> AI 반도체에서 연산 가속기, 메모리 아키텍처, 패키징 기술은 독립 계층이 아니라 “워크로드 실행 → 데이터·명령 공급 → 물리적 통합”으로 이어지는 의존 구조를 갖는다. 제공 데이터에 세 요소를 하나의 완결된 제품 체계로 직접 설명한 단일 기록은 없지만, 여러 기록을 종합하면 가속기는 메모리에, 연산-메모리 결합은 패키징에 의존한다는 구조가 도출된다 [Data: Reports (57, 310, 161, 498, 244)]. <strong>핵심 근거</strong> 연산 가속기는 단순 산술 유닛이 아니라 메모리 인터페이스, 칩렛, in-memory compute device, dispatch hardware, SIMD 처리, host communication interface가 결합된 시스템 아키텍처로 제시된다 [Data: Reports (322, 45, 34)]. Transformer, CNN, RNN, DNN 추론, sparse tensor 처리는 행렬·벡터 연산, softmax, multiply-accumulate, fused multiply-accumulate, systolic array, processing element array에 의존한다 [Data: Reports (107, 446, 321, 51, 1, +more)]. 이 계산은 메모리 공급 없이는 실행되지 않는다. RAM은 신경망 행렬, 실행 명령, 입력·출력 데이터, 실행 indicatio ...[truncated]</td></tr>
+          <tr><th>LightRAG</th><td>요약 AI 반도체에서 연산 가속기, 메모리 아키텍처, 패키징 기술은 데이터가 어디에 저장되고, 어디에서 연산되며, 어떤 물리적 경로로 이동하는가를 중심으로 의존한다. 연산 가속기는 행렬 곱셈, 누산, 내적, 소프트맥스, 혼합 정밀도 연산 등 AI 모델의 핵심 계산을 처리한다. 메모리 아키텍처는 명령어와 신경망 행렬, 입출력 데이터를 가속기에 얼마나 가깝게 공급하고 저장할 수 있는지를 좌우한다. 패키징 기술은 가속기, 메모리, 칩렛, 호스트 시스템을 연결해 대역폭, 지연시간, 확장성의 기반이 된다. 핵심 근거 GPU 기반 구조에서는 SIMT 아키텍처의 다중 프로세서와 실행 회로가 16비트 피연산자의 32비트 중간 곱 및 누산 결과를 계산하고, mixed-precision instruction으로 fused multiply-accumulate 연산을 수행한다. 이는 연산 가속기가 처리량과 정밀도 효율을 담당한다는 근거다. 그러나 성능은 메모리와 분리되지 않는다. 딥러닝 가속기와 랜덤 액세스 메모리가 결합된 집적 회로에서는 메모리가 명령어와 인공신경망 행렬을 저장하고, 가속기는 저장된 입력을 신경망에 적용한 뒤 출력을 다시 메모리에 저장한다. PIM/CIM 기반 구조에서는 의존성이 더 강해진다. 인-메모리 컴퓨트 칩렛 기반 AI 가속기는 각 칩렛의 타일과 슬라이스 안에 DIMC 장치를 포함해 트랜스포머 모델의 어텐션 함수와 행렬 계산을 가속한다. 혼합 ...[truncated]</td></tr>
+          <tr><th>LLM 판단</th><td><p><strong>포괄성</strong>: 승자 = GraphRAG. GraphRAG가 연산 실행, 데이터/명령 공급, 물리적 통합이라는 의존 구조를 더 체계적으로 설명해 질문의 범위를 더 넓게 다뤘다.</p><p><strong>다양성</strong>: 승자 = GraphRAG. GraphRAG가 systolic array, PIM/near-memory scheduling, active bridge chiplet, HBM, TSV, 열 관리 등 더 다양한 기술 관점을 포함했다.</p><p><strong>활용성</strong>: 승자 = GraphRAG. GraphRAG가 AI 반도체 하드웨어 스택을 계층적으로 파악할 수 있는 구조를 제공해 후속 분석과 판단에 더 도움이 된다.</p><p><strong>종합</strong>: 승자 = GraphRAG. GraphRAG가 기술 의존 관계를 실행, 공급, 통합의 논리적 계층으로 정리해 더 포괄적이고 다양한 답변으로 평가됐다.</p></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+      </div>
+    </section>
+
+    <section id="discussion" class="section">
+      <div class="section-head">
+        <h2>4. Discussion</h2>
+        <p>논문의 평가 질문 구조를 따라 Patent-100 결과를 RQ1~RQ4로 다시 정리한다. 수행하지 않은 조건은 결론에서 분리해 표시했다.</p>
+      </div>
+      <div class="grid-2">
+
+        <article class="callout rq-card accent">
+          <span class="eyebrow">RQ1</span>
+          <h3>생성 성능: 기존 RAG 방법들과 비교했을 때 답변의 질이 얼마나 우수한가?</h3>
+          <p class="rq-answer"><strong>답변</strong> Patent-100에서는 LightRAG가 NaiveRAG를 안정적으로 압도했다고 보기는 어렵다. GraphRAG와 비교하면 GraphRAG가 더 우세했다.</p>
+          <ul class="rq-points">
+            <li>길이 보정 judge 기준 LightRAG vs NaiveRAG: NaiveRAG 9 vs LightRAG 6</li><li>길이 보정 judge 기준 LightRAG vs GraphRAG: GraphRAG 11 vs LightRAG 4</li><li>따라서 LightRAG의 구현은 정상 동작했지만, 생성 품질 우위는 질문 유형과 비교 대상에 따라 달라진다.</li>
+          </ul>
+        </article>
+
+        <article class="callout rq-card ">
+          <span class="eyebrow">RQ2</span>
+          <h3>구성 요소의 기여도: 이중 수준 검색(Dual-level Retrieval)과 그래프 기반 인덱싱이 품질 향상에 어떤 역할을 하는가?</h3>
+          <p class="rq-answer"><strong>답변</strong> 그래프 기반 인덱싱은 특허 메타데이터가 아니라 기술 entity와 relation 중심의 검색 근거를 만들었다. dual-level retrieval은 chunk-only 검색과 다른 근거 조합을 제공했다.</p>
+          <ul class="rq-points">
+            <li>그래프 품질: 기술 relation 94.0%, metadata relation 1.0%, excluded entity 0.44%</li><li>Hybrid 검색 평균: Entity 개수=24.7, Relation 개수=41.5, Chunk 개수=10.0</li><li>Naive 검색 평균: Entity 개수=0.0, Relation 개수=0.0, Chunk 개수=10.0</li>
+          </ul>
+        </article>
+
+        <article class="callout rq-card ">
+          <span class="eyebrow">RQ3</span>
+          <h3>사례 연구: 실제 시나리오에서 LightRAG가 보여주는 구체적인 장점은 무엇인가?</h3>
+          <p class="rq-answer"><strong>답변</strong> LightRAG의 장점은 답변을 생성할 때 어떤 entity, relation, chunk가 근거로 쓰였는지 추적하기 쉽다는 점이다.</p>
+          <ul class="rq-points">
+            <li>특정 source patent와 기술 관계를 따라가야 하는 질문에서는 LightRAG의 retrieved entity/relation/chunk 구조가 해석에 유리하다.</li><li>Table 3의 cross-category 사례에서는 GraphRAG가 community summary 기반으로 더 넓은 답변을 만들어 우세했다.</li><li>즉, LightRAG는 넓은 요약보다 근거 추적성과 기술 관계 설명에 강점이 있다.</li>
+          </ul>
+        </article>
+
+        <article class="callout rq-card ">
+          <span class="eyebrow">RQ4</span>
+          <h3>비용 및 적응성: 시스템 운영 비용(Token 사용량, API 호출)과 새로운 데이터 업데이트 속도는 어떠한가?</h3>
+          <p class="rq-answer"><strong>답변</strong> LightRAG는 최종 성공 실행 기준으로는 빠르게 색인됐지만, 실제 실험에서는 재시도 비용이 컸다. query latency는 GraphRAG보다 낮았다.</p>
+          <ul class="rq-points">
+            <li>LightRAG indexing 최종 성공 실행: 346.2s</li><li>재시도 포함 총 시도 시간: 5.42h, attempt=4</li><li>평균 query latency: LightRAG hybrid 103.6s, GraphRAG 215.6s</li><li>새 데이터 incremental update는 이번 readable 실험에서 별도 조건으로 직접 평가하지 않았으므로, 적응성 결론은 제한적이다.</li>
+          </ul>
+        </article>
+
+      </div>
+    </section>
+
+    <section id="appendix" class="section">
+      <div class="section-head">
+        <h2>5. Appendix</h2>
+        <p>읽기용 본문에서는 뺀 원문과 파일 경로다. 재현 근거가 필요할 때만 펼쳐 보면 된다.</p>
+      </div>
+      <div class="panel">
+        <h3>Reproduction files</h3>
+        <div class="file-grid"><a class='file-link' href='file:///Users/dabeenkim/Documents/GitHub/HYU-lightRAG/reports/rag_repro_100_readable.html'><strong>Readable report</strong><span>/Users/dabeenkim/Documents/GitHub/HYU-lightRAG/reports/rag_repro_100_readable.html</span></a><a class='file-link' href='file:///Users/dabeenkim/Documents/GitHub/HYU-lightRAG/reports/rag_repro_100_readable_print.html'><strong>Readable print report</strong><span>/Users/dabeenkim/Documents/GitHub/HYU-lightRAG/reports/rag_repro_100_readable_print.html</span></a><a class='file-link' href='file:///Users/dabeenkim/Documents/GitHub/HYU-lightRAG/reports/rag_repro_100_comparison.html'><strong>Detailed report</strong><span>/Users/dabeenkim/Documents/GitHub/HYU-lightRAG/reports/rag_repro_100_comparison.html</span></a><a class='file-link' href='file:///Users/dabeenkim/Documents/GitHub/HYU-lightRAG/reports/rag_repro_100_comparison_print.html'><strong>Detailed print report</strong><span>/Users/dabeenkim/Documents/GitHub/HYU-lightRAG/reports/rag_repro_100_comparison_print.html</span></a><a class='file-link' href='file:///Users/dabeenkim/Documents/GitHub/HYU-lightRAG/experiments/rag_repro_100_seed20260609/dataset/patents_100_manifest.json'><strong>Dataset manifest</strong><span>/Users/dabeenkim/Documents/GitHub/HYU-lightRAG/experiments/rag_repro_100_seed20260609/dataset/patents_100_manifest.json</span></a><a class='file-link' href='file:///Users/dabeenkim/Documents/GitHub/HYU-lightRAG/experiments/rag_repro_100_seed20260609/lightrag_patent_prompt_100/query_results_15_modes.jsonl'><strong>LightRAG query results</strong><span>/Users/dabeenkim/Documents/GitHub/HYU-lightRAG/experiments/rag_repro_100_seed20260609/lightrag_patent_prompt_100/query_results_15_modes.jsonl</span></a><a class='file-link' href='file:///Users/dabeenkim/Documents/GitHub/HYU-lightRAG/experiments/rag_repro_100_seed20260609/lightrag_patent_prompt_100/graph_metrics.json'><strong>Graph metrics</strong><span>/Users/dabeenkim/Documents/GitHub/HYU-lightRAG/experiments/rag_repro_100_seed20260609/lightrag_patent_prompt_100/graph_metrics.json</span></a><a class='file-link' href='file:///Users/dabeenkim/Documents/GitHub/HYU-lightRAG/experiments/rag_repro_100_seed20260609/evaluation/judge_summary.json'><strong>Judge summary</strong><span>/Users/dabeenkim/Documents/GitHub/HYU-lightRAG/experiments/rag_repro_100_seed20260609/evaluation/judge_summary.json</span></a><a class='file-link' href='file:///Users/dabeenkim/Documents/GitHub/HYU-lightRAG/experiments/rag_repro_100_seed20260609/evaluation_length_control/judge_length_control_summary.json'><strong>Length-control judge</strong><span>/Users/dabeenkim/Documents/GitHub/HYU-lightRAG/experiments/rag_repro_100_seed20260609/evaluation_length_control/judge_length_control_summary.json</span></a></div>
+      </div>
+      <div class="panel">
+        <details>
+          <summary>Experiment setup and not-run baselines</summary>
+          <div class='table-wrap'><table class='table compact-table'><thead><tr><th>Item</th><th>Value</th></tr></thead><tbody><tr><td>Dataset</td><td>AA/AB/AC/AD x 25 = 100 patents</td></tr><tr><td>Seed</td><td>20260609</td></tr><tr><td>Prompt</td><td>patent_ai_semiconductor.yml</td></tr><tr><td>LLM</td><td>gpt-5.5 / reasoning=xhigh</td></tr><tr><td>Embedding</td><td>openai/text-embedding-3-large / dim=3072</td></tr><tr><td>Queries</td><td>15 fixed questions; 직접 설계</td></tr></tbody></table></div>
+          <div class='table-wrap'><table class='table compact-table'><thead><tr><th>Type</th><th>Count</th></tr></thead><tbody><tr><td>category_specific</td><td>8</td></tr><tr><td>comparison</td><td>1</td></tr><tr><td>cross_category</td><td>3</td></tr><tr><td>exploratory</td><td>1</td></tr><tr><td>fact_check</td><td>2</td></tr></tbody></table></div>
+          <div class='table-wrap'><table class='table compact-table'><thead><tr><th>Baseline</th><th>Status</th><th>Reason</th></tr></thead><tbody><tr><td>HyDE</td><td>미실행</td><td>이번 범위 밖</td></tr><tr><td>RQ-RAG</td><td>미실행</td><td>GPU/구현 비용 문제로 제외</td></tr><tr><td>Independent vector-only RAG</td><td>미실행</td><td>LightRAG naive와 중복</td></tr></tbody></table></div>
+        </details>
+        <details>
+          <summary>Patent prompt excerpt</summary>
+          <pre class='code'>entity_types_guidance: | Extract only technical knowledge graph entities and relationships from AI semiconductor patent text. Use Korean descriptions unless an entity name is a technical English term. Do not extract administrative metadata as entities: - patent_id, application number, publication number, registration number - IPC/CPC classification codes - country codes and nationalities such as US, KR, JP, CN, EP, WO - legal status values such as 등록, 공개, 거절, 소멸 - application/publication/registration dates and years - claim numbers such as 청구항1 - category/subcategory codes such as AA, AB, AC, AD, AAA, AAD, ACC Also avoid making broad document labels into entities, such as &quot;AI 반도체 특허&quot; or &quot;특허 문서&quot;. If a category name is only administrative classification, do not extract it. Classify each extracted entity using one of these types: - TechComponent: hardware components, circuits, units, devices, memory blocks, processing elements, buses, interfaces - Architecture: system, processor, memory, packaging, interconnect, accelerator, or in-memory computing architecture - Operation: neural-network operation, matrix operation, data movement, scheduling, control, read/write, update, fusion, compilation - Method: algorithm, procedure, manufacturing process, optimization method, execution method - Material: semiconductor, device, packaging, wiring, electrode, memory cell, or process material when technically central - PerformanceMetric: throughput, latency, power consumption, bandwidth, efficiency, accuracy, density, timing parameter - ApplicationDomain: neural network, artificial intelligence processor, transformer workload, object detection, recommendation, inference - Organization: applicant or owner only when it is technically relevant to the narrative; otherwise skip - Other: use only when the entity is clearly technical but no type fits Extract relationships only between extracted technical entities. Prefer concise technical relationship keywords such as: - 구성요소, 포함, 연결, 저장, 판독, 제어, 생성, 수행, 최적화, 가속, 융합, 컴파일, 데이터 전송, 아키텍처 활용 entity_extraction_examples: - | ---Entity Types--- - TechComponent: hardware components, circuits, units, devices, memory blocks, processing elements, buses, interfaces - Architecture: system, processor, memory, packaging, interconnect, accelerator, or in-memory computing architecture - Operation: neural-network operation, matrix operation, data movement, scheduling, control, read/write, update, fusion, compilation - Method: algorithm, procedure, manufacturing process,</pre>
+        </details>
+        <details>
+          <summary>15 query set</summary>
+          <div class='table-wrap'><table class='table compact-table'><thead><tr><th>query_id</th><th>type</th><th>question</th></tr></thead><tbody><tr><td>AA-1</td><td>category_specific</td><td>AI 코어 및 가속기 특허에서 신경망 연산 가속기 구조는 어떤 방식으로 연산 병렬성을 높이는가?</td></tr><tr><td>AA-2</td><td>category_specific</td><td>NPU 또는 행렬 연산 장치 관련 특허에서 메모리 접근 병목을 줄이는 기술은 무엇인가?</td></tr><tr><td>AB-1</td><td>category_specific</td><td>인-메모리 컴퓨팅 또는 PIM 구조가 AI 연산 성능을 높이는 핵심 원리는 무엇인가?</td></tr><tr><td>AB-2</td><td>category_specific</td><td>SRAM 또는 DRAM 기반 메모리 아키텍처와 AI 연산 회로의 결합 방식은 어떻게 나타나는가?</td></tr><tr><td>AC-1</td><td>category_specific</td><td>AI 반도체 패키징 또는 인터커넥트 기술은 대역폭과 전력 효율을 어떻게 개선하는가?</td></tr><tr><td>AC-2</td><td>category_specific</td><td>칩렛, 적층, TSV, 인터포저 계열 기술이 AI 가속기 구조와 어떤 관계를 갖는가?</td></tr><tr><td>AD-1</td><td>category_specific</td><td>AI 반도체 제조 또는 공정 특허에서 신뢰성이나 수율 개선을 위한 핵심 방법은 무엇인가?</td></tr><tr><td>AD-2</td><td>category_specific</td><td>소자 구조나 공정 제어가 AI 연산 성능 또는 전력 효율에 미치는 영향은 무엇인가?</td></tr><tr><td>X-1</td><td>cross_category</td><td>연산 가속기, 메모리 아키텍처, 패키징 기술은 AI 반도체에서 어떤 기술적 의존 관계를 갖는가?</td></tr><tr><td>X-2</td><td>cross_category</td><td>PIM과 NPU 방식은 데이터 이동 비용을 줄이는 관점에서 어떻게 다르게 접근하는가?</td></tr><tr><td>X-3</td><td>cross_category</td><td>AI 반도체 특허에서 전력 효율, 대역폭, 지연시간 개선 기술은 어떤 관계망을 형성하는가?</td></tr><tr><td>F-1</td><td>fact_check</td><td>특허 16-060058의 주요 구성요소, 해결하려는 문제, 대표청구항의 기술 범위를 설명하라.</td></tr><tr><td>F-2</td><td>fact_check</td><td>특허 17-444788의 대표청구항에 포함된 회로, 메모리, 연산 구성요소를 source patent 기준으로 정리하라.</td></tr><tr><td>C-1</td><td>comparison</td><td>인-메모리 컴퓨팅 방식과 hardware operator fusion 방식의 차이를 비교하라.</td></tr><tr><td>E-1</td><td>exploratory</td><td>AI 반도체 패키징 기술 동향을 특허 근거 중심으로 탐색적으로 요약하라.</td></tr></tbody></table></div>
+        </details>
+        <details>
+          <summary>GraphRAG runtime summary</summary>
+          <div class='table-wrap'><table class='table compact-table'><thead><tr><th>System</th><th>Elapsed</th><th>Note</th></tr></thead><tbody><tr><td>LightRAG indexing</td><td>346.2s</td><td>final successful attempt</td></tr><tr><td>GraphRAG indexing</td><td>1.21h</td><td>full fresh index</td></tr><tr><td>GraphRAG extract_graph</td><td>1846.2s</td><td>LLM extraction</td></tr><tr><td>GraphRAG community_reports</td><td>2314.4s</td><td>community summary generation</td></tr></tbody></table></div>
+        </details>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
