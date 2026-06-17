@@ -1,0 +1,787 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Patent-100 LightRAG Learning Flow</title>
+  <style>
+    :root {
+      --ink: #17130d;
+      --muted: #6f6556;
+      --paper: #f7efe0;
+      --paper-2: #fffaf0;
+      --line: rgba(56, 42, 23, .16);
+      --green: #315f4f;
+      --green-2: #d9eadb;
+      --blue: #1e536c;
+      --blue-2: #dcecf4;
+      --gold: #c68a22;
+      --gold-2: #fbedd1;
+      --red: #9b3d2e;
+      --shadow: 0 24px 70px rgba(42, 31, 16, .14);
+      --radius-xl: 30px;
+      --radius-lg: 22px;
+      --mono: "SFMono-Regular", "Cascadia Code", "Liberation Mono", Menlo, monospace;
+      --sans: "Avenir Next", "Gill Sans", "Trebuchet MS", sans-serif;
+      --serif: "Iowan Old Style", "Palatino", "Book Antiqua", Georgia, serif;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      font-family: var(--sans);
+      background:
+        radial-gradient(circle at 12% 8%, rgba(198, 138, 34, .24), transparent 28rem),
+        radial-gradient(circle at 88% 22%, rgba(49, 95, 79, .24), transparent 30rem),
+        linear-gradient(135deg, #f8f1e5 0%, #efe2cc 45%, #f6ead9 100%);
+      min-height: 100vh;
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: .26;
+      background-image:
+        linear-gradient(rgba(49, 95, 79, .12) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(49, 95, 79, .12) 1px, transparent 1px);
+      background-size: 42px 42px;
+      mask-image: linear-gradient(to bottom, #000, transparent 85%);
+    }
+    a { color: inherit; }
+    .shell { width: min(1180px, calc(100% - 36px)); margin: 0 auto; }
+    .topbar {
+      position: sticky;
+      top: 14px;
+      z-index: 10;
+      margin: 14px auto 0;
+      width: min(1180px, calc(100% - 36px));
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 12px 14px;
+      border: 1px solid rgba(56, 42, 23, .14);
+      border-radius: 999px;
+      background: rgba(255, 250, 240, .75);
+      backdrop-filter: blur(18px);
+      box-shadow: 0 12px 40px rgba(42, 31, 16, .09);
+    }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; }
+    .brand-mark {
+      width: 32px; height: 32px; display: grid; place-items: center;
+      border-radius: 50%; color: #fffaf0;
+      background: conic-gradient(from 220deg, var(--green), var(--gold), var(--blue), var(--green));
+      box-shadow: inset 0 0 0 3px rgba(255, 250, 240, .45);
+    }
+    .nav { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+    .nav a {
+      text-decoration: none; font-size: 13px; font-weight: 700; color: var(--muted);
+      padding: 9px 12px; border-radius: 999px;
+    }
+    .nav a:hover { color: var(--ink); background: rgba(49, 95, 79, .1); }
+    .hero { position: relative; padding: 78px 0 44px; }
+    .hero-grid {
+      display: grid; grid-template-columns: minmax(0, 1.12fr) minmax(300px, .88fr);
+      gap: 28px; align-items: stretch;
+    }
+    .hero-card, .panel {
+      border: 1px solid var(--line);
+      border-radius: var(--radius-xl);
+      background: rgba(255, 250, 240, .7);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+    }
+    .hero-card { padding: clamp(28px, 5vw, 56px); overflow: hidden; position: relative; }
+    .eyebrow {
+      display: inline-flex; gap: 8px; align-items: center; padding: 8px 12px;
+      border-radius: 999px; background: rgba(49, 95, 79, .12); color: var(--green);
+      font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: 0;
+    }
+    h1 {
+      margin: 22px 0 18px; font-family: var(--serif);
+      font-size: 72px; line-height: 1.02; letter-spacing: 0;
+      max-width: 880px; word-break: keep-all;
+    }
+    .hero-copy { margin: 0; color: var(--muted); font-size: 20px; line-height: 1.72; max-width: 790px; }
+    .hero-copy strong { color: var(--ink); }
+    .stats-panel { padding: 22px; display: grid; gap: 14px; }
+    .stat {
+      position: relative; overflow: hidden; min-height: 120px; padding: 20px;
+      border: 1px solid var(--line); border-radius: 24px;
+      background: linear-gradient(135deg, rgba(255, 250, 240, .92), rgba(255, 250, 240, .55));
+    }
+    .stat span { display: block; color: var(--muted); font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 0; }
+    .stat strong { display: block; margin-top: 9px; font-size: 40px; line-height: 1; letter-spacing: 0; }
+    .stat small { display: block; margin-top: 10px; color: var(--muted); line-height: 1.5; }
+    .section { padding: 38px 0; }
+    .section-head { display: grid; grid-template-columns: minmax(0, .7fr) minmax(280px, .3fr); gap: 24px; align-items: end; margin-bottom: 18px; }
+    .section h2 { margin: 0; font-family: var(--serif); font-size: 48px; line-height: 1.05; letter-spacing: 0; word-break: keep-all; }
+    .section-intro { margin: 0; color: var(--muted); line-height: 1.7; font-size: 16px; }
+    .panel { padding: clamp(20px, 3vw, 30px); }
+    .pipeline { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+    .rq2-pipeline { grid-template-columns: repeat(4, 1fr); }
+    .pipe-step, .mini-card, .qa-card, .trace-card, .rq-method {
+      border: 1px solid var(--line); border-radius: 22px; background: rgba(255, 250, 240, .72);
+    }
+    .pipe-step { padding: 18px; position: relative; }
+    .pipe-step:not(:last-child)::after {
+      content: ""; position: absolute; top: 50%; right: -13px; width: 13px; height: 2px; background: var(--gold);
+    }
+    .pipe-step b {
+      display: grid; place-items: center; width: 34px; height: 34px; margin-bottom: 12px;
+      border-radius: 50%; background: var(--ink); color: var(--paper-2); font-family: var(--mono); font-size: 14px;
+    }
+    .pipe-step h3, .mini-card h3, .callout h3 { margin: 0 0 8px; font-size: 18px; letter-spacing: 0; }
+    .pipe-step p, .mini-card p, .callout p { margin: 0; color: var(--muted); line-height: 1.6; font-size: 14px; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+    .mini-card { padding: 20px; }
+    .tag-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .tag {
+      display: inline-flex; align-items: center; min-height: 28px; padding: 5px 9px; border-radius: 999px;
+      background: rgba(30, 83, 108, .1); color: var(--blue); font-size: 12px; font-weight: 800;
+    }
+    .tag.green { background: rgba(49, 95, 79, .12); color: var(--green); }
+    .tag.gold { background: rgba(198, 138, 34, .16); color: #7b5211; }
+    .code {
+      overflow: auto; border-radius: 20px; padding: 18px; background: #1f1a13; color: #f8ead0;
+      font-family: var(--mono); font-size: 13px; line-height: 1.65; border: 1px solid rgba(255, 250, 240, .12);
+      white-space: pre-wrap;
+    }
+    .chunk-strip { display: grid; grid-template-columns: repeat(9, minmax(34px, 1fr)); gap: 7px; margin: 20px 0 8px; }
+    .chunk {
+      min-height: 70px; border-radius: 12px; background: linear-gradient(180deg, var(--green-2), rgba(49, 95, 79, .1));
+      border: 1px solid rgba(49, 95, 79, .22); display: flex; align-items: end; justify-content: center;
+      padding: 7px 4px; color: var(--green); font-family: var(--mono); font-size: 11px; font-weight: 900;
+    }
+    .chunk:nth-child(3n) { background: linear-gradient(180deg, var(--gold-2), rgba(198, 138, 34, .13)); color: #7b5211; border-color: rgba(198, 138, 34, .28); }
+    .chunk:nth-child(5n) { background: linear-gradient(180deg, var(--blue-2), rgba(30, 83, 108, .12)); color: var(--blue); border-color: rgba(30, 83, 108, .24); }
+    .callout { border-radius: 24px; padding: 22px; border: 1px solid rgba(198, 138, 34, .32); background: linear-gradient(135deg, rgba(251, 237, 209, .85), rgba(255, 250, 240, .72)); }
+    .table {
+      width: 100%; border-collapse: collapse; overflow: hidden; border-radius: 18px; background: rgba(255, 250, 240, .6);
+    }
+    .table th, .table td {
+      padding: 13px 12px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top;
+      font-size: 14px; line-height: 1.5; overflow-wrap: anywhere;
+    }
+    .table th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0; }
+    .table tr:last-child td { border-bottom: 0; }
+    .graph-cloud { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    .node-card {
+      min-height: 96px; display: grid; place-items: center; text-align: center; padding: 14px;
+      border-radius: 24px; border: 1px solid var(--line);
+      background: radial-gradient(circle at 50% 20%, rgba(217, 234, 219, .9), rgba(255, 250, 240, .68));
+      font-weight: 900;
+    }
+    .node-card small { display: block; margin-top: 6px; color: var(--muted); font-family: var(--mono); font-size: 11px; font-weight: 700; }
+    .trace-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .trace-card { display: grid; gap: 14px; padding: 20px; }
+    .trace-card h3 { margin: 0; font-family: var(--serif); font-size: 24px; line-height: 1.08; letter-spacing: 0; }
+    .trace-question { margin: 0; color: var(--ink); font-weight: 800; line-height: 1.45; word-break: keep-all; }
+    .trace-block { padding: 14px; border-radius: 18px; background: rgba(255, 250, 240, .62); border: 1px solid var(--line); }
+    .trace-block b { display: block; margin-bottom: 8px; color: var(--muted); font-size: 12px; letter-spacing: 0; text-transform: uppercase; }
+    .trace-block ul { margin: 0; padding-left: 18px; color: var(--muted); font-size: 13px; line-height: 1.6; }
+    .trace-chunk { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.58; }
+    .trace-chunk strong { color: var(--green); font-family: var(--mono); font-size: 12px; }
+    .qa-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+    .qa-card { display: grid; gap: 12px; padding: 18px; background: linear-gradient(145deg, rgba(255, 250, 240, .78), rgba(217, 234, 219, .38)); }
+    .qa-card h3 { margin: 0; font-family: var(--serif); font-size: 22px; line-height: 1.08; letter-spacing: 0; }
+    .qa-card p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.55; }
+    .qa-answer { padding: 13px; border: 1px solid var(--line); border-radius: 16px; background: rgba(255, 250, 240, .62); }
+    .qa-answer b { display: block; margin-bottom: 6px; color: var(--green); font-family: var(--mono); font-size: 11px; letter-spacing: 0; text-transform: uppercase; }
+    .qa-answer span { color: var(--muted); font-size: 13px; line-height: 1.5; }
+    .rq-methods { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 16px; }
+    .rq-method {
+      min-height: 190px; padding: 18px; background: linear-gradient(145deg, rgba(255, 250, 240, .74), rgba(220, 236, 244, .38));
+      position: relative; overflow: hidden;
+    }
+    .rq-method.blank-method { opacity: .72; background: repeating-linear-gradient(135deg, rgba(255,250,240,.72), rgba(255,250,240,.72) 10px, rgba(251,237,209,.62) 10px, rgba(251,237,209,.62) 20px); }
+    .rq-method span { display: inline-flex; margin-bottom: 12px; padding: 6px 9px; border-radius: 999px; color: var(--green); background: rgba(49, 95, 79, .12); font-family: var(--mono); font-size: 11px; font-weight: 900; }
+    .rq-method h3 { margin: 0 0 8px; font-family: var(--serif); font-size: 25px; line-height: 1.05; letter-spacing: 0; }
+    .rq-method p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.58; }
+    .file-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    .file-link {
+      display: flex; justify-content: space-between; align-items: center; gap: 14px; padding: 15px 16px;
+      border-radius: 18px; border: 1px solid var(--line); background: rgba(255, 250, 240, .65); text-decoration: none; font-weight: 800;
+    }
+    .file-link span { color: var(--muted); font-size: 12px; font-family: var(--mono); font-weight: 700; overflow-wrap: anywhere; text-align: right; }
+    .empty { color: var(--muted); font-style: italic; }
+    footer { padding: 42px 0 70px; color: var(--muted); text-align: center; line-height: 1.7; }
+    @media (max-width: 920px) {
+      .hero-grid, .section-head, .grid-2, .grid-3, .grid-4, .trace-grid, .qa-grid, .rq-methods, .file-grid, .pipeline, .graph-cloud { grid-template-columns: 1fr; }
+      .pipe-step:not(:last-child)::after { display: none; }
+      .nav { display: none; }
+      .chunk-strip { grid-template-columns: repeat(4, 1fr); }
+      h1 { font-size: 44px; }
+      .section h2 { font-size: 34px; }
+    }
+    </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">L</span>Patent-100 LightRAG Lab</div>
+    <nav class="nav" aria-label="page navigation">
+      <a href="#paper">Paper</a>
+      <a href="#map">Map</a>
+      <a href="#chunking">Chunking</a>
+      <a href="#graph">Graph</a>
+      <a href="#index">Index</a>
+      <a href="#retrieval">Retrieval</a>
+      <a href="#trace">Trace</a>
+      <a href="#qa">Q&A</a>
+      <a href="#rq1">RQ1</a>
+      <a href="#rq2">RQ2</a>
+      <a href="#files">Files</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero shell">
+      <div class="hero-grid">
+        <div class="hero-card">
+          <span class="eyebrow">learning artifact, Patent-100</span>
+          <h1>AI 반도체 특허의<br>LightRAG 변환 과정</h1>
+          <p class="hero-copy">
+            이 문서는 최종 성능표만 보여주는 보고서가 아니라, <strong>특허 100건이 구조화 텍스트로 바뀌고,
+            chunk, entity/relation graph, vector index, dual-level retrieval을 거쳐 답변 생성에 쓰이는 과정</strong>을
+            Peter Pan 템플릿 형식으로 다시 정리한 학습용 보고서입니다. 우리가 실제로 돌리지 않은 실험은 빈칸으로 남겼습니다.
+          </p>
+        </div>
+        <aside class="stats-panel panel" aria-label="actual index summary">
+          <div class="stat">
+            <span>patent documents</span>
+            <strong>100</strong>
+            <small>AA/AB/AC/AD 각 25건, seed=20260609</small>
+          </div>
+          <div class="stat">
+            <span>knowledge graph</span>
+            <strong>1596 / 2203</strong>
+            <small>특허 특화 prompt로 추출된 entity node / relation edge</small>
+          </div>
+          <div class="stat">
+            <span>vector indexes</span>
+            <strong>3 x 3072</strong>
+            <small>chunks, entities, relationships를 text-embedding-3-large로 embedding</small>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section id="paper" class="section shell">
+      <div class="section-head">
+        <h2>논문 흐름과의 대응</h2>
+        <p class="section-intro">
+          이 보고서는 논문식 LightRAG의 핵심 흐름 중 <strong>3.1 graph-based indexing, 3.2 dual-level retrieval,
+          3.3 answer generation, 3.4 complexity 관찰</strong>을 Patent-100 산출물로 설명합니다.
+          HyDE/RQ-RAG처럼 이번에 실행하지 않은 baseline은 결과를 채우지 않았습니다.
+        </p>
+      </div>
+      <div class="panel"><table class='table'><thead><tr><th>논문 흐름</th><th>우리 실험</th><th>상태</th></tr></thead><tbody><tr><td>Document segmentation</td><td>100 patents -&gt; 162 chunks</td><td>완료</td></tr><tr><td>Entity &amp; relation extraction</td><td>1596 nodes / 2203 edges</td><td>완료</td></tr><tr><td>Entity/relation/chunk indexing</td><td>3 vector stores, dim=3072</td><td>완료</td></tr><tr><td>Dual-level retrieval</td><td>local/global/hybrid + naive</td><td>완료</td></tr><tr><td>HyDE baseline</td><td>—</td><td>미실행</td></tr><tr><td>RQ-RAG baseline</td><td>—</td><td>미실행</td></tr></tbody></table></div>
+    </section>
+
+    <section id="map" class="section shell">
+      <div class="section-head">
+        <h2>1. 전체 지도</h2>
+        <p class="section-intro">
+          LightRAG는 특허 문서를 단순 chunk vector DB로만 보지 않고, 기술 entity와 relation을 추출해
+          graph storage와 vector storage를 함께 만듭니다.
+        </p>
+      </div>
+      <div class="panel pipeline">
+        <article class="pipe-step"><b>01</b><h3>Patent 입력</h3><p>특허 100건을 patent_id, 출원번호, 제목, 요약, 청구항, 분류, 출원인, 국가, 연도 필드가 있는 구조화 텍스트로 넣습니다.</p></article>
+        <article class="pipe-step"><b>02</b><h3>Chunking</h3><p>chunk_token_size=1200 기준으로 162개 chunk가 생성됐습니다.</p></article>
+        <article class="pipe-step"><b>03</b><h3>Graph Build</h3><p>LLM이 각 chunk에서 기술 entity/relation을 추출하고 D 단계에서 중복을 병합합니다.</p></article>
+        <article class="pipe-step"><b>04</b><h3>Indexing</h3><p>chunk, entity, relationship 각각을 embedding해 검색 가능한 key-value/vector record로 저장합니다.</p></article>
+        <article class="pipe-step"><b>05</b><h3>Retrieval</h3><p>질문이 들어오면 naive/local/global/hybrid mode로 근거를 가져오고 답변을 생성합니다.</p></article>
+      </div>
+
+    <div class="grid-3" style="margin-top:16px">
+      <article class="mini-card">
+        <h3>데이터가 들어가는 모습</h3>
+        <p>구조화된 특허 100건이 chunk로 나뉘고, 이후 모든 graph/vector storage의 출처가 됩니다.</p>
+        <div class="tag-row">
+          <span class="tag green">100 patents</span>
+          <span class="tag">162 chunks</span>
+          <span class="tag gold">chunk_token_size=1200</span>
+        </div>
+      </article>
+      <article class="mini-card">
+        <h3>Graph로 바뀌는 모습</h3>
+        <p>R 함수가 entity/relation을 만들고, P/D 단계에서 같은 기술 표현을 병합해 graph node와 edge로 저장합니다.</p>
+        <div class="tag-row">
+          <span class="tag green">1596 nodes</span>
+          <span class="tag gold">2203 edges</span>
+          <span class="tag">123 merged entities</span>
+        </div>
+      </article>
+      <article class="mini-card">
+        <h3>질문에 쓰이는 모습</h3>
+        <p>chunk/entity/relation vector가 query와 비교되고, local/global/hybrid mode에 따라 다른 근거 묶음이 답변으로 들어갑니다.</p>
+        <div class="tag-row">
+          <span class="tag">3961 vector records</span>
+          <span class="tag green">AA-1 hybrid</span>
+          <span class="tag gold">E=24, R=36, C=10</span>
+        </div>
+      </article>
+    </div>
+    <div class="grid-2" style="margin-top:16px">
+        <article class="mini-card">
+          <h3>실제 R output 예시</h3>
+          <p><code>16-060058</code> chunk에서 만들어진 entity/relation 일부입니다.</p>
+          <div class="tag-row"><span class='tag green'>베이스 영역</span><span class='tag green'>소스 영역</span><span class='tag green'>고내압</span><span class='tag green'>온 저항</span><span class='tag green'>항복 저항</span><span class='tag green'>게이트 절연막</span></div>
+          <div class="tag-row"><span class='tag gold'>층간 절연막 → 활성 소자부</span><span class='tag gold'>능동 소자 전극 → 제2 도전형 고농도 확산 영역</span><span class='tag gold'>능동 소자부 → 제2 도전형 컬럼 영역</span><span class='tag gold'>게이트 패드부 → 저저항 반도체층</span></div>
+        </article>
+        <article class="mini-card">
+          <h3>local/global/hybrid 분기</h3>
+          <p>같은 AA-1 질문이 local/global/hybrid에서 서로 다른 context 수로 분기됩니다.</p>
+          <table class='table'><thead><tr><th>Mode</th><th>Context</th><th>Meaning</th></tr></thead><tbody><tr><td>local</td><td>E=10, R=69, C=10</td><td>entity 주변 관계 확장</td></tr><tr><td>global</td><td>E=18, R=10, C=10</td><td>relation/theme top-k</td></tr><tr><td>hybrid</td><td>E=24, R=36, C=10</td><td>local + global 병합</td></tr></tbody></table>
+        </article>
+    </div>
+    <div class="panel" style="margin-top:16px">
+      <h3>실제 생성 파일 기준 흐름</h3>
+      <table class='table'><thead><tr><th>순서</th><th>실제 값</th><th>생성/사용 파일</th></tr></thead><tbody><tr><td>입력</td><td>100 patents</td><td>dataset/patents_100.jsonl</td></tr><tr><td>Chunk</td><td>162 chunks, avg 757.9 tokens</td><td>kv_store_text_chunks.json</td></tr><tr><td>R 추출</td><td>sample 16-060058: 29 entities / 49 relations</td><td>kv_store_full_entities.json, kv_store_full_relations.json</td></tr><tr><td>P/D 병합</td><td>123 merged entities, 24 multi-source edges</td><td>kv_store_entity_chunks.json, kv_store_relation_chunks.json</td></tr><tr><td>Graph</td><td>1596 nodes / 2203 edges</td><td>graph_chunk_entity_relation.graphml</td></tr><tr><td>Vector</td><td>3961 records</td><td>vdb_chunks.json, vdb_entities.json, vdb_relationships.json</td></tr><tr><td>QA</td><td>AA-1 hybrid: E=24, R=36, C=10</td><td>query_results_15_modes.jsonl</td></tr></tbody></table>
+    </div>
+
+    </section>
+
+    <section id="chunking" class="section shell">
+      <div class="section-head">
+        <h2>2. Chunking</h2>
+        <p class="section-intro">
+          특허 한 건은 긴 구조화 텍스트입니다. 대부분 1개 chunk로 들어가지만, 청구항과 분류 설명이 긴 문서는 여러 chunk로 나뉩니다.
+        </p>
+      </div>
+      <div class="grid-2">
+        <div class="panel">
+          <h3>실제 설정과 결과</h3>
+          <pre class='code'>{ &quot;chunk_token_size&quot;: 1200, &quot;documents&quot;: 100, &quot;chunks&quot;: 162, &quot;token_min&quot;: 1, &quot;token_max&quot;: 1200, &quot;token_avg&quot;: 757.9, &quot;multi_chunk_documents&quot;: 61 }</pre>
+          <div class="chunk-strip" aria-label="first chunks"><div class='chunk'>000</div><div class='chunk'>001</div><div class='chunk'>002</div><div class='chunk'>003</div><div class='chunk'>004</div><div class='chunk'>005</div><div class='chunk'>006</div><div class='chunk'>007</div><div class='chunk'>008</div><div class='chunk'>009</div><div class='chunk'>010</div><div class='chunk'>011</div><div class='chunk'>012</div><div class='chunk'>013</div><div class='chunk'>014</div><div class='chunk'>015</div><div class='chunk'>016</div><div class='chunk'>017</div><div class='chunk'>018</div><div class='chunk'>019</div><div class='chunk'>020</div><div class='chunk'>021</div><div class='chunk'>022</div><div class='chunk'>023</div><div class='chunk'>024</div><div class='chunk'>025</div><div class='chunk'>...</div></div>
+        </div>
+        <div class="panel">
+          <h3>chunk 하나는 이렇게 저장됨</h3>
+          <pre class='code'>{ &quot;chunk_id&quot;: &quot;16-060058-chunk-000&quot;, &quot;tokens&quot;: 1200, &quot;chunk_order_index&quot;: 0, &quot;full_doc_id&quot;: &quot;16-060058&quot;, &quot;file_path&quot;: &quot;16-060058&quot;, &quot;content&quot;: &quot;문서 유형: AI 반도체 특허 patent_id: 16-060058 출원번호: 16-060058 공개번호: 2018-0374939 등록번호: 10439056 발명의 명칭: Power semiconductor device and method of manufacturing power semiconductor device 요약: A power semiconductor device according to the present invention has a super junction structure, and includes a low-resistance semiconductor layer, an n−-type column region, p−-type column regions, a base region, trenches, gate insulation films, gate electrodes, source regions, interlayer insulation films, contact holes, metal plugs, p+-type diffusion regions, a source electrode and a gate pad electrode. An active element part includes an n−-type column region between a predetermined p−-type column reg ...[truncated]&quot; }</pre>
+          <div class="callout"><h3>여기서 배울 점</h3><p>chunk는 나중에 answer prompt에 직접 들어가는 원문 근거입니다. graph는 구조를 주고, chunk는 실제 특허 문장과 청구항 근거를 제공합니다.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="graph" class="section shell">
+      <div class="section-head">
+        <h2>3. Graph가 만들어지는 과정</h2>
+        <p class="section-intro">
+          R 함수가 entity/relation tuple을 만들고, P 함수가 key-value profile을 만들며, D 함수가 중복 entity/relation을 병합합니다.
+        </p>
+      </div>
+      <div class="grid-3">
+        <article class="mini-card"><h3>R: Entity 추출</h3><p>특허 16-060058에서 추출된 entity 예시입니다.</p><div class="tag-row"><span class='tag green'>베이스 영역</span><span class='tag green'>소스 영역</span><span class='tag green'>고내압</span><span class='tag green'>온 저항</span><span class='tag green'>항복 저항</span><span class='tag green'>게이트 절연막</span><span class='tag green'>전력 반도체 소자</span><span class='tag green'>전력 반도체 소자 제조 방법</span></div></article>
+        <article class="mini-card"><h3>R: Relation 추출</h3><p>기술 구성요소 간 relation pair가 edge 후보가 됩니다.</p><div class="tag-row"><span class='tag gold'>층간 절연막 → 활성 소자부</span><span class='tag gold'>능동 소자 전극 → 제2 도전형 고농도 확산 영역</span><span class='tag gold'>능동 소자부 → 제2 도전형 컬럼 영역</span><span class='tag gold'>게이트 패드부 → 저저항 반도체층</span><span class='tag gold'>고내압 → 전력 반도체 소자</span></div></article>
+        <article class="mini-card"><h3>D: Deduplication</h3><p>같은 이름의 entity와 같은 source-target relation이 병합되고 source chunk가 누적됩니다.</p><div class="tag-row"><span class="tag">same name merge</span><span class="tag">source_id union</span><span class="tag">description profile</span></div></article>
+      </div>
+      <div class="grid-2" style="margin-top:16px">
+        <div class="panel">
+          <h3>Entity type 분포</h3>
+          <table class='table'><thead><tr><th>Entity type</th><th>Count</th><th>Share</th></tr></thead><tbody><tr><td>techcomponent</td><td>660</td><td>41.4%</td></tr><tr><td>operation</td><td>270</td><td>16.9%</td></tr><tr><td>other</td><td>208</td><td>13.0%</td></tr><tr><td>architecture</td><td>172</td><td>10.8%</td></tr><tr><td>performancemetric</td><td>105</td><td>6.6%</td></tr><tr><td>method</td><td>101</td><td>6.3%</td></tr><tr><td>material</td><td>40</td><td>2.5%</td></tr><tr><td>applicationdomain</td><td>40</td><td>2.5%</td></tr></tbody></table>
+        </div>
+        <div class="panel">
+          <h3>Top connected entities</h3>
+          <div class="graph-cloud"><div class='node-card'>프로세서<small>degree 42 · techcomponent</small></div>
+<div class='node-card'>메모리<small>degree 22 · techcomponent</small></div>
+<div class='node-card'>메모리 셀 어레이<small>degree 22 · techcomponent</small></div>
+<div class='node-card'>반도체 패키지<small>degree 16 · architecture</small></div>
+<div class='node-card'>제어 로직 회로<small>degree 14 · techcomponent</small></div>
+<div class='node-card'>메모리 장치<small>degree 14 · architecture</small></div>
+<div class='node-card'>반도체 기판<small>degree 13 · material</small></div>
+<div class='node-card'>목적 함수<small>degree 12 · operation</small></div>
+<div class='node-card'>호스트<small>degree 11 · techcomponent</small></div>
+<div class='node-card'>벡터 처리 유닛(VPU)<small>degree 11 · architecture</small></div>
+<div class='node-card'>입력 데이터<small>degree 10 · other</small></div>
+<div class='node-card'>레지스터<small>degree 10 · techcomponent</small></div></div>
+        </div>
+      </div>
+      <div class="panel" style="margin-top:16px">
+        <h3>Relation tuple 예시</h3>
+        <table class='table'><thead><tr><th>Source entity</th><th>Target entity</th></tr></thead><tbody><tr><td>층간 절연막</td><td>활성 소자부</td></tr><tr><td>능동 소자 전극</td><td>제2 도전형 고농도 확산 영역</td></tr><tr><td>능동 소자부</td><td>제2 도전형 컬럼 영역</td></tr><tr><td>게이트 패드부</td><td>저저항 반도체층</td></tr><tr><td>고내압</td><td>전력 반도체 소자</td></tr><tr><td>베이스 영역</td><td>제2 도전형 컬럼 영역</td></tr><tr><td>능동 소자 전극</td><td>제1 도전형 고농도 확산 영역</td></tr><tr><td>능동 소자부</td><td>제1 도전형 컬럼 영역</td></tr></tbody></table>
+      </div>
+    </section>
+
+    <section id="index" class="section shell">
+      <div class="section-head">
+        <h2>4. Index가 만들어지는 과정</h2>
+        <p class="section-intro">
+          LightRAG는 graph만 저장하지 않습니다. chunk, entity, relationship을 각각 embedding해서 query embedding과 비교할 수 있게 만듭니다.
+        </p>
+      </div>
+      <div class="grid-3">
+        <div class="panel"><h3>Chunk vector record</h3><pre class='code'>{ &quot;content&quot;: &quot;문서 유형: AI 반도체 특허 patent_id: 16-632673 출원번호: 16-632673 공개번호: 2021-0098300 등록번호: 11502003 발명의 명칭: Image processing method 요약: A novel image processing method is provided.In a display device in which a video signal is individually supplied to a screen divided into two, the entire screen is subjected to up-conversion processing after being divided, and another up-conversion processing is performed for a bound ...[truncated]&quot;, &quot;full_doc_id&quot;: &quot;16-632673&quot;, &quot;file_path&quot;: &quot;16-632673&quot;, &quot;vector&quot;: &quot;[vector omitted]&quot; }</pre></div>
+        <div class="panel"><h3>Entity vector record</h3><pre class='code'>{ &quot;entity_name&quot;: &quot;반도체층&quot;, &quot;content&quot;: &quot;반도체층 반도체층은 단위 시냅스 소자에 포함되며 반도체 물질로 구성되는 층이다.&lt;SEP&gt;반도체층은 활성 소자부와 공통으로 사용되는 반도체 장치의 층 구조이다.&lt;SEP&gt;반도체층은 반도체 소자의 기반 층으로, 층간 절연막이 형성되는 대상이다.&quot;, &quot;source_id&quot;: &quot;2024-0020571-chunk-000&lt;SEP&gt;16-060058-chunk-001&lt;SEP&gt;13-067154-chunk-000&quot;, &quot;file_path&quot;: &quot;2024-0020571&lt;SEP&gt;16-060058&lt;SEP&gt;13-067154&quot;, &quot;vector&quot;: &quot;[vector omitted]&quot; }</pre></div>
+        <div class="panel"><h3>Relationship vector record</h3><pre class='code'>{ &quot;src_id&quot;: &quot;디스플레이 장치&quot;, &quot;tgt_id&quot;: &quot;영상 처리 방법&quot;, &quot;source_id&quot;: &quot;16-632673-chunk-000&quot;, &quot;content&quot;: &quot;영상 데이터 생성,표시 디스플레이 장치 영상 처리 방법 영상 처리 방법은 디스플레이 장치에 표시될 영상 데이터를 생성한다.&quot;, &quot;file_path&quot;: &quot;16-632673&quot;, &quot;vector&quot;: &quot;[vector omitted]&quot; }</pre></div>
+      </div>
+    </section>
+
+    <section id="retrieval" class="section shell">
+      <div class="section-head">
+        <h2>5. Retrieval이 진행되는 과정</h2>
+        <p class="section-intro">
+          같은 질문이라도 mode에 따라 가져오는 근거가 달라집니다. naive는 chunk만, local/global/hybrid는 graph context를 함께 씁니다.
+        </p>
+      </div>
+      <div class="panel">
+        <table class='table'><thead><tr><th>Mode</th><th>Success</th><th>Avg answer chars</th><th>Avg entities</th><th>Avg relations</th><th>Avg chunks</th><th>Avg latency(s)</th></tr></thead><tbody><tr><td>naive</td><td>15/15</td><td>1404.6</td><td>0.0</td><td>0.0</td><td>10.0</td><td>51.479</td></tr><tr><td>local</td><td>15/15</td><td>1133.533</td><td>10.0</td><td>30.8</td><td>8.6</td><td>111.931</td></tr><tr><td>global</td><td>15/15</td><td>1194.0</td><td>17.2</td><td>10.0</td><td>9.533</td><td>104.758</td></tr><tr><td>hybrid</td><td>15/15</td><td>1324.533</td><td>24.667</td><td>41.467</td><td>10.0</td><td>103.627</td></tr></tbody></table>
+      </div>
+      <div class="grid-4" style="margin-top:16px">
+        <article class="mini-card"><h3>Naive</h3><p>graph 없이 chunk embedding만 사용합니다. 독립 vector-only baseline은 별도 구현하지 않았고 이 mode로 대체했습니다.</p></article>
+        <article class="mini-card"><h3>Local</h3><p>low-level keyword로 관련 entity와 주변 relationship을 찾습니다.</p></article>
+        <article class="mini-card"><h3>Global</h3><p>high-level keyword로 relation/theme 중심의 넓은 context를 찾습니다.</p></article>
+        <article class="mini-card"><h3>Hybrid</h3><p>local과 global 결과를 병합해 entity/relation/chunk 근거를 구성합니다.</p></article>
+      </div>
+    </section>
+
+    <section id="trace" class="section shell">
+      <div class="section-head">
+        <h2>6. 실제 Retrieval Trace</h2>
+        <p class="section-intro">
+          아래 trace는 실제 <code>query_results_15_modes.jsonl</code>의 hybrid 결과에서 keyword, retrieved context, answer 일부를 뽑은 것입니다.
+        </p>
+      </div>
+      <div class="trace-grid">
+            <article class="trace-card">
+              <h3>AI 가속기 병렬성</h3>
+              <p class="trace-question">AI 코어 및 가속기 특허에서 신경망 연산 가속기 구조는 어떤 방식으로 연산 병렬성을 높이는가?</p>
+              <div class="trace-block">
+                <b>keywords</b>
+                <ul>
+                  <li>high: AI 코어, 가속기 특허, 신경망 연산 가속기 구조, 연산 병렬성 향상 방식</li>
+                  <li>low: 신경망 연산, 가속기 구조, 연산 병렬성</li>
+                </ul>
+              </div>
+              <div class="trace-block">
+                <b>retrieved context</b>
+                <ul>
+                  <li>entities: 24</li>
+                  <li>relations: 36</li>
+                  <li>chunks: 10</li>
+                  <li>source patents: 20</li>
+                </ul>
+              </div>
+              <p class="trace-chunk"><strong>relation</strong> {&#x27;src_id&#x27;: &#x27;신경망&#x27;, &#x27;tgt_id&#x27;: &#x27;신경망 활성화 로직 구현 장치&#x27;, &#x27;description&#x27;: &#x27;신경망 활성화 로직 구현 장치는 신경망을 위한 활성화 로직을 구현한다.&#x27;, &#x27;keywords&#x27;: &#x27;적용,활성화 로직&#x27;, &#x27;weight&#x27;: 1.0, &#x27;source_id&#x27;: &#x27;17-291315-chunk-000&#x27;, &#x27;file_path&#x27;: &#x27;17-291315&#x27;, &#x27;created_at&#x27;: 1781016186}</p>
+              <p class="trace-chunk"><strong>chunk</strong> 문서 유형: AI 반도체 특허 patent_id: 17-511417 출원번호: 17-511417 공개번호: 2022-0050683 발명의 명칭: Apparatuses, methods, and systems for neural networks 요약: Methods and apparatuses relating to processing neural networks are described. In one embodiment, an apparatus ...[truncated]</p>
+              <p class="trace-chunk"><strong>answer</strong> ## 신경망 연산 가속기 구조의 연산 병렬성 향상 방식 제공된 문맥에서 **AI 코어 및 가속기 특허의 신경망 연산 가속기 구조**는 주로 **명령 처리 구조화**, **데이터 슬라이스 단위 처리**, **행렬 연산 병렬화**, **다중 처리 요소 활용**을 통해 연산 효율과 병렬성을 높인다. 첫째, **데이터 처리 장치**는 제어 모듈 안에 **명령 캐시 유닛, 명령 처리 유닛, 저장 큐 유닛**을 두어 인공 신경망 연산과 관련된 계산 명령을 저장하고, 이를 해석해 **복수의 연산 명령**으로 분해한다. 저장 ...[truncated]</p>
+              <p class="trace-chunk"><strong>processing</strong> {&#x27;total_entities_found&#x27;: 24, &#x27;total_relations_found&#x27;: 36, &#x27;entities_after_truncation&#x27;: 24, &#x27;relations_after_truncation&#x27;: 36, &#x27;merged_chunks_count&#x27;: 20, &#x27;final_chunks_count&#x27;: 10}</p>
+            </article>
+
+
+            <article class="trace-card">
+              <h3>PIM vs NPU</h3>
+              <p class="trace-question">PIM과 NPU 방식은 데이터 이동 비용을 줄이는 관점에서 어떻게 다르게 접근하는가?</p>
+              <div class="trace-block">
+                <b>keywords</b>
+                <ul>
+                  <li>high: 데이터 이동 비용 감소, 접근 방식 비교</li>
+                  <li>low: PIM, NPU, 데이터 이동 비용</li>
+                </ul>
+              </div>
+              <div class="trace-block">
+                <b>retrieved context</b>
+                <ul>
+                  <li>entities: 25</li>
+                  <li>relations: 26</li>
+                  <li>chunks: 10</li>
+                  <li>source patents: 14</li>
+                </ul>
+              </div>
+              <p class="trace-chunk"><strong>relation</strong> {&#x27;src_id&#x27;: &#x27;PIM 기반 컴퓨팅 장치&#x27;, &#x27;tgt_id&#x27;: &#x27;프로세서&#x27;, &#x27;description&#x27;: &#x27;PIM 기반 컴퓨팅 장치는 메인 메모리 및 PIM 모듈과 채널을 형성하는 프로세서를 포함한다.&#x27;, &#x27;keywords&#x27;: &#x27;데이터 전송,포함&#x27;, &#x27;weight&#x27;: 1.0, &#x27;source_id&#x27;: &#x27;2023-0050666-chunk-000&#x27;, &#x27;file_path&#x27;: &#x27;2023-0050666&#x27;, &#x27;cr ...[truncated]</p>
+              <p class="trace-chunk"><strong>chunk</strong> 문서 유형: AI 반도체 특허 patent_id: 16-746419 출원번호: 16-746419 공개번호: 2021-0224185 등록번호: 11669443 발명의 명칭: Data layout optimization on processing in memory architecture for executing neural network model 요약: The present disclosure relates to a method for sche ...[truncated]</p>
+              <p class="trace-chunk"><strong>answer</strong> ## 관점 차이 **PIM 방식**은 데이터를 연산 장치로 가져오기보다, **메모리 내부 또는 메모리 가까이에서 연산이 일어나도록** 배치하는 접근이다. 예를 들어 계산 그래프의 노드를 메모리 블록에 할당하고, 앞 노드의 출력 데이터를 다음 노드 실행에 쓰도록 하며, 메모리 블록 어셈블리 내부의 데이터 커플링을 통해 블록 간 데이터 전송을 지원한다[1]. 또한 PIM 모듈은 작업 메모리에 올라간 데이터셋에 대해 조인 연산을 수행하도록 구성될 수 있다[2]. 즉, 데이터 이동 비용을 줄이는 핵심은 **데이터가 있 ...[truncated]</p>
+              <p class="trace-chunk"><strong>processing</strong> {&#x27;total_entities_found&#x27;: 25, &#x27;total_relations_found&#x27;: 26, &#x27;entities_after_truncation&#x27;: 25, &#x27;relations_after_truncation&#x27;: 26, &#x27;merged_chunks_count&#x27;: 14, &#x27;final_chunks_count&#x27;: 10}</p>
+            </article>
+
+
+            <article class="trace-card">
+              <h3>특정 특허 구조 확인</h3>
+              <p class="trace-question">특허 16-060058의 주요 구성요소, 해결하려는 문제, 대표청구항의 기술 범위를 설명하라.</p>
+              <div class="trace-block">
+                <b>keywords</b>
+                <ul>
+                  <li>high: 특허 분석, 주요 구성요소, 해결하려는 문제, 대표청구항 기술 범위</li>
+                  <li>low: 특허 16-060058, 대표청구항, 기술 범위</li>
+                </ul>
+              </div>
+              <div class="trace-block">
+                <b>retrieved context</b>
+                <ul>
+                  <li>entities: 27</li>
+                  <li>relations: 30</li>
+                  <li>chunks: 10</li>
+                  <li>source patents: 18</li>
+                </ul>
+              </div>
+              <p class="trace-chunk"><strong>relation</strong> {&#x27;src_id&#x27;: &#x27;제1 제어 레지스터&#x27;, &#x27;tgt_id&#x27;: &#x27;프로세서&#x27;, &#x27;description&#x27;: &#x27;프로세서는 제1 programmable setting을 보유하는 제1 제어 레지스터를 포함한다.&#x27;, &#x27;keywords&#x27;: &#x27;설정 저장,포함&#x27;, &#x27;weight&#x27;: 1.0, &#x27;source_id&#x27;: &#x27;17-444788-chunk-000&#x27;, &#x27;file_path&#x27;: &#x27;17-444788&#x27;, &#x27;created_at&#x27; ...[truncated]</p>
+              <p class="trace-chunk"><strong>chunk</strong> 문서 유형: AI 반도체 특허 patent_id: 16-498676 출원번호: 16-498676 공개번호: 2020-0042569 등록번호: 11080362 발명의 명칭: Method to accelerate the processing of multiperiod optimal power flow problems 요약: A method is disclosed for optimizing the power flow in an electric po ...[truncated]</p>
+              <p class="trace-chunk"><strong>answer</strong> ## 특허 16-060058 개요 특허 **16-060058**은 **“Power semiconductor device and method of manufacturing power semiconductor device”**에 관한 AI 반도체 특허로, **슈퍼 정션 구조를 갖는 전력 반도체 소자**를 다룬다. ## 주요 구성요소 이 전력 반도체 소자는 **제1 도전형 컬럼 영역과 제2 도전형 컬럼 영역이 교대로 배치된 슈퍼 정션 구조**를 기반으로 한다. 주요 구성요소로는 **저저항 반도체층**, **n−형 컬 ...[truncated]</p>
+              <p class="trace-chunk"><strong>processing</strong> {&#x27;total_entities_found&#x27;: 27, &#x27;total_relations_found&#x27;: 30, &#x27;entities_after_truncation&#x27;: 27, &#x27;relations_after_truncation&#x27;: 30, &#x27;merged_chunks_count&#x27;: 18, &#x27;final_chunks_count&#x27;: 10}</p>
+            </article>
+            </div>
+    </section>
+
+    <section id="qa" class="section shell">
+      <div class="section-head">
+        <h2>8. RQ에 사용한 질문</h2>
+        <p class="section-intro">15개 쿼리는 모델이 만든 것이 아니라 직접 설계한 고정 평가셋입니다.</p>
+      </div>
+      <div class="qa-grid">
+            <article class="qa-card">
+              <h3>AA-1</h3>
+              <p>AI 코어 및 가속기 특허에서 신경망 연산 가속기 구조는 어떤 방식으로 연산 병렬성을 높이는가?</p>
+              <div class="qa-answer">
+                <b>category_specific</b>
+                <span>parallel compute architecture, NPU, matrix operation, dataflow</span>
+              </div>
+            </article>
+
+
+            <article class="qa-card">
+              <h3>AA-2</h3>
+              <p>NPU 또는 행렬 연산 장치 관련 특허에서 메모리 접근 병목을 줄이는 기술은 무엇인가?</p>
+              <div class="qa-answer">
+                <b>category_specific</b>
+                <span>memory access bottleneck, buffer, scheduler, data movement</span>
+              </div>
+            </article>
+
+
+            <article class="qa-card">
+              <h3>AB-1</h3>
+              <p>인-메모리 컴퓨팅 또는 PIM 구조가 AI 연산 성능을 높이는 핵심 원리는 무엇인가?</p>
+              <div class="qa-answer">
+                <b>category_specific</b>
+                <span>PIM, in-memory computing, analog/digital matrix operation</span>
+              </div>
+            </article>
+
+
+            <article class="qa-card">
+              <h3>AB-2</h3>
+              <p>SRAM 또는 DRAM 기반 메모리 아키텍처와 AI 연산 회로의 결합 방식은 어떻게 나타나는가?</p>
+              <div class="qa-answer">
+                <b>category_specific</b>
+                <span>SRAM, DRAM, memory architecture, compute circuit coupling</span>
+              </div>
+            </article>
+
+
+            <article class="qa-card">
+              <h3>AC-1</h3>
+              <p>AI 반도체 패키징 또는 인터커넥트 기술은 대역폭과 전력 효율을 어떻게 개선하는가?</p>
+              <div class="qa-answer">
+                <b>category_specific</b>
+                <span>packaging, interconnect, bandwidth, power efficiency</span>
+              </div>
+            </article>
+
+
+            <article class="qa-card">
+              <h3>AC-2</h3>
+              <p>칩렛, 적층, TSV, 인터포저 계열 기술이 AI 가속기 구조와 어떤 관계를 갖는가?</p>
+              <div class="qa-answer">
+                <b>category_specific</b>
+                <span>chiplet, stacking, TSV, interposer, accelerator architecture</span>
+              </div>
+            </article>
+
+
+            <article class="qa-card">
+              <h3>AD-1</h3>
+              <p>AI 반도체 제조 또는 공정 특허에서 신뢰성이나 수율 개선을 위한 핵심 방법은 무엇인가?</p>
+              <div class="qa-answer">
+                <b>category_specific</b>
+                <span>manufacturing process, reliability, yield, process control</span>
+              </div>
+            </article>
+
+
+            <article class="qa-card">
+              <h3>AD-2</h3>
+              <p>소자 구조나 공정 제어가 AI 연산 성능 또는 전력 효율에 미치는 영향은 무엇인가?</p>
+              <div class="qa-answer">
+                <b>category_specific</b>
+                <span>device structure, process control, performance, energy efficiency</span>
+              </div>
+            </article>
+
+
+            <article class="qa-card">
+              <h3>X-1</h3>
+              <p>연산 가속기, 메모리 아키텍처, 패키징 기술은 AI 반도체에서 어떤 기술적 의존 관계를 갖는가?</p>
+              <div class="qa-answer">
+                <b>cross_category</b>
+                <span>accelerator-memory-packaging dependency graph</span>
+              </div>
+            </article>
+
+
+            <article class="qa-card">
+              <h3>X-2</h3>
+              <p>PIM과 NPU 방식은 데이터 이동 비용을 줄이는 관점에서 어떻게 다르게 접근하는가?</p>
+              <div class="qa-answer">
+                <b>cross_category</b>
+                <span>PIM vs NPU, data movement, memory proximity</span>
+              </div>
+            </article>
+
+
+            <article class="qa-card">
+              <h3>X-3</h3>
+              <p>AI 반도체 특허에서 전력 효율, 대역폭, 지연시간 개선 기술은 어떤 관계망을 형성하는가?</p>
+              <div class="qa-answer">
+                <b>cross_category</b>
+                <span>power efficiency, bandwidth, latency, relation network</span>
+              </div>
+            </article>
+
+
+            <article class="qa-card">
+              <h3>F-1</h3>
+              <p>특허 16-060058의 주요 구성요소, 해결하려는 문제, 대표청구항의 기술 범위를 설명하라.</p>
+              <div class="qa-answer">
+                <b>fact_check</b>
+                <span>single patent structure, claim elements, problem-solution</span>
+              </div>
+            </article>
+
+
+            <article class="qa-card">
+              <h3>F-2</h3>
+              <p>특허 17-444788의 대표청구항에 포함된 회로, 메모리, 연산 구성요소를 source patent 기준으로 정리하라.</p>
+              <div class="qa-answer">
+                <b>fact_check</b>
+                <span>single patent claim components, source-grounded answer</span>
+              </div>
+            </article>
+
+
+            <article class="qa-card">
+              <h3>C-1</h3>
+              <p>인-메모리 컴퓨팅 방식과 hardware operator fusion 방식의 차이를 비교하라.</p>
+              <div class="qa-answer">
+                <b>comparison</b>
+                <span>comparison, in-memory computing, operator fusion</span>
+              </div>
+            </article>
+
+
+            <article class="qa-card">
+              <h3>E-1</h3>
+              <p>AI 반도체 패키징 기술 동향을 특허 근거 중심으로 탐색적으로 요약하라.</p>
+              <div class="qa-answer">
+                <b>exploratory</b>
+                <span>packaging trend, patent evidence, source coverage</span>
+              </div>
+            </article>
+            </div>
+    </section>
+
+    <section id="rq1" class="section shell">
+      <div class="section-head">
+        <h2>9. RQ1 baseline 비교</h2>
+        <p class="section-intro">
+          이 섹션은 템플릿 구조를 유지하되, 실제로 돌린 것만 채웠습니다. HyDE/RQ-RAG/별도 vector-only RAG는 미실행으로 비워두었습니다.
+        </p>
+      </div>
+      <div class="rq-methods">
+        <article class="rq-method ">
+          <span>완료</span>
+          <h3>NaiveRAG</h3>
+          <p>LightRAG mode=&#x27;naive&#x27;로 graph 없이 chunk embedding 검색을 수행했다.</p>
+          <div class="tag-row"><span class="tag green">lightrag_hybrid: 8, lightrag_naive: 7</span></div>
+        </article>
+
+
+        <article class="rq-method ">
+          <span>완료</span>
+          <h3>LightRAG Hybrid</h3>
+          <p>local entity/relation context와 global relation/theme context를 병합했다.</p>
+          <div class="tag-row"><span class="tag green">lightrag_naive: 9, lightrag_hybrid: 6</span></div>
+        </article>
+
+
+        <article class="rq-method ">
+          <span>완료</span>
+          <h3>GraphRAG-style</h3>
+          <p>official Microsoft GraphRAG basic/local/global을 별도 실행했다.</p>
+          <div class="tag-row"><span class="tag green">graphrag_global: 13, lightrag_hybrid: 2</span></div>
+        </article>
+
+
+        <article class="rq-method blank-method">
+          <span>미실행</span>
+          <h3>HyDE</h3>
+          <p>이번 Patent-100 실험에서는 hypothetical document expansion을 돌리지 않았다.</p>
+          <div class="tag-row"><span class="tag gold">—</span></div>
+        </article>
+
+
+        <article class="rq-method blank-method">
+          <span>미실행</span>
+          <h3>RQ-RAG</h3>
+          <p>GPU/구현 비용 이슈로 제외했다. 결과 표는 비워둔다.</p>
+          <div class="tag-row"><span class="tag gold">—</span></div>
+        </article>
+
+
+        <article class="rq-method blank-method">
+          <span>미실행</span>
+          <h3>독립 vector-only RAG</h3>
+          <p>LightRAG naive와 중복되므로 별도 구현하지 않았다.</p>
+          <div class="tag-row"><span class="tag gold">—</span></div>
+        </article>
+        </div>
+    </section>
+
+    <section id="rq2" class="section shell">
+      <div class="section-head">
+        <h2>10. RQ2 ablation 설계</h2>
+        <p class="section-intro">
+          LightRAG 내부 ablation은 naive/local/global/hybrid 네 mode로 실행했습니다. 결론은 hybrid가 naive를 압도하지는 않았고, 질문 유형별로 효용이 달랐다는 쪽입니다.
+        </p>
+      </div>
+      <div class="panel rq2-pipeline pipeline">
+        <article class="pipe-step"><b>N</b><h3>Naive</h3><p>chunk-only retrieval. graph 없이 동작.</p></article>
+        <article class="pipe-step"><b>L</b><h3>Local</h3><p>entity 중심 low-level retrieval.</p></article>
+        <article class="pipe-step"><b>G</b><h3>Global</h3><p>relation/theme 중심 high-level retrieval.</p></article>
+        <article class="pipe-step"><b>H</b><h3>Hybrid</h3><p>local + global 병합.</p></article>
+      </div>
+      <div class="grid-2" style="margin-top:16px">
+        <div class="panel">
+          <h3>Graph indexing 효과</h3>
+          <p class="section-intro">그래프 품질 지표는 목표를 통과했습니다. metadata relation ratio=0.01, technical relation ratio=0.9401, excluded entity ratio=0.0044.</p>
+        </div>
+        <div class="panel">
+          <h3>Dual-level retrieval 효과</h3>
+          <p class="section-intro">Judge 기준으로 hybrid가 naive를 명확히 이기지는 못했습니다. 다만 cross-category 질문에서는 hybrid graph context가 더 유효하게 작동했습니다.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="files" class="section shell">
+      <div class="section-head">
+        <h2>11. 실제 생성 파일</h2>
+        <p class="section-intro">보고서에 사용한 실제 산출물 경로입니다.</p>
+      </div>
+      <div class="file-grid"><a class='file-link' href='file:///Users/dabeenkim/Documents/GitHub/HYU-lightRAG/experiments/rag_repro_100_seed20260609/lightrag_patent_prompt_100/query_results_15_modes.jsonl'><strong>LightRAG query results</strong><span>/Users/dabeenkim/Documents/GitHub/HYU-lightRAG/experiments/rag_repro_100_seed20260609/lightrag_patent_prompt_100/query_results_15_modes.jsonl</span></a>
+<a class='file-link' href='file:///Users/dabeenkim/Documents/GitHub/HYU-lightRAG/experiments/rag_repro_100_seed20260609/lightrag_patent_prompt_100/graph_metrics.json'><strong>LightRAG graph metrics</strong><span>/Users/dabeenkim/Documents/GitHub/HYU-lightRAG/experiments/rag_repro_100_seed20260609/lightrag_patent_prompt_100/graph_metrics.json</span></a>
+<a class='file-link' href='file:///Users/dabeenkim/Documents/GitHub/HYU-lightRAG/experiments/rag_repro_100_seed20260609/lightrag_patent_prompt_100/storage'><strong>LightRAG storage</strong><span>/Users/dabeenkim/Documents/GitHub/HYU-lightRAG/experiments/rag_repro_100_seed20260609/lightrag_patent_prompt_100/storage</span></a>
+<a class='file-link' href='file:///Users/dabeenkim/Documents/GitHub/HYU-lightRAG/experiments/rag_repro_100_seed20260609/graphrag_full_100_fresh/query_results_15_methods.jsonl'><strong>GraphRAG results</strong><span>/Users/dabeenkim/Documents/GitHub/HYU-lightRAG/experiments/rag_repro_100_seed20260609/graphrag_full_100_fresh/query_results_15_methods.jsonl</span></a>
+<a class='file-link' href='file:///Users/dabeenkim/Documents/GitHub/HYU-lightRAG/experiments/rag_repro_100_seed20260609/evaluation/judge_summary.json'><strong>Judge summary</strong><span>/Users/dabeenkim/Documents/GitHub/HYU-lightRAG/experiments/rag_repro_100_seed20260609/evaluation/judge_summary.json</span></a>
+<a class='file-link' href='file:///Users/dabeenkim/Documents/GitHub/HYU-lightRAG/experiments/rag_repro_100_seed20260609/evaluation_length_control/judge_length_control_summary.json'><strong>Length-control judge</strong><span>/Users/dabeenkim/Documents/GitHub/HYU-lightRAG/experiments/rag_repro_100_seed20260609/evaluation_length_control/judge_length_control_summary.json</span></a>
+<a class='file-link' href='file:///Users/dabeenkim/Documents/GitHub/HYU-lightRAG/reports/patent_lightrag_learning_flow.html'><strong>This learning-flow report</strong><span>/Users/dabeenkim/Documents/GitHub/HYU-lightRAG/reports/patent_lightrag_learning_flow.html</span></a></div>
+    </section>
+  </main>
+
+  <footer class="shell">
+    Patent-100 LightRAG learning-flow report. 기존 비교 리포트는 보존하고, 이 파일은 Peter Pan 템플릿 형식을 따른 별도 학습용 HTML입니다.
+  </footer>
+</body>
+</html>

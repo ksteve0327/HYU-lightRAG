@@ -32,7 +32,7 @@
     table.relation-table th:nth-child(2), table.relation-table td:nth-child(2) { width:15%; }
     table.relation-table th:nth-child(3), table.relation-table td:nth-child(3) { width:16%; }
     table.relation-table th:nth-child(4), table.relation-table td:nth-child(4) { width:31%; }
-    table.relation-table th:nth-child(5), table.relation-table td:nth-child(5) { width:14%; }
+    table.relation-table th:nth-child(5), table.relation-table td:nth-child(5) { width:14%; white-space:pre-line; }
     table.relation-table th:nth-child(6), table.relation-table td:nth-child(6) { width:8%; }
     table.relation-table th, table.relation-table td { overflow-wrap:anywhere; }
     table.answer-compare-table { table-layout:fixed; }
@@ -73,6 +73,18 @@
     table.graph-quality-table,
     table.retrieval-summary-table,
     table.context-sample-table,
+    table.observable-question-table,
+    table.observable-flow-table,
+    table.observable-path-table,
+    table.observable-composition-table,
+    table.observable-cumulative-table,
+    table.observable-transform-table,
+    table.observable-mode-trace-table,
+    table.observable-relation-reason-table,
+    table.observable-dedup-table,
+    table.observable-answer-table,
+    table.observable-evidence-table,
+    table.baseline-status-table,
     table.complexity-table,
     table.audit-table,
     table.audit-note-table,
@@ -118,6 +130,55 @@
     table.context-sample-table th:nth-child(1), table.context-sample-table td:nth-child(1) { width:15%; }
     table.context-sample-table th:nth-child(2), table.context-sample-table td:nth-child(2) { width:8%; }
     table.context-sample-table th:nth-child(3), table.context-sample-table td:nth-child(3) { width:77%; }
+    table.observable-question-table th:nth-child(1), table.observable-question-table td:nth-child(1) { width:38%; }
+    table.observable-question-table th:nth-child(2), table.observable-question-table td:nth-child(2) { width:62%; }
+    table.observable-flow-table th:nth-child(1), table.observable-flow-table td:nth-child(1) { width:28%; }
+    table.observable-flow-table th:nth-child(2), table.observable-flow-table td:nth-child(2) { width:52%; }
+    table.observable-flow-table th:nth-child(3), table.observable-flow-table td:nth-child(3) { width:20%; }
+    table.observable-path-table th:nth-child(1), table.observable-path-table td:nth-child(1) { width:16%; }
+    table.observable-path-table th:nth-child(2), table.observable-path-table td:nth-child(2) { width:28%; }
+    table.observable-path-table th:nth-child(3), table.observable-path-table td:nth-child(3) { width:56%; }
+    table.observable-composition-table th:nth-child(1), table.observable-composition-table td:nth-child(1) { width:18%; }
+    table.observable-composition-table th:nth-child(2), table.observable-composition-table td:nth-child(2) { width:34%; }
+    table.observable-composition-table th:nth-child(3), table.observable-composition-table td:nth-child(3) { width:48%; }
+    table.observable-cumulative-table th:nth-child(1), table.observable-cumulative-table td:nth-child(1) { width:14%; }
+    table.observable-cumulative-table th:nth-child(2), table.observable-cumulative-table td:nth-child(2) { width:10%; }
+    table.observable-cumulative-table th:nth-child(3), table.observable-cumulative-table td:nth-child(3) { width:10%; }
+    table.observable-cumulative-table th:nth-child(4), table.observable-cumulative-table td:nth-child(4) { width:11%; }
+    table.observable-cumulative-table th:nth-child(5), table.observable-cumulative-table td:nth-child(5) { width:11%; }
+    table.observable-cumulative-table th:nth-child(6), table.observable-cumulative-table td:nth-child(6) { width:17%; }
+    table.observable-cumulative-table th:nth-child(7), table.observable-cumulative-table td:nth-child(7) { width:17%; }
+    table.observable-cumulative-table th:nth-child(8), table.observable-cumulative-table td:nth-child(8) { width:10%; }
+    table.observable-transform-table th:nth-child(1), table.observable-transform-table td:nth-child(1) { width:18%; }
+    table.observable-transform-table th:nth-child(2), table.observable-transform-table td:nth-child(2) { width:82%; }
+    table.observable-mode-trace-table th:nth-child(1), table.observable-mode-trace-table td:nth-child(1) { width:7%; }
+    table.observable-mode-trace-table th:nth-child(2), table.observable-mode-trace-table td:nth-child(2) { width:17%; }
+    table.observable-mode-trace-table th:nth-child(3), table.observable-mode-trace-table td:nth-child(3) { width:9%; }
+    table.observable-mode-trace-table th:nth-child(4), table.observable-mode-trace-table td:nth-child(4) { width:12%; }
+    table.observable-mode-trace-table th:nth-child(5), table.observable-mode-trace-table td:nth-child(5) { width:10%; }
+    table.observable-mode-trace-table th:nth-child(6), table.observable-mode-trace-table td:nth-child(6) { width:18%; }
+    table.observable-mode-trace-table th:nth-child(7), table.observable-mode-trace-table td:nth-child(7) { width:14%; }
+    table.observable-mode-trace-table th:nth-child(8), table.observable-mode-trace-table td:nth-child(8) { width:13%; }
+    table.observable-relation-reason-table th:nth-child(1), table.observable-relation-reason-table td:nth-child(1) { width:9%; }
+    table.observable-relation-reason-table th:nth-child(2), table.observable-relation-reason-table td:nth-child(2) { width:26%; }
+    table.observable-relation-reason-table th:nth-child(3), table.observable-relation-reason-table td:nth-child(3) { width:22%; }
+    table.observable-relation-reason-table th:nth-child(4), table.observable-relation-reason-table td:nth-child(4) { width:43%; }
+    table.observable-dedup-table th:nth-child(1), table.observable-dedup-table td:nth-child(1) { width:32%; }
+    table.observable-dedup-table th:nth-child(2), table.observable-dedup-table td:nth-child(2) { width:13%; }
+    table.observable-dedup-table th:nth-child(3), table.observable-dedup-table td:nth-child(3) { width:55%; }
+    table.observable-answer-table th:nth-child(1), table.observable-answer-table td:nth-child(1) { width:8%; }
+    table.observable-answer-table th:nth-child(2), table.observable-answer-table td:nth-child(2) { width:8%; }
+    table.observable-answer-table th:nth-child(3), table.observable-answer-table td:nth-child(3) { width:13%; }
+    table.observable-answer-table th:nth-child(4), table.observable-answer-table td:nth-child(4) { width:11%; }
+    table.observable-answer-table th:nth-child(5), table.observable-answer-table td:nth-child(5) { width:60%; }
+    table.observable-evidence-table th:nth-child(1), table.observable-evidence-table td:nth-child(1) { width:6%; }
+    table.observable-evidence-table th:nth-child(2), table.observable-evidence-table td:nth-child(2) { width:18%; }
+    table.observable-evidence-table th:nth-child(3), table.observable-evidence-table td:nth-child(3) { width:20%; }
+    table.observable-evidence-table th:nth-child(4), table.observable-evidence-table td:nth-child(4) { width:56%; }
+    table.baseline-status-table th:nth-child(1), table.baseline-status-table td:nth-child(1) { width:18%; }
+    table.baseline-status-table th:nth-child(2), table.baseline-status-table td:nth-child(2) { width:26%; }
+    table.baseline-status-table th:nth-child(3), table.baseline-status-table td:nth-child(3) { width:11%; }
+    table.baseline-status-table th:nth-child(4), table.baseline-status-table td:nth-child(4) { width:45%; }
     table.complexity-table th:nth-child(1), table.complexity-table td:nth-child(1) { width:12%; }
     table.complexity-table th:nth-child(2), table.complexity-table td:nth-child(2) { width:12%; }
     table.complexity-table th:nth-child(3), table.complexity-table td:nth-child(3) { width:12%; }
@@ -242,6 +303,7 @@
     <strong>Table of Contents</strong>
     <ol>
       <li><a href="#models">Model Roles and Current Status</a></li>
+      <li><a href="#observable-flow">Learning / Observable Flow Addendum</a></li>
       <li><a href="#indexing">3.1 Graph-based Text Indexing</a></li>
       <li><a href="#graph-viz">Graph Visualization Before 3.2</a></li>
       <li><a href="#retrieval">3.2 Dual-level Retrieval Paradigm</a></li>
@@ -278,6 +340,70 @@
   <h2 id="models">Model Roles and Current Status</h2>
   <div class='table-wrap'><table class='two-col-table'><thead><tr><th>Model</th><th>Role</th></tr></thead><tbody><tr><td>gpt-5.5 via codex-proxy</td><td>LightRAG indexing/query, GraphRAG indexing/query</td></tr><tr><td>text-embedding-3-large via OpenRouter</td><td>chunk/entity/relation/query embedding</td></tr><tr><td>Gemini 3.5 Flash via OpenRouter</td><td>LLM judge only</td></tr></tbody></table></div>
   <div class='table-wrap'><table class='status-table'><thead><tr><th>Track</th><th>Status</th><th>Evidence</th></tr></thead><tbody><tr><td>LightRAG indexing</td><td>complete</td><td>100/100 docs processed</td></tr><tr><td>LightRAG query</td><td>complete after repair</td><td>60/60 answer records succeeded</td></tr><tr><td>GraphRAG</td><td>complete after repair</td><td>100 docs indexed, 45/45 query records succeeded</td></tr><tr><td>Gemini judge</td><td>complete after repair</td><td>60/60 pairwise judgments succeeded</td></tr></tbody></table></div>
+
+
+  <h2 id="observable-flow">Learning / Observable Flow Addendum</h2>
+  <p>새로 만든 두 LightRAG 학습/관찰 보고서에서 기존 인쇄 보고서에 없던 내용만 압축해 추가했다. 이 섹션은 평가 수치를 바꾸는 결과가 아니라, Patent-100 데이터가 LightRAG 내부에서 어떤 값으로 이동했는지 설명하는 보조 해설이다.</p>
+  <h3>Observation Questions Added from Learning Reports</h3>
+  <div class='table-wrap'><table class='observable-question-table'><thead><tr><th>question</th><th>report_value</th></tr></thead><tbody><tr><td>특허 문서는 LightRAG 안에서 어떤 저장 값으로 바뀌는가?</td><td>chunk, entity, relation, vector store 생성 흐름을 추적</td></tr><tr><td>반복 등장하는 기술 구성요소는 어떻게 병합되는가?</td><td>동일 entity/relation의 source chunk 누적을 확인</td></tr><tr><td>특허 prompt는 metadata hub를 줄였는가?</td><td>metadata_relation=0.01, excluded_entity=0.0044</td></tr><tr><td>검색 mode에 따라 context 값은 어떻게 달라지는가?</td><td>AA-1에서 naive/local/global/hybrid 값을 나란히 비교</td></tr><tr><td>최종 답변은 어떤 특허 chunk에 연결되는가?</td><td>hybrid answer와 source evidence chunk를 함께 제시</td></tr></tbody></table></div>
+  <h3>Paper Flow Mapping</h3>
+  <div class='table-wrap'><table class='observable-flow-table'><thead><tr><th>paper_flow</th><th>our_run</th><th>status</th></tr></thead><tbody><tr><td>Document segmentation</td><td>100 patents -&gt; 162 chunks</td><td>완료</td></tr><tr><td>Entity &amp; relation extraction</td><td>1596 nodes / 2203 edges</td><td>완료</td></tr><tr><td>Entity/relation/chunk indexing</td><td>3 vector stores, dim=3072</td><td>완료</td></tr><tr><td>Dual-level retrieval</td><td>local/global/hybrid + naive</td><td>완료</td></tr><tr><td>HyDE baseline</td><td>—</td><td>미실행</td></tr><tr><td>RQ-RAG baseline</td><td>—</td><td>미실행</td></tr></tbody></table></div>
+  <h3>Data Movement Path</h3>
+  <div class='table-wrap'><table class='observable-path-table'><thead><tr><th>stage</th><th>input</th><th>output</th></tr></thead><tbody><tr><td>patent_rawdata</td><td>AI semiconductor patent rows</td><td>structured patent text</td></tr><tr><td>chunking</td><td>structured patent text</td><td>162 chunks, avg 757.9 tokens</td></tr><tr><td>LLM extraction</td><td>chunk + patent prompt</td><td>entity tuple + relation tuple</td></tr><tr><td>dedup/profile</td><td>same entity names and relation pairs</td><td>merged graph profiles with source ids</td></tr><tr><td>vectorization</td><td>chunk/entity/relation text</td><td>3 vector stores for retrieval</td></tr><tr><td>retrieval</td><td>query + high/low keywords</td><td>entities, relationships, chunks, references</td></tr></tbody></table></div>
+  <h3>Patent Data Composition</h3>
+  <div class='table-wrap'><table class='observable-composition-table'><thead><tr><th>patent_element</th><th>examples</th><th>LightRAG_handling</th></tr></thead><tbody><tr><td>기본 식별자</td><td>patent_id, 출원번호, 공개번호, 등록번호</td><td>source/reference로 남기고 entity 추출 제외</td></tr><tr><td>기술 제목/요약</td><td>AI accelerator, memory architecture</td><td>chunk 원문과 기술 entity 후보</td></tr><tr><td>AI 목적/솔루션</td><td>연산 병렬성, 데이터 이동 비용 절감</td><td>operation/performance relation 후보</td></tr><tr><td>대표청구항</td><td>register, memory array, multiplication block</td><td>TechComponent와 relation 추출 대상</td></tr><tr><td>분류/국가/상태</td><td>IPC/CPC, US/KR, 등록</td><td>metadata hub 방지를 위해 entity 제외 대상</td></tr></tbody></table></div>
+  <h3>20 Pilot to 100 Fresh Value Change</h3>
+  <p class="note">5/10/25 누적 실행은 수행하지 않았으므로 빈칸으로 둔다. 실제 비교 가능한 값은 20건 prompt pilot과 100건 fresh index다.</p>
+  <div class='table-wrap'><table class='observable-cumulative-table'><thead><tr><th>stage</th><th>documents</th><th>chunks</th><th>entities</th><th>relations</th><th>multi-source entities</th><th>multi-source relations</th><th>status</th></tr></thead><tbody><tr><td>5 docs</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>미실행</td></tr><tr><td>10 docs</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>미실행</td></tr><tr><td>20 pilot</td><td>20</td><td>31</td><td>346</td><td>454</td><td>11</td><td>1</td><td>완료</td></tr><tr><td>25 docs</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>미실행</td></tr><tr><td>100 fresh</td><td>100</td><td>162</td><td>1596</td><td>2203</td><td>123</td><td>24</td><td>완료</td></tr></tbody></table></div>
+  <h3>One Patent Transformation Example</h3>
+  <div class='table-wrap'><table class='observable-transform-table'><thead><tr><th>step</th><th>observed_value</th></tr></thead><tbody><tr><td>structured patent</td><td>16-632673 · AB/ABA · 제조 및 패키징</td></tr><tr><td>chunk</td><td>16-632673-chunk-000 · tokens=1139</td></tr><tr><td>R entities</td><td>스캔 라인 구동 회로, 제1 디스플레이 영역, 산술 유닛, 고해상도 영상 데이터, 제6 영상 데이터, 제3 영상 데이터, 경계 영역 영상 데이터 생성, 업컨버전 처리, 저해상도 영상 데이터, 제1 영상 데이터, 영상 데이터 분할, 경계 영역</td></tr><tr><td>R relations</td><td>병렬 처리 -&gt; 업컨버전 처리; 디스플레이 유닛 -&gt; 디스플레이 장치; 디스플레이 장치 -&gt; 제1 신호선 구동 회로; 제1 디스플레이 영역 -&gt; 제1 신호선 구동 회로; 디스플레이 장치 -&gt; 스캔 라인 구동 회로; 영상 데이터 분할 -&gt; 제2 영상 데이터; 디스플레이 유닛 -&gt; 제2 디스플레이 영역; 업컨버전 처리 -&gt; 제4 영상 데이터</td></tr><tr><td>D merge</td><td>동일 entity name과 relation pair는 chunk_ids/source_id를 누적해 graph/VDB profile로 병합</td></tr><tr><td>retrieval use</td><td>patent_id는 source/reference로 남고, graph node는 기술 entity 중심으로 사용</td></tr></tbody></table></div>
+  <h3>AA-1 Retrieval Value Change by Mode</h3>
+  <div class='table-wrap'><table class='observable-mode-trace-table'><thead><tr><th>mode</th><th>meaning</th><th>elapsed</th><th>retrieved</th><th>source_patents</th><th>high_keywords</th><th>low_keywords</th><th>processing</th></tr></thead><tbody><tr><td>naive</td><td>chunk embedding만 사용</td><td>58.8s</td><td>E=0, R=0, C=10</td><td>10</td><td></td><td></td><td>total_chunks_found=10, final_chunks_count=10</td></tr><tr><td>local</td><td>low-level keyword로 entity 주변 관계 확장</td><td>145.5s</td><td>E=10, R=69, C=10</td><td>26</td><td>AI 코어 및 가속기 특허, 신경망 연산 가속기 구조, 연산 병렬성 향상</td><td>AI 코어, 가속기, 특허, 신경망 연산, 연산 병렬성</td><td>total_entities_found=10, total_relations_found=69, merged_chunks_count=26, final_chunks_count=10</td></tr><tr><td>global</td><td>high-level keyword로 relation/theme 선택</td><td>130.8s</td><td>E=18, R=10, C=10</td><td>15</td><td>인공지능 코어 및 가속기 특허, 신경망 연산 가속기 구조, 연산 병렬성 향상</td><td>인공지능 코어, 가속기 특허, 신경망 연산, 가속기 구조, 연산 병렬성</td><td>total_entities_found=18, total_relations_found=10, merged_chunks_count=15, final_chunks_count=10</td></tr><tr><td>hybrid</td><td>local + global context 병합</td><td>119.0s</td><td>E=24, R=36, C=10</td><td>20</td><td>AI 코어, 가속기 특허, 신경망 연산 가속기 구조, 연산 병렬성 향상 방식</td><td>신경망 연산, 가속기 구조, 연산 병렬성</td><td>total_entities_found=24, total_relations_found=36, merged_chunks_count=20, final_chunks_count=10</td></tr></tbody></table></div>
+  <h3>Why Local Relations Are Many and Global Relations Are Fewer</h3>
+  <div class='table-wrap'><table class='observable-relation-reason-table'><thead><tr><th>mode</th><th>starting_point</th><th>observed_AA_1</th><th>interpretation</th></tr></thead><tbody><tr><td>local</td><td>low-level keywords -&gt; entity search</td><td>10 entities -&gt; 69 relations -&gt; 10 chunks</td><td>선택된 entity 주변 relation을 확장하므로 relation 후보가 많아질 수 있음</td></tr><tr><td>global</td><td>high-level keywords -&gt; relation/theme search</td><td>10 relations -&gt; 18 entities -&gt; 10 chunks</td><td>relation 자체를 top-k로 고르므로 relation 수가 작게 유지됨</td></tr><tr><td>hybrid</td><td>local + global merge</td><td>24 entities -&gt; 36 relations -&gt; 10 chunks</td><td>두 context를 합치되 중복과 truncation이 적용됨</td></tr></tbody></table></div>
+  <h3>Deduplication Samples from Observable Report</h3>
+  <div class='table-wrap'><table class='observable-dedup-table'><thead><tr><th>entity</th><th>source_chunks</th><th>chunk_ids</th></tr></thead><tbody><tr><td>프로세서</td><td>16</td><td>2021-0024247-chunk-000, 17-511417-chunk-000, 18-163916-chunk-000, 16-400562-chunk-000</td></tr><tr><td>메모리</td><td>13</td><td>2021-0024247-chunk-000, 2021-0024247-chunk-001, 18-334262-chunk-000, 18-163916-chunk-000</td></tr><tr><td>신경망</td><td>7</td><td>17-459782-chunk-000, 17-511417-chunk-000, 18-462872-chunk-000, 17-196922-chunk-000</td></tr><tr><td>메모리 셀 어레이</td><td>6</td><td>2023-0008349-chunk-000, 2017-0093014-chunk-000, 17-694184-chunk-000, 16-823443-chunk-000</td></tr><tr><td>반도체 기판</td><td>5</td><td>16-551328-chunk-000, 17-326095-chunk-000, 13-925471-chunk-000, 15-173995-chunk-000</td></tr></tbody></table></div>
+  <div class='table-wrap'><table class='observable-dedup-table'><thead><tr><th>relation</th><th>source_chunks</th><th>chunk_ids</th></tr></thead><tbody><tr><td>메모리 -&gt; 학습된 딥러닝 모델</td><td>2</td><td>2021-0024247-chunk-000, 2021-0024247-chunk-001</td></tr><tr><td>인공지능 가속기 -&gt; 제1 데이터 버퍼</td><td>2</td><td>17-459782-chunk-000, 17-196922-chunk-000</td></tr><tr><td>인공지능 가속기 -&gt; 제2 데이터 버퍼</td><td>2</td><td>17-459782-chunk-000, 17-196922-chunk-000</td></tr><tr><td>제1 데이터 버퍼 -&gt; 제1 입력 시프트 레지스터</td><td>2</td><td>17-459782-chunk-000, 17-196922-chunk-000</td></tr><tr><td>제2 데이터 버퍼 -&gt; 제2 입력 시프트 레지스터</td><td>2</td><td>17-459782-chunk-000, 17-196922-chunk-000</td></tr></tbody></table></div>
+  <h3>Final Hybrid Answer and Source Evidence</h3>
+
+    <div class='table-wrap'><table class='observable-answer-table'><thead><tr><th>query_id</th><th>mode</th><th>retrieved</th><th>source_patents</th><th>answer_excerpt</th></tr></thead><tbody><tr><td>AA-1</td><td>hybrid</td><td>E=24, R=36, C=10</td><td>20</td><td>## 신경망 연산 가속기 구조의 연산 병렬성 향상 방식
+
+제공된 문맥에서 **AI 코어 및 가속기 특허의 신경망 연산 가속기 구조**는 주로 **명령 처리 구조화**, **데이터 슬라이스 단위 처리**, **행렬 연산 병렬화**, **다중 처리 요소 활용**을 통해 연산 효율과 병렬성을 높인다.
+
+첫째, **데이터 처리 장치**는 제어 모듈 안에 **명령 캐시 유닛, 명령 처리 유닛, 저장 큐 유닛**을 두어 인공 신경망 연산과 관련된 계산 명령을 저장하고, 이를 해석해 **복수의 연산 명령**으로 분해한다. 저장 큐는 실행할 연산 명령 또는 계산 명령을 큐 순서에 따라 저장하므로, 신경망 모델 연산 시 명령 흐름을 체계화해 연산 효율을 높이는 구조로 설명된다.
+
+둘째, 컨볼루션 기반 인공지능 가속기 구조에서는 **입력 데이터와 커널 데이터를 각각 별도의 데이터 버퍼에서 수신**하고, 이를 **슬라이스 단위로 이동**시킨다. 입력 데이터는 제1 데이터 버퍼와 2차원 시프트 레지스터를 통해 이동하고, 커널 데이터는 제2 데이터 버퍼와 입력 시프트 레지스터를 통해 전달된다. 이후 곱셈 블록 회로가 입력 데이터 슬라이스와 커널 데이터 슬라이스 사이의 컨볼루션 연산을 수행한다. 즉, 데이터를 작은 슬라이스로 나누고 버퍼·시프트 레지스터를 통해 공급함으로써 컨볼루션 연산을 효율적으로 처리한다.
+
+셋째, 행렬 연산 중심 구조에서는 **N차원 논리 회로 배열**, 입력 데이터 라인, 가중치 행렬 입력 라인, 출력 데이터 라인을 갖춘 장치를 통해 신경망 프로세서에서 신경망 연산을 수행한다. 인공지능은 신경망 구현을 위해 많은 행렬 연산을 필요로 하며, 이러한 계산은 병렬 처리될 수 있기 때문에 특수 행렬 프로세서 회로가 성능 향상에 기여한다.
+
+넷째, 더 직접적인 병렬 연산 구조로는 **처리 요소  ...[truncated]</td></tr></tbody></table></div>
+    <div class='table-wrap'><table class='observable-evidence-table'><thead><tr><th>rank</th><th>source_patent</th><th>chunk_id</th><th>content_excerpt</th></tr></thead><tbody><tr><td>1</td><td>17-511417</td><td>17-511417-chunk-000</td><td>문서 유형: AI 반도체 특허
+patent_id: 17-511417
+출원번호: 17-511417
+공개번호: 2022-0050683
+발명의 명칭: Apparatuses, methods, and systems for neural networks
+요약: Methods and apparatuses relating to processing neural networks are described. In one embodiment, an apparatus to process a neural network includes a plurality of fully connected layer chips coupled by an interconnect; a p ...[truncated]</td></tr><tr><td>2</td><td>17-459782</td><td>17-459782-chunk-000</td><td>문서 유형: AI 반도체 특허
+patent_id: 17-459782
+출원번호: 17-459782
+공개번호: 2021-0390381
+등록번호: 11727256
+발명의 명칭: Hardware architecture for processing data in neural network
+요약: A hardware accelerator that is efficient at performing computations related to a neural network. In one embodiment, the hardware accelerator includes a first data buffer that receives input data of a  ...[truncated]</td></tr><tr><td>3</td><td>17-196922</td><td>17-196922-chunk-000</td><td>문서 유형: AI 반도체 특허
+patent_id: 17-196922
+출원번호: 17-196922
+공개번호: 2021-0287075
+등록번호: 11106972
+발명의 명칭: Hardware architecture for processing data in neural network
+요약: A hardware accelerator that is efficient at performing computations related to a neural network. In one embodiment, the hardware accelerator includes a first data buffer that receives input data of a  ...[truncated]</td></tr><tr><td>4</td><td>18-212648</td><td>18-212648-chunk-000</td><td>문서 유형: AI 반도체 특허
+patent_id: 18-212648
+출원번호: 18-212648
+공개번호: 2024-0427839
+발명의 명칭: Methods and apparatus for matrix processing in a neural network processing system
+요약: Artificial intelligence is an increasingly important sector of the computer industry. However, artificial intelligence is extremely computationally intensive field such that it can be expensive ...[truncated]</td></tr></tbody></table></div>
+
+  <h3>Baseline Coverage from Learning Report</h3>
+  <div class='table-wrap'><table class='baseline-status-table'><thead><tr><th>baseline_or_system</th><th>implementation</th><th>status</th><th>reason</th></tr></thead><tbody><tr><td>NaiveRAG</td><td>LightRAG mode=&#x27;naive&#x27;</td><td>완료</td><td>graph 없이 chunk embedding retrieval만 비교</td></tr><tr><td>LightRAG Hybrid</td><td>LightRAG mode=&#x27;hybrid&#x27;</td><td>완료</td><td>local/global context 병합</td></tr><tr><td>GraphRAG</td><td>official microsoft/graphrag</td><td>완료</td><td>community summary 기반 비교</td></tr><tr><td>HyDE</td><td>—</td><td>미실행</td><td>이번 실험 범위 밖</td></tr><tr><td>RQ-RAG</td><td>—</td><td>미실행</td><td>GPU/구현 비용 문제로 제외</td></tr><tr><td>Independent vector-only RAG</td><td>—</td><td>미실행</td><td>LightRAG naive와 중복되어 별도 구현 제외</td></tr></tbody></table></div>
+
 
   <h2 id="indexing">3.1 Graph-based Text Indexing</h2>
   <p>특허 1건을 구조화 텍스트로 변환한 뒤 chunking, R(entity/relation extraction), P(profile/key-value generation), D(deduplication)를 거쳐 graph와 vector DB를 만든다.</p>
@@ -467,6 +593,122 @@ entity_extraction_examples:
     발명의 명칭: Performing hardware operator fusion
     요약: A method of generating executable instructions for a computing system is provided. The method comprises receiving a first set of instructions including a kernel of a first operator and a kernel of a second operator. The kernel of the first operator includes write instructions to a virtual data node, and the kernel of the second operator includes read instructions to the virtual data node. The method determines data transfer operations between the first operator and the second operator and generates a second set of instructions representing a fused operator.
     대표청구항: A method of generating executable instructions for a hardware accelerator includes converting off-chip read inst</pre></details>
+  <details><summary>R Function prompt</summary><pre># R Function: entity / relation extraction prompt
+System prompt 핵심 1: output schema
+4. **Output Format:**
+  - Entity row: `entity{tuple_delimiter}entity_name{tuple_delimiter}entity_type{tuple_delimiter}entity_description`
+  - Relation row: `relation{tuple_delimiter}source_entity{tuple_delimiter}target_entity{tuple_delimiter}relationship_keywords{tuple_delimiter}relationship_description`
+  - Wrong: `entity{tuple_delimiter}Alice{tuple_delimiter}Acme{tuple_delimiter}founded{tuple_delimiter}Alice founded Acme`
+  - Correct: `relation{tuple_delimiter}Alice{tuple_delimiter}Acme{tuple_delimiter}founded{tuple_delimiter}Alice founded Acme`
+
+5. **Delimiter Usage:**
+  - The `{tuple_delimiter}` is a complete, atomic marker and **must not be filled with content**. It serves strictly as a field separator.
+  - Incorrect: `entity{tuple_delimiter}Tokyo&lt;|location|&gt;Tokyo is the capital of Japan.`
+  - Correct: `entity{tuple_delimiter}Tokyo{tuple_delimiter}location{tuple_deli
+...[truncated]
+
+System prompt 핵심 2: language / context
+7. **Context &amp; Language:**
+  - Ensure all entity names and descriptions are written in the **third person**.
+  - Explicitly name the subject or object; **avoid using pronouns** such as `this article`, `this paper`, `our company`, `I`, `you`, and `he/she`.
+  - The entire output (entity names, keywords, and descriptions) must be written in `{language}`.
+  - Proper nouns (e.g., personal names, place names, organization names) should be retained in their original language if a proper
+...[truncated]
+
+User prompt 핵심:
+---Task---
+Extract entities and relationships from the `
+
+# Patent-specific YAML guidance
+entity_types_guidance: |
+  Extract only technical knowledge graph entities and relationships from AI semiconductor patent text.
+  Use Korean descriptions unless an entity name is a technical English term.
+
+  Do not extract administrative metadata as entities:
+  - patent_id, application number, publication number, registration number
+  - IPC/CPC classification codes
+  - country codes and nationalities such as US, KR, JP, CN, EP, WO
+  - legal status values such as 등록, 공개, 거절, 소멸
+  - application/publication/registration dates and years
+  - claim numbers such as 청구항1
+  - category/subcategory codes such as AA, AB, AC, AD, AAA, AAD, ACC
+
+  Also avoid making broad document labels into entities, such as &quot;AI 반도체 특허&quot; or &quot;특허 문서&quot;.
+  If a category name is only administrative classification, do not extract it.
+
+  Classify each extracted entity using one of these types:
+  - TechComponent: hardware components, circuits, units, devices, memory blocks, processing elements, buses, interfaces
+  - Architecture: system, processor, memory, p
+...[truncated]
+
+# Patent few-shot output example
+---Output---
+    entity{tuple_delimiter}CMOS 저항 처리 유닛{tuple_delimiter}Architecture{tuple_delimiter}CMOS 기반 RPU는 신경망 회로 동작에서 가중치 값을 전하로 표현하고 갱신하는 처리 유닛이다.
+    entity{tuple_delimiter}커패시터 장치{tuple_delimiter}TechComponent{tuple_delimiter}커패시터 장치는 신경망 가중치 값을 나타내는 전하를 저장하는 구성요소이다.
+    entity{tuple_delimiter}전류원 FET{tuple_delimiter}TechComponent{tuple_delimiter}전류원 FET는 커패시터 장치에 연결되어 저장 전하를 증가시키는 트랜지스터 장치이다.
+    entity{tuple_delimiter}전류 싱크 FET{tuple_delimiter}TechComponent{tuple_delimiter}전류 싱크 FET는 커패시터 장치에서 방전 전류를 받아 저장 전하를 감소시키는 트랜지스터 장치이다.
+    entity{tuple_delimiter}아날로그 웨이트 업데이트 회로{tuple_delimiter}TechComponent{tuple_delimiter}아날로그 웨이트 업데이트 회로는 업데이트 신호에 따라 전류원 FET와 전류 싱크 FET를 제어한다.
+    entity{tuple_delimiter}신경망 회로 동작{tuple_delimiter}Operation{tuple_delimiter}신경망 회로 동작은 저장된 전하를 가중치 값으로 사용하는 연산 맥락이다.
+    relation{tuple_delimiter}CMOS 저항 처리 유닛{tuple_delimiter}커패시터 장치{tuple_delimiter}구성요소, 전하 저장{tuple_delimiter}CMOS 저항 처리 유닛은 가중치 값을 나타내는 전하를 저장하기 위해 커패시터 장치를 포함한다.
+    relation{tuple_delimiter}전류원 FET{tuple_delimiter}커패시터 장치{tuple_delimiter}연결, 전하 증가{tuple_delimiter}전류원 FET는 커패시터 장치에 연결되어 저장 전하를 증가시키는 전류를 제공한다.
+    relation{tuple_delimiter}전류 싱크 FET{tuple_delimiter}커패시터 장치{tuple_delimiter}연결, 전하 감소{tuple_delimiter}전류 싱크 FET는 커패시터 장치에서 방전되는 전류를 받아 저장 전하를 감소시킨다.
+    relation{tuple_delimiter}아날로그 웨이트 업데이트 회로{tuple_delimiter}전류원 FET{tuple_delimiter}제어, 가중치 업데이트{tuple_delimiter}아날로그 웨이트 업데이트 회로는 업데이트 신호에 따라 전류원 FET를 제어한다.
+    relation{tuple_delimiter}아날로그 웨이트 업데이트 회로{tu
+...[truncated]</pre></details><details><summary>R Function 한국어 번역</summary><pre># R Function 프롬프트 한국어 번역
+역할:
+- LLM은 Knowledge Graph Specialist로 동작한다.
+- 입력 특허 텍스트에서 명확하고 의미 있는 entity와 relation을 추출한다.
+
+Entity 추출 규칙:
+- entity_name: entity 이름을 일관된 이름으로 정한다.
+- entity_type: ---Entity Types---에 제공된 타입 중 하나로 분류한다. 맞는 타입이 없으면 Other를 사용한다.
+- entity_description: 입력 텍스트에 있는 정보만 근거로 entity의 속성과 동작을 간결하지만 충분히 설명한다.
+
+Relation 추출 규칙:
+- 이미 추출한 entity 사이의 직접적이고 의미 있는 관계만 뽑는다.
+- 하나의 문장이 여러 entity 관계를 포함하면 2개 entity 단위의 relation으로 분해한다.
+- source_entity, target_entity, relationship_keywords, relationship_description을 생성한다.
+
+특허 특화 규칙:
+- 기술 knowledge graph에 필요한 entity/relation만 추출한다.
+- 특허번호, 출원번호, 공개번호, 등록번호, IPC/CPC, 국가코드, 법적상태, 날짜, 청구항 번호, 중/소분류 코드는 entity로 추출하지 않는다.
+- relation은 추출된 기술 entity 사이에서만 만든다.</pre></details><details><summary>P Function prompt</summary><pre># P Function: entity/relation profile summary prompt
+---Role---
+You are a Knowledge Graph Specialist, proficient in data curation and synthesis.
+
+---Task---
+Your task is to synthesize a list of descriptions of a given entity or relation into a single, comprehensive, and cohesive summary.
+
+---Instructions---
+1. Input Format: The description list is provided in JSON format. Each JSON object (representing a single description) appears on a new line within the `Description List` section.
+2. Output Format: The merged description will be returned as plain text, presented in multiple paragraphs, without any additional formatting or extraneous comments before or after the summary.
+3. Comprehensiveness: The summary must integrate all key information from *every* provided description. Do not omit any important facts or details.
+4. Context: Ensure the summary is written from an objective, third-person perspective; explicitly mention the name of the entity or relation for full clarity and context.
+5. Context &amp; Objectivity:
+  - Write the summary from an objective, third-person perspective.
+  - Explicitly mention the full name of the entity or relation at the beginning of the summary to ensure immediate clarity and context.
+6. Conflict Handling:
+  - In cases of conflicting or inconsistent descriptions, first determine if these conflicts arise from multiple, distinct entities or relationships that share the same name.
+  - If distinct entities/relations are identified, summarize each one *separately* within the overall output.
+  - If conflicts within a single entity/relation (
+...[truncated]
+
+# 실제 동작 조건
+- description이 1개면 LLM 호출 없이 그대로 profile description으로 저장한다.
+- 같은 entity/relation이 여러 chunk/source에서 반복되면 Description List를 JSONL로 묶어 위 prompt에 넣는다.
+- LLM 요약 결과가 vdb_entities.json / vdb_relationships.json의 content/description이 되고 embedding 대상 profile이 된다.</pre></details><details><summary>P Function prompt 한국어 번역</summary><pre># P Function 프롬프트 한국어 번역
+역할:
+- LLM은 Knowledge Graph Specialist로서 entity 또는 relation 설명 목록을 정리하고 종합한다.
+
+작업:
+- 주어진 entity 또는 relation에 대해 여러 description 조각을 하나의 포괄적이고 일관된 summary로 합친다.
+- 입력 description list는 JSON 형식이며, 각 JSON 객체는 Description 필드를 가진다.
+- 출력은 추가 설명 없이 plain text summary만 반환한다.
+
+실제 동작 조건:
+- description이 1개뿐이면 LLM을 호출하지 않고 그대로 profile description으로 저장한다.
+- 같은 entity/relation이 여러 chunk나 source patent에서 반복되면 description list를 만들고 이 P Function prompt로 LLM summary를 생성한다.
+- 생성된 summary는 vdb_entities.json 또는 vdb_relationships.json의 profile content가 되고, embedding 대상이 된다.</pre></details>
 
   <h2 id="graph-viz">Graph Visualization Before 3.2</h2>
   <div class='table-wrap'><table class='graph-quality-table'><thead><tr><th>Metric</th><th>Value</th><th>Target</th><th>Interpretation</th></tr></thead><tbody><tr><td>metadata relation ratio</td><td>0.01</td><td>&lt;= 0.25</td><td>프롬프트 적용 후 메타데이터 relation이 크게 억제됨</td></tr><tr><td>technical relation ratio</td><td>0.9401</td><td>&gt;= 0.40</td><td>기술 relation 중심 graph로 전환됨</td></tr><tr><td>excluded entity ratio</td><td>0.0044</td><td>&lt;= 0.10</td><td>특허번호/코드/국가/날짜류 entity가 낮은 비율로 남음</td></tr><tr><td>degree &gt;= 50 hub count</td><td>0</td><td>lower is better</td><td>US/등록 같은 메타 hub가 top hub에서 사라졌는지 확인</td></tr></tbody></table></div>
@@ -772,7 +1014,33 @@ source_chunk: 17-459782-chunk-000</title></line>
       </svg>
       <div class='graph-legend'><strong>노드 색상</strong><span class='legend-item'><span class='legend-dot' style='background:#475569'></span>응용 분야</span><span class='legend-item'><span class='legend-dot' style='background:#0f766e'></span>아키텍처</span><span class='legend-item'><span class='legend-dot' style='background:#9333ea'></span>연산/동작</span><span class='legend-item'><span class='legend-dot' style='background:#7c3aed'></span>기타</span><span class='legend-item'><span class='legend-dot' style='background:#2563eb'></span>기술 구성요소</span><span class='legend-note'>노드 크기 = 그래프 degree, 굵은 파란 엣지 = Patent_count &gt; 1, 엣지 라벨 = 관계 키워드</span></div>
     </section>
-    <h4>Relation samples shown in the graph</h4><p class='note'>표는 multi-patent relation을 먼저 정렬한다. <code>Patent_count &gt; 1</code>이면 동일한 entity relation이 둘 이상의 source patent에서 병합된 edge다.</p><div class='table-wrap'><table class='relation-table'><thead><tr><th>Source_entity</th><th>Relation</th><th>Target_entity</th><th>Description</th><th>Source_patents</th><th>Patent_count</th></tr></thead><tbody><tr><td>인공지능 가속기</td><td>구성요소,입력 데이터 이동,포함</td><td>제1 데이터 버퍼</td><td>인공지능 가속기는 입력 데이터를 슬라이스 단위로 이동시키는 제1 데이터 버퍼를 포함한다.&lt;SEP&gt;인공지능 가속기는 입력 데이터를 수신하고 슬라이스 단위로 이동시키는 제1 데이터 버퍼를 포함한다.</td><td>17-459782&lt;SEP&gt;17-196922</td><td>2</td></tr><tr><td>인공지능 가속기</td><td>구성요소,커널 데이터 이동,포함</td><td>제2 데이터 버퍼</td><td>인공지능 가속기는 커널 데이터를 슬라이스 단위로 이동시키는 제2 데이터 버퍼를 포함한다.&lt;SEP&gt;인공지능 가속기는 커널 데이터를 수신하고 슬라이스 단위로 이동시키는 제2 데이터 버퍼를 포함한다.</td><td>17-459782&lt;SEP&gt;17-196922</td><td>2</td></tr><tr><td>인공지능 가속기</td><td>가속,수행</td><td>컨볼루션 연산</td><td>인공지능 가속기는 신경망에 관련된 컨볼루션 연산을 수행한다.&lt;SEP&gt;인공지능 가속기는 신경망과 관련된 컨볼루션 연산을 수행한다.</td><td>17-459782&lt;SEP&gt;17-196922</td><td>2</td></tr><tr><td>2차원 시프트 레지스터</td><td>2차원 시프트,x-y 방향 시프트,값 이동,데이터 이동</td><td>입력 데이터 슬라이스</td><td>2차원 시프트 레지스터는 입력 데이터 슬라이스의 값을 x 및 y 방향으로 이동시킨다.&lt;SEP&gt;2차원 시프트 레지스터는 입력 데이터 슬라이스의 값을 제1 방향과 제2 방향으로 이동시킨다.</td><td>17-459782&lt;SEP&gt;17-196922</td><td>2</td></tr><tr><td>곱셈 블록 회로</td><td>곱셈 계산,수행,입력-커널 결합</td><td>컨볼루션 연산</td><td>곱셈 블록 회로는 입력 데이터와 커널 데이터를 이용해 컨볼루션 연산을 수행한다.&lt;SEP&gt;곱셈 블록 회로는 입력 데이터 값과 커널 데이터 값 사이의 컨볼루션 연산 관련 계산을 수행한다.</td><td>17-459782&lt;SEP&gt;17-196922</td><td>2</td></tr><tr><td>신경망</td><td>수행,신경망 연산,적용</td><td>컨볼루션 연산</td><td>컨볼루션 연산은 신경망에 관련된 계산으로 수행된다.&lt;SEP&gt;컨볼루션 연산은 신경망 계층의 입력 데이터와 커널 데이터를 대상으로 수행된다.</td><td>17-459782&lt;SEP&gt;17-196922</td><td>2</td></tr><tr><td>제1 데이터 버퍼</td><td>다운스트림 이동,데이터 이동,수신,시프트</td><td>입력 데이터 슬라이스</td><td>제1 데이터 버퍼는 입력 데이터 슬라이스를 순차적으로 다운스트림으로 이동시킨다.&lt;SEP&gt;제1 데이터 버퍼는 입력 데이터 슬라이스를 슬라이스 단위로 다운스트림 방향으로 이동시킨다.</td><td>17-459782&lt;SEP&gt;17-196922</td><td>2</td></tr><tr><td>제1 데이터 버퍼</td><td>데이터 전송,연결,입력 슬라이스 수신</td><td>제1 입력 시프트 레지스터</td><td>제1 입력 시프트 레지스터는 제1 데이터 버퍼에서 입력 데이터 슬라이스를 수신한다.&lt;SEP&gt;제1 데이터 버퍼는 제1 입력 시프트 레지스터에 결합되어 입력 데이터 슬라이스를 전달한다.</td><td>17-459782&lt;SEP&gt;17-196922</td><td>2</td></tr><tr><td>제1 입력 시프트 레지스터</td><td>x-y 방향 시프트,구성,구성요소,데이터 이동</td><td>2차원 시프트 레지스터</td><td>제1 입력 시프트 레지스터는 입력 데이터 값을 x 및 y 방향으로 이동하는 2차원 시프트 레지스터에 대응할 수 있다.&lt;SEP&gt;제1 입력 시프트 레지스터는 입력 데이터 슬라이스의 값을 두 방향으로 이동시키는 2차원 시프트 레지스터를 포함한다.</td><td>17-459782&lt;SEP&gt;17-196922</td><td>2</td></tr><tr><td>제1 입력 시프트 레지스터</td><td>데이터 이동,데이터 전송,수신</td><td>입력 데이터 슬라이스</td><td>제1 입력 시프트 레지스터는 제1 데이터 버퍼에서 입력 데이터 슬라이스를 수신한다.&lt;SEP&gt;제1 입력 시프트 레지스터는 제1 데이터 버퍼로부터 입력 데이터 슬라이스를 수신한다.</td><td>17-459782&lt;SEP&gt;17-196922</td><td>2</td></tr><tr><td>제2 데이터 버퍼</td><td>데이터 전송,연결,커널 슬라이스 수신</td><td>제2 입력 시프트 레지스터</td><td>제2 입력 시프트 레지스터는 제2 데이터 버퍼에서 커널 데이터 슬라이스를 수신한다.&lt;SEP&gt;제2 데이터 버퍼는 제2 입력 시프트 레지스터에 결합되어 커널 데이터 슬라이스를 전달한다.</td><td>17-459782&lt;SEP&gt;17-196922</td><td>2</td></tr><tr><td>제2 데이터 버퍼</td><td>다운스트림 이동,데이터 이동,수신,시프트</td><td>커널 데이터 슬라이스</td><td>제2 데이터 버퍼는 커널 데이터 슬라이스를 순차적으로 다운스트림으로 이동시킨다.&lt;SEP&gt;제2 데이터 버퍼는 커널 데이터 슬라이스를 슬라이스 단위로 다운스트림 방향으로 이동시킨다.</td><td>17-459782&lt;SEP&gt;17-196922</td><td>2</td></tr><tr><td>제2 입력 시프트 레지스터</td><td>데이터 전송,수신</td><td>커널 데이터 슬라이스</td><td>제2 입력 시프트 레지스터는 제2 데이터 버퍼에서 커널 데이터 슬라이스를 수신한다.&lt;SEP&gt;제2 입력 시프트 레지스터는 제2 데이터 버퍼로부터 커널 데이터 슬라이스를 수신한다.</td><td>17-459782&lt;SEP&gt;17-196922</td><td>2</td></tr><tr><td>인공지능 가속기</td><td>가속,신경망 계산</td><td>신경망</td><td>인공지능 가속기는 신경망과 관련된 계산을 수행한다.</td><td>17-459782</td><td>1</td></tr><tr><td>인공지능 가속기</td><td>데이터셋 저장,포함</td><td>입력 레지스터</td><td>인공지능 가속기는 신경망 레이어의 입력 데이터셋을 저장하는 입력 레지스터를 포함한다.</td><td>17-459782</td><td>1</td></tr><tr><td>곱셈 블록 회로</td><td>계산 입력,연결</td><td>고속 레지스터</td><td>곱셈 블록 회로는 고속 레지스터와 통신하며 저장된 커널 값을 이용해 신경망 관련 계산을 수행한다.</td><td>17-459782</td><td>1</td></tr><tr><td>곱셈 블록 회로</td><td>계산,컨볼루션</td><td>입력 데이터 슬라이스</td><td>곱셈 블록 회로는 입력 데이터 슬라이스의 값을 컨볼루션 연산 관련 계산에 사용한다.</td><td>17-196922</td><td>1</td></tr><tr><td>곱셈 블록 회로</td><td>계산,단일 클록 주기</td><td>제1 커널</td><td>곱셈 블록 회로는 제1 커널을 단일 클록 주기에서 계산한다.</td><td>17-459782</td><td>1</td></tr><tr><td>곱셈 블록 회로</td><td>계산,단일 클록 주기</td><td>제2 커널</td><td>곱셈 블록 회로는 제2 커널을 단일 클록 주기에서 계산한다.</td><td>17-459782</td><td>1</td></tr><tr><td>곱셈 블록 회로</td><td>연결,출력 수신</td><td>출력 버퍼</td><td>출력 버퍼는 곱셈 블록 회로에 결합되어 계산 출력을 수신한다.</td><td>17-196922</td><td>1</td></tr></tbody></table></div>
+    <h4>Relation samples shown in the graph</h4><p class='note'>표는 multi-patent relation을 먼저 정렬한다. <code>Patent_count &gt; 1</code>이면 동일한 entity relation이 둘 이상의 source patent에서 병합된 edge다.</p><div class='table-wrap'><table class='relation-table'><thead><tr><th>Source_entity</th><th>Relation</th><th>Target_entity</th><th>Description</th><th>Source_patents</th><th>Patent_count</th></tr></thead><tbody><tr><td>인공지능 가속기</td><td>구성요소,입력 데이터 이동,포함</td><td>제1 데이터 버퍼</td><td>인공지능 가속기는 입력 데이터를 슬라이스 단위로 이동시키는 제1 데이터 버퍼를 포함한다.&lt;SEP&gt;인공지능 가속기는 입력 데이터를 수신하고 슬라이스 단위로 이동시키는 제1 데이터 버퍼를 포함한다.</td><td>17-459782
+&lt;SEP&gt;
+17-196922</td><td>2</td></tr><tr><td>인공지능 가속기</td><td>구성요소,커널 데이터 이동,포함</td><td>제2 데이터 버퍼</td><td>인공지능 가속기는 커널 데이터를 슬라이스 단위로 이동시키는 제2 데이터 버퍼를 포함한다.&lt;SEP&gt;인공지능 가속기는 커널 데이터를 수신하고 슬라이스 단위로 이동시키는 제2 데이터 버퍼를 포함한다.</td><td>17-459782
+&lt;SEP&gt;
+17-196922</td><td>2</td></tr><tr><td>인공지능 가속기</td><td>가속,수행</td><td>컨볼루션 연산</td><td>인공지능 가속기는 신경망에 관련된 컨볼루션 연산을 수행한다.&lt;SEP&gt;인공지능 가속기는 신경망과 관련된 컨볼루션 연산을 수행한다.</td><td>17-459782
+&lt;SEP&gt;
+17-196922</td><td>2</td></tr><tr><td>2차원 시프트 레지스터</td><td>2차원 시프트,x-y 방향 시프트,값 이동,데이터 이동</td><td>입력 데이터 슬라이스</td><td>2차원 시프트 레지스터는 입력 데이터 슬라이스의 값을 x 및 y 방향으로 이동시킨다.&lt;SEP&gt;2차원 시프트 레지스터는 입력 데이터 슬라이스의 값을 제1 방향과 제2 방향으로 이동시킨다.</td><td>17-459782
+&lt;SEP&gt;
+17-196922</td><td>2</td></tr><tr><td>곱셈 블록 회로</td><td>곱셈 계산,수행,입력-커널 결합</td><td>컨볼루션 연산</td><td>곱셈 블록 회로는 입력 데이터와 커널 데이터를 이용해 컨볼루션 연산을 수행한다.&lt;SEP&gt;곱셈 블록 회로는 입력 데이터 값과 커널 데이터 값 사이의 컨볼루션 연산 관련 계산을 수행한다.</td><td>17-459782
+&lt;SEP&gt;
+17-196922</td><td>2</td></tr><tr><td>신경망</td><td>수행,신경망 연산,적용</td><td>컨볼루션 연산</td><td>컨볼루션 연산은 신경망에 관련된 계산으로 수행된다.&lt;SEP&gt;컨볼루션 연산은 신경망 계층의 입력 데이터와 커널 데이터를 대상으로 수행된다.</td><td>17-459782
+&lt;SEP&gt;
+17-196922</td><td>2</td></tr><tr><td>제1 데이터 버퍼</td><td>다운스트림 이동,데이터 이동,수신,시프트</td><td>입력 데이터 슬라이스</td><td>제1 데이터 버퍼는 입력 데이터 슬라이스를 순차적으로 다운스트림으로 이동시킨다.&lt;SEP&gt;제1 데이터 버퍼는 입력 데이터 슬라이스를 슬라이스 단위로 다운스트림 방향으로 이동시킨다.</td><td>17-459782
+&lt;SEP&gt;
+17-196922</td><td>2</td></tr><tr><td>제1 데이터 버퍼</td><td>데이터 전송,연결,입력 슬라이스 수신</td><td>제1 입력 시프트 레지스터</td><td>제1 입력 시프트 레지스터는 제1 데이터 버퍼에서 입력 데이터 슬라이스를 수신한다.&lt;SEP&gt;제1 데이터 버퍼는 제1 입력 시프트 레지스터에 결합되어 입력 데이터 슬라이스를 전달한다.</td><td>17-459782
+&lt;SEP&gt;
+17-196922</td><td>2</td></tr><tr><td>제1 입력 시프트 레지스터</td><td>x-y 방향 시프트,구성,구성요소,데이터 이동</td><td>2차원 시프트 레지스터</td><td>제1 입력 시프트 레지스터는 입력 데이터 값을 x 및 y 방향으로 이동하는 2차원 시프트 레지스터에 대응할 수 있다.&lt;SEP&gt;제1 입력 시프트 레지스터는 입력 데이터 슬라이스의 값을 두 방향으로 이동시키는 2차원 시프트 레지스터를 포함한다.</td><td>17-459782
+&lt;SEP&gt;
+17-196922</td><td>2</td></tr><tr><td>제1 입력 시프트 레지스터</td><td>데이터 이동,데이터 전송,수신</td><td>입력 데이터 슬라이스</td><td>제1 입력 시프트 레지스터는 제1 데이터 버퍼에서 입력 데이터 슬라이스를 수신한다.&lt;SEP&gt;제1 입력 시프트 레지스터는 제1 데이터 버퍼로부터 입력 데이터 슬라이스를 수신한다.</td><td>17-459782
+&lt;SEP&gt;
+17-196922</td><td>2</td></tr><tr><td>제2 데이터 버퍼</td><td>데이터 전송,연결,커널 슬라이스 수신</td><td>제2 입력 시프트 레지스터</td><td>제2 입력 시프트 레지스터는 제2 데이터 버퍼에서 커널 데이터 슬라이스를 수신한다.&lt;SEP&gt;제2 데이터 버퍼는 제2 입력 시프트 레지스터에 결합되어 커널 데이터 슬라이스를 전달한다.</td><td>17-459782
+&lt;SEP&gt;
+17-196922</td><td>2</td></tr><tr><td>제2 데이터 버퍼</td><td>다운스트림 이동,데이터 이동,수신,시프트</td><td>커널 데이터 슬라이스</td><td>제2 데이터 버퍼는 커널 데이터 슬라이스를 순차적으로 다운스트림으로 이동시킨다.&lt;SEP&gt;제2 데이터 버퍼는 커널 데이터 슬라이스를 슬라이스 단위로 다운스트림 방향으로 이동시킨다.</td><td>17-459782
+&lt;SEP&gt;
+17-196922</td><td>2</td></tr><tr><td>제2 입력 시프트 레지스터</td><td>데이터 전송,수신</td><td>커널 데이터 슬라이스</td><td>제2 입력 시프트 레지스터는 제2 데이터 버퍼에서 커널 데이터 슬라이스를 수신한다.&lt;SEP&gt;제2 입력 시프트 레지스터는 제2 데이터 버퍼로부터 커널 데이터 슬라이스를 수신한다.</td><td>17-459782
+&lt;SEP&gt;
+17-196922</td><td>2</td></tr><tr><td>인공지능 가속기</td><td>가속,신경망 계산</td><td>신경망</td><td>인공지능 가속기는 신경망과 관련된 계산을 수행한다.</td><td>17-459782</td><td>1</td></tr><tr><td>인공지능 가속기</td><td>데이터셋 저장,포함</td><td>입력 레지스터</td><td>인공지능 가속기는 신경망 레이어의 입력 데이터셋을 저장하는 입력 레지스터를 포함한다.</td><td>17-459782</td><td>1</td></tr><tr><td>곱셈 블록 회로</td><td>계산 입력,연결</td><td>고속 레지스터</td><td>곱셈 블록 회로는 고속 레지스터와 통신하며 저장된 커널 값을 이용해 신경망 관련 계산을 수행한다.</td><td>17-459782</td><td>1</td></tr><tr><td>곱셈 블록 회로</td><td>계산,컨볼루션</td><td>입력 데이터 슬라이스</td><td>곱셈 블록 회로는 입력 데이터 슬라이스의 값을 컨볼루션 연산 관련 계산에 사용한다.</td><td>17-196922</td><td>1</td></tr><tr><td>곱셈 블록 회로</td><td>계산,단일 클록 주기</td><td>제1 커널</td><td>곱셈 블록 회로는 제1 커널을 단일 클록 주기에서 계산한다.</td><td>17-459782</td><td>1</td></tr><tr><td>곱셈 블록 회로</td><td>계산,단일 클록 주기</td><td>제2 커널</td><td>곱셈 블록 회로는 제2 커널을 단일 클록 주기에서 계산한다.</td><td>17-459782</td><td>1</td></tr><tr><td>곱셈 블록 회로</td><td>연결,출력 수신</td><td>출력 버퍼</td><td>출력 버퍼는 곱셈 블록 회로에 결합되어 계산 출력을 수신한다.</td><td>17-196922</td><td>1</td></tr></tbody></table></div>
 
     <section class="viz">
       <h3>Single patent graph example: 16-599306</h3>
@@ -1058,29 +1326,29 @@ AI 코어 및 가속기 특허의 **신경망 연산 가속기 구조**는 주�
   <p class='table-explain'>Table 4는 실험 데이터가 AA/AB/AC/AD 25건씩 균형 sampling됐는지, 그리고 graph/chunk/entity/relation 규모가 어느 정도인지 보여주는 기본 통계다. 이 표가 이후 모든 retrieval, judge, cost 비교의 모집단 정의 역할을 한다.</p>
 	  <h3 id="table-1" class="print-page-break">Table 1: Win rates (%) of baselines vs LightRAG</h3>
   <p class="note">Gemini judge 결과 60/60건을 사용해 win-rate를 계산했다.</p>
-  <div class='table-wrap'><table class='judge-win-table'><thead><tr><th>Comparison</th><th>Metric</th><th>Left system</th><th>Left win-rate</th><th>Right system</th><th>Right win-rate</th><th>Tie</th></tr></thead><tbody><tr><td>lightrag_hybrid vs lightrag_naive</td><td>Comprehensiveness</td><td>lightrag_hybrid</td><td>40.0%</td><td>lightrag_naive</td><td>33.3%</td><td>26.7%</td></tr><tr><td>lightrag_hybrid vs lightrag_naive</td><td>Diversity</td><td>lightrag_hybrid</td><td>26.7%</td><td>lightrag_naive</td><td>46.7%</td><td>26.7%</td></tr><tr><td>lightrag_hybrid vs lightrag_naive</td><td>Empowerment</td><td>lightrag_hybrid</td><td>53.3%</td><td>lightrag_naive</td><td>46.7%</td><td>0.0%</td></tr><tr><td>lightrag_hybrid vs lightrag_naive</td><td>Technical correctness</td><td>lightrag_hybrid</td><td>6.7%</td><td>lightrag_naive</td><td>26.7%</td><td>66.7%</td></tr><tr><td>lightrag_hybrid vs lightrag_naive</td><td>Hallucination risk</td><td>lightrag_hybrid</td><td>6.7%</td><td>lightrag_naive</td><td>6.7%</td><td>86.7%</td></tr><tr><td>lightrag_hybrid vs lightrag_naive</td><td>Overall</td><td>lightrag_hybrid</td><td>53.3%</td><td>lightrag_naive</td><td>46.7%</td><td>0.0%</td></tr><tr><td>lightrag_hybrid vs graphrag_global</td><td>Comprehensiveness</td><td>lightrag_hybrid</td><td>6.7%</td><td>graphrag_global</td><td>93.3%</td><td>0.0%</td></tr><tr><td>lightrag_hybrid vs graphrag_global</td><td>Diversity</td><td>lightrag_hybrid</td><td>6.7%</td><td>graphrag_global</td><td>93.3%</td><td>0.0%</td></tr><tr><td>lightrag_hybrid vs graphrag_global</td><td>Empowerment</td><td>lightrag_hybrid</td><td>6.7%</td><td>graphrag_global</td><td>93.3%</td><td>0.0%</td></tr><tr><td>lightrag_hybrid vs graphrag_global</td><td>Technical correctness</td><td>lightrag_hybrid</td><td>20.0%</td><td>graphrag_global</td><td>53.3%</td><td>26.7%</td></tr><tr><td>lightrag_hybrid vs graphrag_global</td><td>Hallucination risk</td><td>lightrag_hybrid</td><td>20.0%</td><td>graphrag_global</td><td>33.3%</td><td>46.7%</td></tr><tr><td>lightrag_hybrid vs graphrag_global</td><td>Overall</td><td>lightrag_hybrid</td><td>13.3%</td><td>graphrag_global</td><td>86.7%</td><td>0.0%</td></tr><tr><td>lightrag_hybrid vs graphrag_local</td><td>Comprehensiveness</td><td>lightrag_hybrid</td><td>86.7%</td><td>graphrag_local</td><td>6.7%</td><td>6.7%</td></tr><tr><td>lightrag_hybrid vs graphrag_local</td><td>Diversity</td><td>lightrag_hybrid</td><td>93.3%</td><td>graphrag_local</td><td>6.7%</td><td>0.0%</td></tr><tr><td>lightrag_hybrid vs graphrag_local</td><td>Empowerment</td><td>lightrag_hybrid</td><td>93.3%</td><td>graphrag_local</td><td>6.7%</td><td>0.0%</td></tr><tr><td>lightrag_hybrid vs graphrag_local</td><td>Technical correctness</td><td>lightrag_hybrid</td><td>73.3%</td><td>graphrag_local</td><td>0.0%</td><td>26.7%</td></tr><tr><td>lightrag_hybrid vs graphrag_local</td><td>Hallucination risk</td><td>lightrag_hybrid</td><td>20.0%</td><td>graphrag_local</td><td>0.0%</td><td>80.0%</td></tr><tr><td>lightrag_hybrid vs graphrag_local</td><td>Overall</td><td>lightrag_hybrid</td><td>93.3%</td><td>graphrag_local</td><td>6.7%</td><td>0.0%</td></tr><tr><td>graphrag_global vs lightrag_naive</td><td>Comprehensiveness</td><td>graphrag_global</td><td>93.3%</td><td>lightrag_naive</td><td>6.7%</td><td>0.0%</td></tr><tr><td>graphrag_global vs lightrag_naive</td><td>Diversity</td><td>graphrag_global</td><td>80.0%</td><td>lightrag_naive</td><td>13.3%</td><td>6.7%</td></tr><tr><td>graphrag_global vs lightrag_naive</td><td>Empowerment</td><td>graphrag_global</td><td>73.3%</td><td>lightrag_naive</td><td>26.7%</td><td>0.0%</td></tr><tr><td>graphrag_global vs lightrag_naive</td><td>Technical correctness</td><td>graphrag_global</td><td>46.7%</td><td>lightrag_naive</td><td>20.0%</td><td>33.3%</td></tr><tr><td>graphrag_global vs lightrag_naive</td><td>Hallucination risk</td><td>graphrag_global</td><td>40.0%</td><td>lightrag_naive</td><td>13.3%</td><td>46.7%</td></tr><tr><td>graphrag_global vs lightrag_naive</td><td>Overall</td><td>graphrag_global</td><td>80.0%</td><td>lightrag_naive</td><td>20.0%</td><td>0.0%</td></tr></tbody></table></div>
-  <p class='table-explain'>Table 1은 Gemini judge가 pairwise로 고른 winner 비율이다. 원본 답변 기준으로는 GraphRAG global이 강하지만, 이 승률은 답변 길이 차이의 영향을 받을 수 있으므로 바로 성능 우위로 단정하지 않고 아래 길이 통계와 함께 해석한다.</p>
+  <div class='table-wrap'><table class='judge-win-table'><thead><tr><th>Comparison</th><th>Metric</th><th>Left system</th><th>Left win-rate</th><th>Right system</th><th>Right win-rate</th><th>Tie</th></tr></thead><tbody><tr><td>LightRAG hybrid vs NaiveRAG</td><td>Comprehensiveness</td><td>LightRAG hybrid</td><td>40.0%</td><td>NaiveRAG</td><td>33.3%</td><td>26.7%</td></tr><tr><td>LightRAG hybrid vs NaiveRAG</td><td>Diversity</td><td>LightRAG hybrid</td><td>26.7%</td><td>NaiveRAG</td><td>46.7%</td><td>26.7%</td></tr><tr><td>LightRAG hybrid vs NaiveRAG</td><td>Empowerment</td><td>LightRAG hybrid</td><td>53.3%</td><td>NaiveRAG</td><td>46.7%</td><td>0.0%</td></tr><tr><td>LightRAG hybrid vs NaiveRAG</td><td>Technical correctness</td><td>LightRAG hybrid</td><td>6.7%</td><td>NaiveRAG</td><td>26.7%</td><td>66.7%</td></tr><tr><td>LightRAG hybrid vs NaiveRAG</td><td>Hallucination risk</td><td>LightRAG hybrid</td><td>6.7%</td><td>NaiveRAG</td><td>6.7%</td><td>86.7%</td></tr><tr><td>LightRAG hybrid vs NaiveRAG</td><td>Overall</td><td>LightRAG hybrid</td><td>53.3%</td><td>NaiveRAG</td><td>46.7%</td><td>0.0%</td></tr><tr><td>LightRAG hybrid vs GraphRAG</td><td>Comprehensiveness</td><td>LightRAG hybrid</td><td>6.7%</td><td>GraphRAG</td><td>93.3%</td><td>0.0%</td></tr><tr><td>LightRAG hybrid vs GraphRAG</td><td>Diversity</td><td>LightRAG hybrid</td><td>6.7%</td><td>GraphRAG</td><td>93.3%</td><td>0.0%</td></tr><tr><td>LightRAG hybrid vs GraphRAG</td><td>Empowerment</td><td>LightRAG hybrid</td><td>6.7%</td><td>GraphRAG</td><td>93.3%</td><td>0.0%</td></tr><tr><td>LightRAG hybrid vs GraphRAG</td><td>Technical correctness</td><td>LightRAG hybrid</td><td>20.0%</td><td>GraphRAG</td><td>53.3%</td><td>26.7%</td></tr><tr><td>LightRAG hybrid vs GraphRAG</td><td>Hallucination risk</td><td>LightRAG hybrid</td><td>20.0%</td><td>GraphRAG</td><td>33.3%</td><td>46.7%</td></tr><tr><td>LightRAG hybrid vs GraphRAG</td><td>Overall</td><td>LightRAG hybrid</td><td>13.3%</td><td>GraphRAG</td><td>86.7%</td><td>0.0%</td></tr><tr><td>GraphRAG vs NaiveRAG</td><td>Comprehensiveness</td><td>GraphRAG</td><td>93.3%</td><td>NaiveRAG</td><td>6.7%</td><td>0.0%</td></tr><tr><td>GraphRAG vs NaiveRAG</td><td>Diversity</td><td>GraphRAG</td><td>80.0%</td><td>NaiveRAG</td><td>13.3%</td><td>6.7%</td></tr><tr><td>GraphRAG vs NaiveRAG</td><td>Empowerment</td><td>GraphRAG</td><td>73.3%</td><td>NaiveRAG</td><td>26.7%</td><td>0.0%</td></tr><tr><td>GraphRAG vs NaiveRAG</td><td>Technical correctness</td><td>GraphRAG</td><td>46.7%</td><td>NaiveRAG</td><td>20.0%</td><td>33.3%</td></tr><tr><td>GraphRAG vs NaiveRAG</td><td>Hallucination risk</td><td>GraphRAG</td><td>40.0%</td><td>NaiveRAG</td><td>13.3%</td><td>46.7%</td></tr><tr><td>GraphRAG vs NaiveRAG</td><td>Overall</td><td>GraphRAG</td><td>80.0%</td><td>NaiveRAG</td><td>20.0%</td><td>0.0%</td></tr></tbody></table></div>
+  <p class='table-explain'>Table 1은 Gemini judge가 pairwise로 고른 winner 비율이다. 원본 답변 기준으로는 GraphRAG가 강하지만, 이 승률은 답변 길이 차이의 영향을 받을 수 있으므로 아래 길이 통계와 함께 해석한다.</p>
 	  <h3 id="answer-length" class="print-page-break">Answer Length Statistics for Table 1 Interpretation</h3>
   <p class="note">GraphRAG 답변에 섞인 런타임 warning 문구를 제거한 cleaned answer 기준이다. 이 표는 LLM-as-judge의 verbosity bias 가능성을 해석하기 위한 보조 지표다.</p>
-  <div class='table-wrap'><table class='length-stats-table'><thead><tr><th>System</th><th>Queries</th><th>Avg answer chars</th><th>Median answer chars</th><th>Avg token estimate</th><th>Avg latency</th><th>Length vs LightRAG hybrid</th></tr></thead><tbody><tr><td>lightrag_naive</td><td>15</td><td>1405</td><td>1381</td><td>351</td><td>51.5s</td><td>1.06x</td></tr><tr><td>lightrag_local</td><td>15</td><td>1134</td><td>1200</td><td>283</td><td>111.9s</td><td>0.86x</td></tr><tr><td>lightrag_global</td><td>15</td><td>1194</td><td>1371</td><td>298</td><td>104.8s</td><td>0.90x</td></tr><tr><td>lightrag_hybrid</td><td>15</td><td>1325</td><td>1396</td><td>331</td><td>103.6s</td><td>1.00x</td></tr><tr><td>graphrag_basic</td><td>15</td><td>1545</td><td>1458</td><td>386</td><td>50.4s</td><td>1.17x</td></tr><tr><td>graphrag_local</td><td>15</td><td>1879</td><td>1896</td><td>469</td><td>33.3s</td><td>1.42x</td></tr><tr><td>graphrag_global</td><td>15</td><td>3218</td><td>3018</td><td>804</td><td>215.6s</td><td>2.43x</td></tr></tbody></table></div>
-  <p class='table-explain'>답변 길이 표는 judge 승률의 confound를 확인하기 위한 보조 결과다. GraphRAG global 답변이 LightRAG hybrid보다 훨씬 길면 Comprehensiveness, Diversity, Empowerment rubric에서 구조적으로 유리할 수 있다.</p>
+  <div class='table-wrap'><table class='length-stats-table'><thead><tr><th>System</th><th>Queries</th><th>Avg answer chars</th><th>Median answer chars</th><th>Avg token estimate</th><th>Avg latency</th><th>Length vs LightRAG hybrid</th></tr></thead><tbody><tr><td>NaiveRAG</td><td>15</td><td>1405</td><td>1381</td><td>351</td><td>51.5s</td><td>1.06x</td></tr><tr><td>LightRAG hybrid</td><td>15</td><td>1325</td><td>1396</td><td>331</td><td>103.6s</td><td>1.00x</td></tr><tr><td>GraphRAG</td><td>15</td><td>3218</td><td>3018</td><td>804</td><td>215.6s</td><td>2.43x</td></tr></tbody></table></div>
+  <p class='table-explain'>답변 길이 표는 judge 승률의 confound를 확인하기 위한 보조 결과다. GraphRAG 답변이 LightRAG hybrid보다 훨씬 길면 Comprehensiveness, Diversity, Empowerment rubric에서 구조적으로 유리할 수 있다.</p>
 	  <h3 id="length-control" class="print-page-break">Length Normalization + Verbosity-aware Judge</h3>
   <p class="note">답변 길이 편향을 줄이기 위해 같은 근거를 유지한 채 1100-1300자 목표로 답변을 재작성하고, Gemini judge prompt에 verbosity penalty를 명시했다. 일부 GraphRAG 답변은 근거 보존 때문에 목표 길이를 초과했으므로 완전한 동일 길이 실험은 아니며, 잔여 길이 차이를 함께 해석한다.</p>
   <div class='table-wrap'><table class='audit-note-table'><thead><tr><th>Audit</th><th>Value</th><th>Note</th></tr></thead><tbody><tr><td>Normalization</td><td>60/60 success</td><td>same answer evidence, target 1100-1300 chars</td></tr><tr><td>Original verbosity-aware judge</td><td>60/60 unique successes</td><td>attempts=63, failed attempts recovered=3</td></tr><tr><td>Normalized verbosity-aware judge</td><td>60/60 unique successes</td><td>attempts=63, failed attempts recovered=3</td></tr></tbody></table></div>
   <p class='table-explain'>이 audit 표는 길이 정규화와 verbosity-aware judge가 실제로 끝까지 수행됐는지 확인한다. 60개 pairwise 평가가 모두 성공해야 원본 judge 결과와 보정 judge 결과를 비교할 수 있다.</p>
-  <div class='table-wrap'><table class='length-control-length-table'><thead><tr><th>System</th><th>Original avg chars</th><th>Normalized avg chars</th><th>Change</th><th>In target 1100-1300 before</th><th>In target 1100-1300 after</th></tr></thead><tbody><tr><td>lightrag_naive</td><td>1405</td><td>1153</td><td>-252</td><td>4/15</td><td>8/15</td></tr><tr><td>lightrag_hybrid</td><td>1325</td><td>1085</td><td>-239</td><td>4/15</td><td>7/15</td></tr><tr><td>graphrag_local</td><td>1879</td><td>1485</td><td>-394</td><td>2/15</td><td>3/15</td></tr><tr><td>graphrag_global</td><td>3218</td><td>1665</td><td>-1553</td><td>0/15</td><td>3/15</td></tr></tbody></table></div>
-  <p class='table-explain'>길이 정규화 표는 원본 답변과 보정 답변의 평균 길이 변화를 보여준다. GraphRAG global은 압축 후에도 목표 길이에 완전히 들어오지 않았기 때문에, 보정 결과도 완전한 동일 길이 조건이 아니라 잔여 길이 차이가 남은 결과로 읽어야 한다.</p>
-  <div class='table-wrap'><table class='length-control-judge-table'><thead><tr><th>Condition</th><th>Left</th><th>Right</th><th>Left wins</th><th>Right wins</th><th>Tie</th><th>Overall winner</th></tr></thead><tbody><tr><td>Original answer + verbosity-aware judge</td><td>lightrag_hybrid</td><td>lightrag_naive</td><td>5</td><td>9</td><td>1</td><td>lightrag_naive</td></tr><tr><td>Original answer + verbosity-aware judge</td><td>lightrag_hybrid</td><td>graphrag_global</td><td>6</td><td>9</td><td>0</td><td>graphrag_global</td></tr><tr><td>Original answer + verbosity-aware judge</td><td>lightrag_hybrid</td><td>graphrag_local</td><td>12</td><td>3</td><td>0</td><td>lightrag_hybrid</td></tr><tr><td>Original answer + verbosity-aware judge</td><td>graphrag_global</td><td>lightrag_naive</td><td>10</td><td>5</td><td>0</td><td>graphrag_global</td></tr><tr><td>Length-normalized answer + verbosity-aware judge</td><td>lightrag_hybrid</td><td>lightrag_naive</td><td>6</td><td>9</td><td>0</td><td>lightrag_naive</td></tr><tr><td>Length-normalized answer + verbosity-aware judge</td><td>lightrag_hybrid</td><td>graphrag_global</td><td>4</td><td>11</td><td>0</td><td>graphrag_global</td></tr><tr><td>Length-normalized answer + verbosity-aware judge</td><td>lightrag_hybrid</td><td>graphrag_local</td><td>14</td><td>1</td><td>0</td><td>lightrag_hybrid</td></tr><tr><td>Length-normalized answer + verbosity-aware judge</td><td>graphrag_global</td><td>lightrag_naive</td><td>8</td><td>7</td><td>0</td><td>graphrag_global</td></tr></tbody></table></div>
-  <p class='table-explain'>verbosity-aware judge 표는 원본 답변과 길이 정규화 답변에서 winner가 어떻게 바뀌는지 보여준다. GraphRAG global은 hybrid 대비 여전히 강하지만 naive 대비 우위는 줄어들어, community summary 효과와 길이 효과가 함께 작용한 것으로 해석한다.</p>
+  <div class='table-wrap'><table class='length-control-length-table'><thead><tr><th>System</th><th>Original avg chars</th><th>Normalized avg chars</th><th>Change</th><th>In target 1100-1300 before</th><th>In target 1100-1300 after</th></tr></thead><tbody><tr><td>NaiveRAG</td><td>1405</td><td>1153</td><td>-252</td><td>4/15</td><td>8/15</td></tr><tr><td>LightRAG hybrid</td><td>1325</td><td>1085</td><td>-239</td><td>4/15</td><td>7/15</td></tr><tr><td>GraphRAG</td><td>3218</td><td>1665</td><td>-1553</td><td>0/15</td><td>3/15</td></tr></tbody></table></div>
+  <p class='table-explain'>길이 정규화 표는 원본 답변과 보정 답변의 평균 길이 변화를 보여준다. GraphRAG는 압축 후에도 목표 길이에 완전히 들어오지 않았기 때문에, 보정 결과도 완전한 동일 길이 조건이 아니라 잔여 길이 차이가 남은 결과로 읽어야 한다.</p>
+  <div class='table-wrap'><table class='length-control-judge-table'><thead><tr><th>Condition</th><th>Left</th><th>Right</th><th>Left wins</th><th>Right wins</th><th>Tie</th><th>Overall winner</th></tr></thead><tbody><tr><td>Original answer + verbosity-aware judge</td><td>LightRAG hybrid</td><td>NaiveRAG</td><td>5</td><td>9</td><td>1</td><td>NaiveRAG</td></tr><tr><td>Original answer + verbosity-aware judge</td><td>LightRAG hybrid</td><td>GraphRAG</td><td>6</td><td>9</td><td>0</td><td>GraphRAG</td></tr><tr><td>Original answer + verbosity-aware judge</td><td>GraphRAG</td><td>NaiveRAG</td><td>10</td><td>5</td><td>0</td><td>GraphRAG</td></tr><tr><td>Length-normalized answer + verbosity-aware judge</td><td>LightRAG hybrid</td><td>NaiveRAG</td><td>6</td><td>9</td><td>0</td><td>NaiveRAG</td></tr><tr><td>Length-normalized answer + verbosity-aware judge</td><td>LightRAG hybrid</td><td>GraphRAG</td><td>4</td><td>11</td><td>0</td><td>GraphRAG</td></tr><tr><td>Length-normalized answer + verbosity-aware judge</td><td>GraphRAG</td><td>NaiveRAG</td><td>8</td><td>7</td><td>0</td><td>GraphRAG</td></tr></tbody></table></div>
+  <p class='table-explain'>verbosity-aware judge 표는 원본 답변과 길이 정규화 답변에서 winner가 어떻게 바뀌는지 보여준다. GraphRAG는 hybrid 대비 여전히 강하지만 naive 대비 우위는 줄어들어, community summary 효과와 길이 효과가 함께 작용한 것으로 해석한다.</p>
 	  <h3 id="query-type" class="print-page-break">Normalized Verbosity-aware Judge by Query Type</h3>
   <p class="note">아래 표는 query type별 Overall winner count다. 하나의 query가 여러 pairwise 비교에 등장하므로 count는 query 수와 같지 않고, type별 경향을 보기 위한 breakdown이다.</p>
-  <div class='table-wrap'><table class='query-type-table'><thead><tr><th>Query type</th><th>LightRAG hybrid</th><th>Naive</th><th>GraphRAG global</th><th>GraphRAG local</th><th>Tie</th><th>Pattern</th></tr></thead><tbody><tr><td>category_specific</td><td>10</td><td>7</td><td>15</td><td>0</td><td>0</td><td>graphrag_global</td></tr><tr><td>cross_category</td><td>7</td><td>2</td><td>3</td><td>0</td><td>0</td><td>lightrag_hybrid</td></tr><tr><td>fact_check</td><td>5</td><td>3</td><td>0</td><td>0</td><td>0</td><td>lightrag_hybrid</td></tr><tr><td>comparison</td><td>1</td><td>2</td><td>0</td><td>1</td><td>0</td><td>lightrag_naive</td></tr><tr><td>exploratory</td><td>1</td><td>2</td><td>1</td><td>0</td><td>0</td><td>lightrag_naive</td></tr></tbody></table></div>
-  <p class='table-explain'>Query type breakdown은 전체 평균만 보면 놓치는 패턴을 보여준다. category-specific broad query는 GraphRAG global이 강하고, cross-category query는 LightRAG hybrid가 더 강해 graph context의 효용이 질문 유형별로 달라진다.</p>
+  <div class='table-wrap'><table class='query-type-table'><thead><tr><th>Query type</th><th>LightRAG hybrid</th><th>Naive</th><th>GraphRAG</th><th>Tie</th><th>Pattern</th></tr></thead><tbody><tr><td>category_specific</td><td>10</td><td>7</td><td>15</td><td>0</td><td>GraphRAG</td></tr><tr><td>cross_category</td><td>7</td><td>2</td><td>3</td><td>0</td><td>LightRAG hybrid</td></tr><tr><td>fact_check</td><td>5</td><td>3</td><td>0</td><td>0</td><td>LightRAG hybrid</td></tr><tr><td>comparison</td><td>1</td><td>2</td><td>0</td><td>0</td><td>NaiveRAG</td></tr><tr><td>exploratory</td><td>1</td><td>2</td><td>1</td><td>0</td><td>NaiveRAG</td></tr></tbody></table></div>
+  <p class='table-explain'>Query type breakdown은 전체 평균만 보면 놓치는 패턴을 보여준다. category-specific broad query는 GraphRAG가 강하고, cross-category query는 LightRAG hybrid가 더 강해 graph context의 효용이 질문 유형별로 달라진다.</p>
 	  <h3 id="table-2" class="print-page-break">Table 2: Performance of ablated LightRAG retrieval modes</h3>
   <div class='table-wrap'><table class='mode-ablation-table'><thead><tr><th>System</th><th>Q</th><th>OK</th><th>Empty</th><th>Avg chars</th><th>Ent.</th><th>Rel.</th><th>Chunks</th><th>Sources</th><th>Latency(s)</th></tr></thead><tbody><tr><td>graphrag_basic</td><td>15</td><td>15</td><td>0</td><td>1972.4</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.133</td><td>50.426</td></tr><tr><td>graphrag_global</td><td>15</td><td>15</td><td>0</td><td>3644.933</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.133</td><td>215.587</td></tr><tr><td>graphrag_local</td><td>15</td><td>15</td><td>0</td><td>2305.667</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.267</td><td>33.264</td></tr><tr><td>lightrag_global</td><td>15</td><td>15</td><td>0</td><td>1194.0</td><td>17.2</td><td>10.0</td><td>9.533</td><td>21.667</td><td>104.758</td></tr><tr><td>lightrag_hybrid</td><td>15</td><td>15</td><td>0</td><td>1324.533</td><td>24.667</td><td>41.467</td><td>10.0</td><td>29.8</td><td>103.627</td></tr><tr><td>lightrag_local</td><td>15</td><td>15</td><td>0</td><td>1133.533</td><td>10.0</td><td>30.8</td><td>8.6</td><td>19.4</td><td>111.931</td></tr><tr><td>lightrag_naive</td><td>15</td><td>15</td><td>0</td><td>1404.6</td><td>0.0</td><td>0.0</td><td>10.0</td><td>17.667</td><td>51.479</td></tr></tbody></table></div>
   <p class='table-explain'>Table 2는 LightRAG 내부 mode ablation이다. naive는 graph 없이 chunk embedding만 쓰고, local/global/hybrid는 entity/relation context를 추가하므로, graph retrieval이 latency와 source coverage를 얼마나 바꾸는지 확인하는 표다.</p>
 	  <h3 id="table-3" class="print-page-break">Table 3: Case Study: GraphRAG vs LightRAG</h3>
-  <p class="note">GraphRAG global 결과를 LightRAG hybrid와 비교한 사례다. Gemini judge decision도 함께 표시한다.</p>
+  <p class="note">GraphRAG 결과를 LightRAG hybrid와 비교한 사례다. Gemini judge decision도 함께 표시한다.</p>
   <div class='table-wrap'><table class='case-study-table'><thead><tr><th>Query</th><th>GraphRAG/Naive</th><th>LightRAG</th><th>LLM Decision</th></tr></thead><tbody><tr><td>X-1</td><td>**요약**
 
 AI 반도체에서 연산 가속기, 메모리 아키텍처, 패키징 기술은 분리된 독립 계층이라기보다 **워크로드 실행 → 데이터·명령 공급 → 물리적 통합**으로 이어지는 의존 구조를 갖는다. 다만 제공 데이터에는 세 요소를 하나의 완전한 제품 수준 end-to-end 체계로 직접 설명하는 단일 기록은 없으며, 여러 기록을 종합하면 이 구조가 도출된다 [Data: Reports (57, 310, 161, 498, 244)].
@@ -1102,9 +1370,9 @@ AI 반도체에서 **연산 가속기, 메모리 아키텍처, 패키징 기술*
 셋째, **PIM/CIM 기반 메모리 아키텍처**는 이 의존 관계를 더 밀접하게 만든다. 인-메모리 컴퓨트 칩렛 기반 AI 가속기에서는 각 칩렛의 타일과 슬라이스 안에 DIMC 장치가 포함되어, 트랜스포머 모델의 어텐션 함수 계산과 행렬 계산을 직접 가속한다. 혼합 정밀도 DNN 추론 프로세서도 입력 메모리, CIM 연산기, 합산기, 출력 메모리, 정밀도 인코딩 유닛을 결합해 저비트 인라이어와 고비트 아웃라이어를 나누어 처리한다. 즉, 메모리는 저장소를 넘어 연산 위치 자체가 된다.
 
 넷째, **패키징 기술은 연산 가속기와 메모리 아키텍처를 물리적으로 연결하는 기반**이다. 문서상 딥러닝 가속기 장치는 집적 회로 패키지 안에 포함되고, 외부 메모리 제어기와 연결되는 인터페이스 및 커넥터를 갖는다. 또한 AI 가속기 칩렛 구조는 D2D 인터커넥트, PCIe 버스, DRAM 인터페이스, 글로벌 CPU 인터페이스를 통해 칩렛, 메모리, 서버 또는 호 ...[truncated]</td><td>{&quot;Comprehensiveness&quot;: {&quot;winner&quot;: &quot;A&quot;, &quot;explanation&quot;: &quot;Answer A provides a more detailed and structured breakdown of the mutual dependencies. It clearly delineates how accelerators depend on memory for data/instruction supply, how memory architectures (like PIM/near-memory) dictate computation scheduling and efficiency, and how packaging technologies (interposers, TSVs, thermal management) physically realize these connections. Answer B covers similar points but with less depth on the specific physical and architectural constraints.&quot;}, &quot;Diversity&quot;: {&quot;winner&quot;: &quot;A&quot;, &quot;explanation&quot;: &quot;Answer A introduces a wider variety of technical concepts and components across all three domains, such as systolic arrays, sparse tensors, active bridge chiplets, interposers, TSVs, 3D stacked memory base dies with switches/ALUs, and thermal management, providing a richer technical perspective.&quot;}, &quot;Empowerment&quot;: {&quot;winner&quot;: &quot;A&quot;, &quot;explanation&quot;: &quot;Answer A&#x27;s structured framework (Workload -&gt; Accelerator -&gt; Memory -&gt; Packaging) offers a superior mental model for a researcher. It clearly explains the &#x27;why&#x27; and &#x27;how ...[truncated]</td></tr></tbody></table></div>
-	  <p class='table-explain'>Table 3은 aggregate win-rate만으로 보이지 않는 답변 양식 차이를 읽기 위한 사례다. GraphRAG global은 community summary를 통해 더 넓은 맥락을 제시하고, LightRAG hybrid는 검색된 entity/relation/chunk 근거에 더 직접적으로 묶이는 경향이 있다.</p>
+	  <p class='table-explain'>Table 3은 aggregate win-rate만으로 보이지 않는 답변 양식 차이를 읽기 위한 사례다. GraphRAG는 community summary를 통해 더 넓은 맥락을 제시하고, LightRAG hybrid는 검색된 entity/relation/chunk 근거에 더 직접적으로 묶이는 경향이 있다.</p>
 		  <h3 id="figure-2" class="print-page-break">Figure 2: Cost comparison in tokens/API calls</h3>
-	  <div class='table-wrap'><table class='cost-summary-table'><thead><tr><th>Stage</th><th>Runtime</th><th>Total attempts</th><th>Records / call proxy</th><th>Model path</th></tr></thead><tbody><tr><td>LightRAG indexing</td><td>346.2s</td><td>19,519.8s (5.42h)</td><td>100/100 docs, attempts=4</td><td>gpt-5.5 + openai/text-embedding-3-large</td></tr><tr><td>LightRAG query</td><td>5,576.9s (1.55h)</td><td>—</td><td>60 records = 15 queries x 4 modes</td><td>gpt-5.5 answering, LightRAG naive/local/global/hybrid</td></tr><tr><td>GraphRAG indexing</td><td>4,340.1s (1.21h)</td><td>fallback full fresh</td><td>100 docs, workflows=10</td><td>gpt-5.5 extraction/community reports</td></tr><tr><td>GraphRAG query</td><td>4,489.2s (1.25h)</td><td>repair after partial results</td><td>45 records = 15 queries x 3 methods</td><td>GraphRAG basic/local/global</td></tr><tr><td>Gemini judge</td><td>not timed in one batch</td><td>original + length-control</td><td>base=60/60, verbosity attempts=63+63, normalization=60/60</td><td>Gemini 3.5 Flash judge, gpt-5.5 normalization</td></tr></tbody></table></div>
+	  <div class='table-wrap'><table class='cost-summary-table'><thead><tr><th>Stage</th><th>Runtime</th><th>Total attempts</th><th>Records / call proxy</th><th>Model path</th></tr></thead><tbody><tr><td>LightRAG indexing</td><td>346.2s</td><td>19,519.8s (5.42h)</td><td>100/100 docs, attempts=4</td><td>gpt-5.5 + openai/text-embedding-3-large</td></tr><tr><td>LightRAG query</td><td>5,576.9s (1.55h)</td><td>—</td><td>60 records = 15 queries x 4 modes</td><td>gpt-5.5 answering, LightRAG naive/local/global/hybrid</td></tr><tr><td>GraphRAG indexing</td><td>4,340.1s (1.21h)</td><td>fallback full fresh</td><td>100 docs, workflows=10</td><td>gpt-5.5 extraction/community reports</td></tr><tr><td>GraphRAG query</td><td>4,489.2s (1.25h)</td><td>repair after partial results</td><td>45 records = 15 queries x 3 methods</td><td>GraphRAG query methods executed; main baseline=global/community report</td></tr><tr><td>Gemini judge</td><td>not timed in one batch</td><td>original + length-control</td><td>base=60/60, verbosity attempts=63+63, normalization=60/60</td><td>Gemini 3.5 Flash judge, gpt-5.5 normalization</td></tr></tbody></table></div>
 	  <details><summary>Figure 2 raw JSON excerpt</summary><pre>{
   &quot;lightrag_index&quot;: {
     &quot;document_count&quot;: 100,
@@ -1733,8 +2001,8 @@ AI 반도체에서 **연산 가속기, 메모리 아키텍처, 패키징 기술*
 
 **최적화 목표**도 다르다. 인-메모리 컴퓨팅은 데이터 이 ...[truncated]</td></tr></tbody></table></div>
   <p class='table-explain'>Table 5는 LightRAG hybrid가 chunk-only naive 대비 어떤 추가 근거를 제공하는지 보는 사례다. 이번 실험에서는 hybrid가 항상 naive를 압도하지 않았으므로, 이 표는 graph context의 장점과 중복 가능성을 동시에 점검하는 용도다.</p>
-	  <h3 id="additional-case" class="print-page-break">Additional Case Study: LightRAG Hybrid vs GraphRAG Global</h3>
-  <p class="note">category-specific broad query에서 GraphRAG global이 강하게 나온 사례다. 긴 community summary가 압축 후에도 핵심 근거를 유지하는지 확인하기 위한 읽기용 예시다.</p>
+	  <h3 id="additional-case" class="print-page-break">Additional Case Study: LightRAG Hybrid vs GraphRAG</h3>
+  <p class="note">category-specific broad query에서 GraphRAG가 강하게 나온 사례다. 긴 community summary가 압축 후에도 핵심 근거를 유지하는지 확인하기 위한 읽기용 예시다.</p>
   <div class='table-wrap'><table class='case-study-table'><thead><tr><th>Query</th><th>GraphRAG/Naive</th><th>LightRAG</th><th>LLM Decision</th></tr></thead><tbody><tr><td>AA-1</td><td>**요약**
 
 제공된 데이터에서 병렬성 향상 폭이나 처리량 수치는 직접 제시되지 않습니다. 또한 “신경망 연산 가속기 구조”라는 하나의 단일 구조가 일관되게 정의되어 있다기보다, AI 코어 및 가속기 특허들이 여러 하드웨어 구조를 통해 신경망 연산을 병렬화하는 방식으로 나타납니다 [Data: Reports (122, 466, 465, 351, 13)] [Data: Reports (142, 291, 575, 94, 259, +more)].
@@ -1758,14 +2026,14 @@ AI 반도체에서 **연산 가속기, 메모리 아키텍처, 패키징 기술*
 셋째, 행렬 연산 중심 구조에서는 **N차원 논리 회로 배열**, 입력 데이터 라인, 가중치 행렬 입력 라인, 출력 데이터 라인을 갖춘 장치를 통해 신경망 프로세서에서 신경망 연산을 수행한다. 인공지능은 신경망 구현을 위해 많은 행렬 연산을 필요로 하며, 이러한 계산은 병렬 처리될 수 있기 때문에 특수 행렬 프로세서 회로가 성능 향상에 기여한다.
 
 넷째, 더 직접적인 병렬 연산 구조로는 **처리 요소 배열을 갖는 매트릭스 처리 유닛**이 제시된다. 이 구조는 행렬 곱셈 명령에 따라 다수의 **병렬 fused multiply-accumulate 연산**을 수행하여 결과 행렬을 생성한다. 또한 칩렛 기반 AI 가속기에서는 여러 칩렛, 타일, 슬라이스 및 DIMC 디바이스를 사용해 행렬 계산 처리량을 높이고, 클록 사이클당 다수의 multiply-accumu ...[truncated]</td><td>{&quot;Comprehensiveness&quot;: {&quot;winner&quot;: &quot;A&quot;, &quot;explanation&quot;: &quot;Answer A is significantly more comprehensive, detailing five distinct architectural approaches to increasing parallelism (convolution dataflow pipelines, processing element/systolic arrays/SIMT, CIM/PIM/DIMC memory-centric computing, chiplet/tile/device stack distribution, and task division/sparsity utilization). Answer B covers fewer aspects and in much less detail.&quot;}, &quot;Diversity&quot;: {&quot;winner&quot;: &quot;A&quot;, &quot;explanation&quot;: &quot;Answer A provides a much richer set of technical perspectives, including analog/digital CIM, PIM bank addressing, active bridge chiplets in GPU arrays, ring topologies, and sparsity-skipping techniques. Answer B is relatively basic and repetitive in its technical descriptions.&quot;}, &quot;Empowerment&quot;: {&quot;winner&quot;: &quot;A&quot;, &quot;explanation&quot;: &quot;Answer A is highly empowering for a researcher. It categorizes the patent landscape into clear, actionable architectural paradigms (dataflow, array, memory-centric, multi-chip, and algorithmic optimization), allowing a researcher to make informed follow-up judgments on which specific domain to inves ...[truncated]</td></tr></tbody></table></div>
-  <p class='table-explain'>추가 case study는 GraphRAG global이 특히 강한 category-specific broad query를 보여준다. 이 사례는 GraphRAG의 장점을 설명하는 동시에, 긴 답변이 judge에 유리하게 작용했을 가능성을 같이 확인하기 위한 예시다.</p>
+  <p class='table-explain'>추가 case study는 GraphRAG가 특히 강한 category-specific broad query를 보여준다. 이 사례는 GraphRAG의 장점을 설명하는 동시에, 긴 답변이 judge에 유리하게 작용했을 가능성을 같이 확인하기 위한 예시다.</p>
 
 
     <h2 id="discussion">Discussion and Conclusion</h2>
-    <p>이번 실험은 Patent-100에서 LightRAG graph indexing, GraphRAG indexing/query, Gemini judge 평가까지 재현 가능한 pipeline으로 완주했다. 다만 judge win-rate를 그대로 성능 결론으로 읽기에는 답변 길이 편향이 가장 큰 교란 요인이다.</p>
-    <div class='table-wrap'><table class='discussion-table'><thead><tr><th>Finding</th><th>Evidence</th><th>Interpretation</th></tr></thead><tbody><tr><td>Graph construction succeeded</td><td>metadata relation=0.01, technical relation=0.9401, excluded entity=0.0044</td><td>특허번호/분류코드 중심 hub는 억제됐고, 기술 entity/relation 중심 graph는 목표 기준을 충족했다.</td></tr><tr><td>GraphRAG global wins, but length bias is a major confound</td><td>Overall wins: GraphRAG global 13 vs LightRAG hybrid 2; avg length ratio=2.43x (3218 vs 1325 chars)</td><td>Comprehensiveness/Diversity/Empowerment rubric은 긴 답변에 구조적으로 유리하므로, GraphRAG global 우위는 verbosity bias 가능성을 함께 보고해야 한다.</td></tr><tr><td>LightRAG hybrid is not clearly better than naive</td><td>Overall wins: LightRAG hybrid 8 vs naive 7; avg length ratio naive/hybrid=1.06x</td><td>이 특허 데이터에서는 chunk-only retrieval만으로도 답변 생성에 충분한 정보가 잡혔고, graph context의 추가 이득은 제한적으로 관찰됐다.</td></tr><tr><td>GraphRAG local is weak for this query set</td><td>Overall wins: LightRAG hybrid 14 vs GraphRAG local 1; GraphRAG local avg length=1879 chars (1.42x hybrid)</td><td>15개 쿼리가 broad 기술관계 질문 중심이라 entity-description local retrieval보다 global community/theme retrieval에 유리했을 가능성이 높다.</td></tr><tr><td>GraphRAG global also beats naive</td><td>Overall wins: GraphRAG global 12 vs naive 3</td><td>다만 이 비교 역시 GraphRAG global의 답변 길이가 길다는 confound를 공유한다. 길이 정규화 후에는 GraphRAG global 8 vs naive 7로 좁아졌으므로, 원본 답변 기준 우위는 보수적으로 해석한다.</td></tr><tr><td>Length normalization is incomplete</td><td>After normalization: GraphRAG global avg=1665 chars, LightRAG hybrid avg=1085 chars, residual ratio=1.53x; GraphRAG global in target=3/15</td><td>1100-1300자 목표로 압축했지만 근거 보존 제약 때문에 GraphRAG global이 여전히 더 길다. 따라서 normalized 결과도 완전한 동일 길이 비교가 아니라 verbosity-aware 보정 실험으로 해석해야 한다.</td></tr><tr><td>Verbosity-aware re-judge reduces but does not remove the GraphRAG global effect</td><td>After length normalization: GraphRAG global 11 vs LightRAG hybrid 4; GraphRAG global 8 vs naive 7</td><td>길이 보정 후에도 GraphRAG global은 hybrid 대비 우세하지만, naive 대비 우위는 8:7로 좁아져 답변 길이와 global community summary 효과가 함께 작용한 것으로 해석해야 한다.</td></tr><tr><td>GraphRAG global becomes stronger after compression</td><td>Original verbosity-aware judge: GraphRAG global 9 vs hybrid 6; normalized judge: GraphRAG global 11 vs hybrid 4</td><td>가능한 해석은 두 가지다. 첫째, GraphRAG global의 긴 community-summary 답변은 핵심 내용 밀도가 높아 압축 후에도 정보량이 유지됐을 수 있다. 둘째, 정규화 LLM이 GraphRAG 답변의 구조화된 핵심을 더 잘 보존하고 LightRAG 답변에서는 근거 일부를 압축 과정에서 잃었을 수 있다.</td></tr><tr><td>LightRAG graph context still does not beat chunk-only naive</td><td>After length normalization: naive 9 vs LightRAG hybrid 6</td><td>특허 문서가 이미 구조화되어 있어 chunk retrieval만으로도 충분한 근거를 잡는 경우가 많고, hybrid graph context의 추가 정보가 judge 기준에서 일관된 이득으로 이어지지 않았다.</td></tr><tr><td>GraphRAG local remains unsuitable for this broad query set</td><td>After length normalization: LightRAG hybrid 14 vs GraphRAG local 1</td><td>질문셋이 기술 관계·동향 중심이라 local entity-description retrieval보다 LightRAG hybrid 또는 GraphRAG global 방식이 더 적합했다.</td></tr><tr><td>Query type changes the conclusion</td><td>category_specific Overall: GraphRAG global=15; cross_category Overall: LightRAG hybrid=7 vs GraphRAG global=3; fact_check Overall: LightRAG hybrid=5 vs naive=3</td><td>category-specific broad 질문은 GraphRAG global community summary가 강하고, cross-category 질문은 LightRAG hybrid의 entity/relation graph context가 더 유효하게 작동했다. fact-check에서도 hybrid가 naive보다 앞서지만 표본이 2개라 보조 근거로만 본다.</td></tr></tbody></table></div>
+    <p>논문의 RQ 구조를 따라 Patent-100 결과를 정리한다. 이 보고서에서 GraphRAG는 Microsoft GraphRAG의 global/community-report query mode를 대표 baseline으로 표시한다.</p>
+    <div class='table-wrap'><table class='discussion-table'><thead><tr><th>RQ</th><th>Question</th><th>Answer</th><th>Evidence</th></tr></thead><tbody><tr><td>RQ1 생성 성능</td><td>기존 RAG 방법들과 비교했을 때 답변의 질이 얼마나 우수한가?</td><td>Patent-100의 생성 품질 평가는 GraphRAG가 가장 강했다. LightRAG hybrid는 NaiveRAG를 명확히 압도하지 못했다.</td><td>길이 보정 judge: NaiveRAG 9 vs LightRAG hybrid 6; GraphRAG 11 vs LightRAG hybrid 4; GraphRAG 8 vs NaiveRAG 7</td></tr><tr><td>RQ2 구성 요소의 기여도</td><td>이중 수준 검색과 그래프 기반 인덱싱이 품질 향상에 어떤 역할을 하는가?</td><td>특허 특화 prompt는 기술 entity/relation 중심 graph를 만드는 데 성공했다. 다만 graph context가 항상 chunk-only retrieval보다 좋은 답변으로 이어지지는 않았다.</td><td>technical relation=0.9401, metadata relation=0.01, excluded entity=0.0044</td></tr><tr><td>RQ3 사례 연구</td><td>실제 시나리오에서 LightRAG가 보여주는 구체적인 장점은 무엇인가?</td><td>LightRAG는 entity, relation, chunk, source patent 단위로 근거를 추적하기 쉽다. 반면 broad category 질문에서는 GraphRAG community summary가 더 넓은 답변을 만들었다.</td><td>category_specific: GraphRAG=15; cross_category: LightRAG hybrid=7 vs GraphRAG=3; fact_check: LightRAG hybrid=5 vs NaiveRAG=3</td></tr><tr><td>RQ4 비용 및 적응성</td><td>운영 비용과 새로운 데이터 업데이트 속도는 어떠한가?</td><td>LightRAG는 query latency와 근거 추적성 측면에서 가볍지만, 실제 indexing에서는 재시도 비용이 컸다. incremental update는 이번 결과에서 독립 조건으로 직접 평가하지 않았다.</td><td>원본 답변 길이 ratio GraphRAG/LightRAG hybrid=2.43x; 정규화 후 residual ratio=1.53x; GraphRAG in target=3/15</td></tr><tr><td>Length caveat</td><td>GraphRAG 1등 결론을 그대로 받아들여도 되는가?</td><td>생성 품질 1등은 GraphRAG로 보는 것이 맞지만, 답변 길이 편향이 완전히 제거된 실험은 아니다.</td><td>Original verbosity-aware: GraphRAG 9 vs LightRAG hybrid 6; Normalized: GraphRAG 11 vs LightRAG hybrid 4</td></tr></tbody></table></div>
     <h3>Conclusion</h3>
-    <p>length normalization과 verbosity-aware judge까지 반영한 보수적 결론은 다음과 같다. LightRAG의 특허 특화 graph 구축은 품질 지표상 성공했지만, 답변 품질에서는 LightRAG hybrid가 naive를 명확히 이기지 못했다. GraphRAG global은 category-specific broad query에서 강하지만, 길이 보정 후에도 평균 길이 차이가 남아 있어 완전한 동일 길이 비교는 아니다. 반면 cross-category query에서는 LightRAG hybrid가 GraphRAG global을 앞서므로, graph context의 가치는 질문 유형별로 분리해서 판단해야 한다.</p>
+    <p>이번 Patent-100 실험의 생성 답변 품질 1등은 GraphRAG로 정리한다. 다만 GraphRAG 답변은 길이 보정 후에도 LightRAG보다 길어 완전한 동일 길이 비교는 아니며, LightRAG는 승률 1등은 아니지만 entity/relation/chunk/source patent 단위의 근거 추적성과 구현 흐름 설명에 장점이 있다.</p>
 
 
 		  <h2 id="appendix-7-1">Appendix 7.1: Experimental Data Details</h2>
@@ -1916,7 +2184,7 @@ AI 반도체에서 **연산 가속기, 메모리 아키텍처, 패키징 기술*
 }</pre></details>
     <div class='table-wrap'><table class='context-sample-table'><thead><tr><th>context</th><th>count</th><th>sample</th></tr></thead><tbody><tr><td>entities</td><td>24</td><td>[{&quot;entity_name&quot;: &quot;신경망 가속기&quot;, &quot;entity_type&quot;: &quot;architecture&quot;, &quot;description&quot;: &quot;신경망 가속기는 하드웨어 시스템에서 신경망 계층을 실행하도록 구성되는 하드웨어 구조이다.&quot;, &quot;source_id&quot;: &quot;15-786452-chunk-000&quot;, &quot;file_path&quot;: &quot;15-786452&quot;, &quot;created_at&quot;: 1781007654}, {&quot;entity_name&quot;: &quot;AI 하드웨어 가속기&quot;, &quot;entity_type&quot;: &quot;architecture&quot;, &quot;description&quot;: &quot;AI 하드웨어 가속기는 원본 텐서의 희소 값 정보, 형상 데이터, 이진 맵을 활용해 고밀도 텐서에 대한 신경망 연산을 수행하는 구조이다.&quot;, &quot;source_id&quot;: &quot;18-207755-chunk-000&quot;, &quot;file_path&quot;: &quot;18-207755&quot;, &quot;created_at&quot;: 1781020594}, {&quot;entity_name&quot;: &quot;신경망 프로세서&quot;, &quot;entity_type&quot;: &quot;architecture&quot;, &quot;description&quot;: &quot;신경망 프로세서는 신경망 연산을 수행하는 프로세서이다.&quot;, &quot;source_id&quot;: &quot;18-212648-chunk-000&quot;, &quot;file_path&quot;: &quot;18-212648&quot;, &quot;created_at&quot;: 1781018005}]</td></tr><tr><td>relationships</td><td>36</td><td>[{&quot;src_id&quot;: &quot;신경망&quot;, &quot;tgt_id&quot;: &quot;신경망 활성화 로직 구현 장치&quot;, &quot;description&quot;: &quot;신경망 활성화 로직 구현 장치는 신경망을 위한 활성화 로직을 구현한다.&quot;, &quot;keywords&quot;: &quot;적용,활성화 로직&quot;, &quot;weight&quot;: 1.0, &quot;source_id&quot;: &quot;17-291315-chunk-000&quot;, &quot;file_path&quot;: &quot;17-291315&quot;, &quot;created_at&quot;: 1781016186}, {&quot;src_id&quot;: &quot;AI 하드웨어 가속기&quot;, &quot;tgt_id&quot;: &quot;회로 구성요소&quot;, &quot;description&quot;: &quot;AI 하드웨어 가속기는 텐서 처리와 신경망 연산 수행을 위한 하나 이상의 회로 구성요소를 포함한다.&quot;, &quot;keywords&quot;: &quot;구성요소,포함&quot;, &quot;weight&quot;: 1.0, &quot;source_id&quot;: &quot;18-207755-chunk-000&quot;, &quot;file_path&quot;: &quot;18-207755&quot;, &quot;created_at&quot;: 1781020594}, {&quot;src_id&quot;: &quot;신경망&quot;, &quot;tgt_id&quot;: &quot;컨볼루션 연산&quot;, &quot;description&quot;: &quot;컨볼루션 연산은 신경망에 관련된 계산으로 수행된다.&lt;SEP&gt;컨볼루션 연산은 신경망 계층의 입력 데이터와 커널 데이터를 대상으로 수행된다.&quot;, &quot;keywords&quot;: &quot;수행,신경망 연산,적용&quot;, &quot;weight&quot;: 2.0, &quot;source_id&quot;: &quot;17-459782-chunk-000&lt;SEP&gt;17-196922-chunk-000&quot;, &quot;file_path&quot;: &quot;17-459782&lt;SEP&gt;17-196922&quot;, &quot;created_at&quot;: 1781015678}]</td></tr><tr><td>chunks</td><td>10</td><td>[{&quot;reference_id&quot;: &quot;1&quot;, &quot;content&quot;: &quot;문서 유형: AI 반도체 특허\npatent_id: 17-511417\n출원번호: 17-511417\n공개번호: 2022-0050683\n발명의 명칭: Apparatuses, methods, and systems for neural networks\n요약: Methods and apparatuses relating to processing neural networks are described. In one embodiment, an apparatus to process a neural network includes a plurality of fully connected layer chips coupled by an interconnect; a plurality of convolutional layer chips each coupled by an interconnect to a respective fully connected layer chip of the plurality of fully connected layer chips and each of the plurality of fully connected layer chips and the plurality of convolutional layer chips including an interconnect to couple each of a forward propagation compute intensive tile, a back propagation compute intensive tile, and a weight gradient compute intensive tile of a column of compute intensive tiles between a first memory intensive tile and a second memory intensive tile.\nAI요약(목적): 공유 메모리에서 액세스 동기화를 제공한다.\nAI요약(솔루션 ...[truncated]</td></tr></tbody></table></div>
 
-	  <h2 id="appendix-7-3-1">Appendix 7.3.1: Graph Generation Prompt and Outputs</h2>
+  <h2 id="appendix-7-3-1">Appendix 7.3.1: Graph Generation Prompt and Outputs</h2>
   <details><summary>Prompt excerpt</summary><pre>entity_types_guidance: |
   Extract only technical knowledge graph entities and relationships from AI semiconductor patent text.
   Use Korean descriptions unless an entity name is a technical English term.
@@ -1992,6 +2260,122 @@ entity_extraction_examples:
     발명의 명칭: Performing hardware operator fusion
     요약: A method of generating executable instructions for a computing system is provided. The method comprises receiving a first set of instructions including a kernel of a first operator and a kernel of a second operator. The kernel of the first operator includes write instructions to a virtual data node, and the kernel of the second operator includes read instructions to the virtual data node. The method determines data transfer operations between the first operator and the second operator and generates a second set of instructions representing a fused operator.
     대표청구항: A method of generating executable instructions for a hardware accelerator includes converting off-chip read inst</pre></details>
+  <details><summary>R Function prompt</summary><pre># R Function: entity / relation extraction prompt
+System prompt 핵심 1: output schema
+4. **Output Format:**
+  - Entity row: `entity{tuple_delimiter}entity_name{tuple_delimiter}entity_type{tuple_delimiter}entity_description`
+  - Relation row: `relation{tuple_delimiter}source_entity{tuple_delimiter}target_entity{tuple_delimiter}relationship_keywords{tuple_delimiter}relationship_description`
+  - Wrong: `entity{tuple_delimiter}Alice{tuple_delimiter}Acme{tuple_delimiter}founded{tuple_delimiter}Alice founded Acme`
+  - Correct: `relation{tuple_delimiter}Alice{tuple_delimiter}Acme{tuple_delimiter}founded{tuple_delimiter}Alice founded Acme`
+
+5. **Delimiter Usage:**
+  - The `{tuple_delimiter}` is a complete, atomic marker and **must not be filled with content**. It serves strictly as a field separator.
+  - Incorrect: `entity{tuple_delimiter}Tokyo&lt;|location|&gt;Tokyo is the capital of Japan.`
+  - Correct: `entity{tuple_delimiter}Tokyo{tuple_delimiter}location{tuple_deli
+...[truncated]
+
+System prompt 핵심 2: language / context
+7. **Context &amp; Language:**
+  - Ensure all entity names and descriptions are written in the **third person**.
+  - Explicitly name the subject or object; **avoid using pronouns** such as `this article`, `this paper`, `our company`, `I`, `you`, and `he/she`.
+  - The entire output (entity names, keywords, and descriptions) must be written in `{language}`.
+  - Proper nouns (e.g., personal names, place names, organization names) should be retained in their original language if a proper
+...[truncated]
+
+User prompt 핵심:
+---Task---
+Extract entities and relationships from the `
+
+# Patent-specific YAML guidance
+entity_types_guidance: |
+  Extract only technical knowledge graph entities and relationships from AI semiconductor patent text.
+  Use Korean descriptions unless an entity name is a technical English term.
+
+  Do not extract administrative metadata as entities:
+  - patent_id, application number, publication number, registration number
+  - IPC/CPC classification codes
+  - country codes and nationalities such as US, KR, JP, CN, EP, WO
+  - legal status values such as 등록, 공개, 거절, 소멸
+  - application/publication/registration dates and years
+  - claim numbers such as 청구항1
+  - category/subcategory codes such as AA, AB, AC, AD, AAA, AAD, ACC
+
+  Also avoid making broad document labels into entities, such as &quot;AI 반도체 특허&quot; or &quot;특허 문서&quot;.
+  If a category name is only administrative classification, do not extract it.
+
+  Classify each extracted entity using one of these types:
+  - TechComponent: hardware components, circuits, units, devices, memory blocks, processing elements, buses, interfaces
+  - Architecture: system, processor, memory, p
+...[truncated]
+
+# Patent few-shot output example
+---Output---
+    entity{tuple_delimiter}CMOS 저항 처리 유닛{tuple_delimiter}Architecture{tuple_delimiter}CMOS 기반 RPU는 신경망 회로 동작에서 가중치 값을 전하로 표현하고 갱신하는 처리 유닛이다.
+    entity{tuple_delimiter}커패시터 장치{tuple_delimiter}TechComponent{tuple_delimiter}커패시터 장치는 신경망 가중치 값을 나타내는 전하를 저장하는 구성요소이다.
+    entity{tuple_delimiter}전류원 FET{tuple_delimiter}TechComponent{tuple_delimiter}전류원 FET는 커패시터 장치에 연결되어 저장 전하를 증가시키는 트랜지스터 장치이다.
+    entity{tuple_delimiter}전류 싱크 FET{tuple_delimiter}TechComponent{tuple_delimiter}전류 싱크 FET는 커패시터 장치에서 방전 전류를 받아 저장 전하를 감소시키는 트랜지스터 장치이다.
+    entity{tuple_delimiter}아날로그 웨이트 업데이트 회로{tuple_delimiter}TechComponent{tuple_delimiter}아날로그 웨이트 업데이트 회로는 업데이트 신호에 따라 전류원 FET와 전류 싱크 FET를 제어한다.
+    entity{tuple_delimiter}신경망 회로 동작{tuple_delimiter}Operation{tuple_delimiter}신경망 회로 동작은 저장된 전하를 가중치 값으로 사용하는 연산 맥락이다.
+    relation{tuple_delimiter}CMOS 저항 처리 유닛{tuple_delimiter}커패시터 장치{tuple_delimiter}구성요소, 전하 저장{tuple_delimiter}CMOS 저항 처리 유닛은 가중치 값을 나타내는 전하를 저장하기 위해 커패시터 장치를 포함한다.
+    relation{tuple_delimiter}전류원 FET{tuple_delimiter}커패시터 장치{tuple_delimiter}연결, 전하 증가{tuple_delimiter}전류원 FET는 커패시터 장치에 연결되어 저장 전하를 증가시키는 전류를 제공한다.
+    relation{tuple_delimiter}전류 싱크 FET{tuple_delimiter}커패시터 장치{tuple_delimiter}연결, 전하 감소{tuple_delimiter}전류 싱크 FET는 커패시터 장치에서 방전되는 전류를 받아 저장 전하를 감소시킨다.
+    relation{tuple_delimiter}아날로그 웨이트 업데이트 회로{tuple_delimiter}전류원 FET{tuple_delimiter}제어, 가중치 업데이트{tuple_delimiter}아날로그 웨이트 업데이트 회로는 업데이트 신호에 따라 전류원 FET를 제어한다.
+    relation{tuple_delimiter}아날로그 웨이트 업데이트 회로{tu
+...[truncated]</pre></details><details><summary>R Function 한국어 번역</summary><pre># R Function 프롬프트 한국어 번역
+역할:
+- LLM은 Knowledge Graph Specialist로 동작한다.
+- 입력 특허 텍스트에서 명확하고 의미 있는 entity와 relation을 추출한다.
+
+Entity 추출 규칙:
+- entity_name: entity 이름을 일관된 이름으로 정한다.
+- entity_type: ---Entity Types---에 제공된 타입 중 하나로 분류한다. 맞는 타입이 없으면 Other를 사용한다.
+- entity_description: 입력 텍스트에 있는 정보만 근거로 entity의 속성과 동작을 간결하지만 충분히 설명한다.
+
+Relation 추출 규칙:
+- 이미 추출한 entity 사이의 직접적이고 의미 있는 관계만 뽑는다.
+- 하나의 문장이 여러 entity 관계를 포함하면 2개 entity 단위의 relation으로 분해한다.
+- source_entity, target_entity, relationship_keywords, relationship_description을 생성한다.
+
+특허 특화 규칙:
+- 기술 knowledge graph에 필요한 entity/relation만 추출한다.
+- 특허번호, 출원번호, 공개번호, 등록번호, IPC/CPC, 국가코드, 법적상태, 날짜, 청구항 번호, 중/소분류 코드는 entity로 추출하지 않는다.
+- relation은 추출된 기술 entity 사이에서만 만든다.</pre></details><details><summary>P Function prompt</summary><pre># P Function: entity/relation profile summary prompt
+---Role---
+You are a Knowledge Graph Specialist, proficient in data curation and synthesis.
+
+---Task---
+Your task is to synthesize a list of descriptions of a given entity or relation into a single, comprehensive, and cohesive summary.
+
+---Instructions---
+1. Input Format: The description list is provided in JSON format. Each JSON object (representing a single description) appears on a new line within the `Description List` section.
+2. Output Format: The merged description will be returned as plain text, presented in multiple paragraphs, without any additional formatting or extraneous comments before or after the summary.
+3. Comprehensiveness: The summary must integrate all key information from *every* provided description. Do not omit any important facts or details.
+4. Context: Ensure the summary is written from an objective, third-person perspective; explicitly mention the name of the entity or relation for full clarity and context.
+5. Context &amp; Objectivity:
+  - Write the summary from an objective, third-person perspective.
+  - Explicitly mention the full name of the entity or relation at the beginning of the summary to ensure immediate clarity and context.
+6. Conflict Handling:
+  - In cases of conflicting or inconsistent descriptions, first determine if these conflicts arise from multiple, distinct entities or relationships that share the same name.
+  - If distinct entities/relations are identified, summarize each one *separately* within the overall output.
+  - If conflicts within a single entity/relation (
+...[truncated]
+
+# 실제 동작 조건
+- description이 1개면 LLM 호출 없이 그대로 profile description으로 저장한다.
+- 같은 entity/relation이 여러 chunk/source에서 반복되면 Description List를 JSONL로 묶어 위 prompt에 넣는다.
+- LLM 요약 결과가 vdb_entities.json / vdb_relationships.json의 content/description이 되고 embedding 대상 profile이 된다.</pre></details><details><summary>P Function prompt 한국어 번역</summary><pre># P Function 프롬프트 한국어 번역
+역할:
+- LLM은 Knowledge Graph Specialist로서 entity 또는 relation 설명 목록을 정리하고 종합한다.
+
+작업:
+- 주어진 entity 또는 relation에 대해 여러 description 조각을 하나의 포괄적이고 일관된 summary로 합친다.
+- 입력 description list는 JSON 형식이며, 각 JSON 객체는 Description 필드를 가진다.
+- 출력은 추가 설명 없이 plain text summary만 반환한다.
+
+실제 동작 조건:
+- description이 1개뿐이면 LLM을 호출하지 않고 그대로 profile description으로 저장한다.
+- 같은 entity/relation이 여러 chunk나 source patent에서 반복되면 description list를 만들고 이 P Function prompt로 LLM summary를 생성한다.
+- 생성된 summary는 vdb_entities.json 또는 vdb_relationships.json의 profile content가 되고, embedding 대상이 된다.</pre></details>
 
     <h3>R/P/D Function Output Examples</h3>
     <p class="note">실제 Patent-100 storage에서 특허 <code>16-060058</code>와 graph/VDB payload를 읽어 구성했다.</p>
@@ -2037,7 +2421,7 @@ AI요약(목적+솔루션): [목적] 전력 반도체 소자에 관한 것으로
   <div class='table-wrap'><table class='keyword-summary-table'><thead><tr><th>query_id</th><th>question</th><th>high_level_keywords</th><th>low_level_keywords</th><th>retrieval_counts</th><th>mode</th></tr></thead><tbody><tr><td>AA-1</td><td>AI 코어 및 가속기 특허에서 신경망 연산 가속기 구조는 어떤 방식으로 연산 병렬성을 높이는가?</td><td>AI 코어, 가속기 특허, 신경망 연산 가속기 구조, 연산 병렬성 향상 방식</td><td>신경망 연산, 가속기 구조, 연산 병렬성</td><td>E=24, R=36, C=10</td><td>hybrid</td></tr><tr><td>X-2</td><td>PIM과 NPU 방식은 데이터 이동 비용을 줄이는 관점에서 어떻게 다르게 접근하는가?</td><td>데이터 이동 비용 감소, 접근 방식 비교</td><td>PIM, NPU, 데이터 이동 비용</td><td>E=25, R=26, C=10</td><td>hybrid</td></tr><tr><td>F-1</td><td>특허 16-060058의 주요 구성요소, 해결하려는 문제, 대표청구항의 기술 범위를 설명하라.</td><td>특허 분석, 주요 구성요소, 해결하려는 문제, 대표청구항 기술 범위</td><td>특허 16-060058, 대표청구항, 기술 범위</td><td>E=27, R=30, C=10</td><td>hybrid</td></tr></tbody></table></div>
 	  <h2 id="appendix-7-3-4">Appendix 7.3.4: RAG Evaluation</h2>
   <p class="note">Gemini 3.5 Flash judge를 실행했고 60/60 pairwise 결과를 정규화해 사용했다.</p>
-  <div class='table-wrap'><table class='judge-plan-table'><thead><tr><th>Judge item</th><th>Planned value</th></tr></thead><tbody><tr><td>Pairwise comparisons</td><td>LightRAG hybrid vs NaiveRAG; LightRAG hybrid vs GraphRAG global/local; GraphRAG global vs NaiveRAG</td></tr><tr><td>Rubrics</td><td>Comprehensiveness, Diversity, Empowerment, Technical correctness, Hallucination risk, Overall</td></tr><tr><td>A/B ordering</td><td>query별로 answer A/B 순서 교차</td></tr><tr><td>Output schema</td><td>{metric: {winner, score_a, score_b, rationale}, overall_summary}</td></tr></tbody></table></div>
+  <div class='table-wrap'><table class='judge-plan-table'><thead><tr><th>Judge item</th><th>Planned value</th></tr></thead><tbody><tr><td>Pairwise comparisons</td><td>LightRAG hybrid vs NaiveRAG; LightRAG hybrid vs GraphRAG; GraphRAG vs NaiveRAG</td></tr><tr><td>Rubrics</td><td>Comprehensiveness, Diversity, Empowerment, Technical correctness, Hallucination risk, Overall</td></tr><tr><td>A/B ordering</td><td>query별로 answer A/B 순서 교차</td></tr><tr><td>Output schema</td><td>{metric: {winner, score_a, score_b, rationale}, overall_summary}</td></tr></tbody></table></div>
   <p class="note">아래 JSON은 구조 확인용 excerpt다. 전체 raw 결과는 <code>/Users/dabeenkim/Documents/GitHub/HYU-lightRAG/experiments/rag_repro_100_seed20260609/evaluation</code>와 <code>/Users/dabeenkim/Documents/GitHub/HYU-lightRAG/experiments/rag_repro_100_seed20260609/evaluation_length_control</code>에 보존했다.</p>
   <details><summary>Judge summary excerpt</summary><pre>{
   &quot;judge_model&quot;: &quot;google/gemini-3.5-flash&quot;,

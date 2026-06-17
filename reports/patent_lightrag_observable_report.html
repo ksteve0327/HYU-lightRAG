@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Patent-100 LightRAG 값 변화 관찰 보고서</title>
+<style>
+:root{--ink:#17202a;--muted:#65717d;--paper:#f5f1e8;--card:#fffdf8;--line:#ded7ca;--blue:#2667ff;--orange:#ef8354;--green:#2a9d8f}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.65 "Malgun Gothic","Noto Sans KR",sans-serif}
+main{max-width:1180px;margin:auto;padding:40px 24px 90px}
+h1{font-size:64px;line-height:1.08;letter-spacing:0;margin:12px 0 20px;max-width:900px;word-break:keep-all}
+h2{font-size:29px;letter-spacing:0;margin:0 0 14px;word-break:keep-all}
+h3{margin:0 0 8px;letter-spacing:0}
+p{margin:7px 0 14px}
+code,pre{font-family:Consolas,monospace}
+code{background:#eee9df;border-radius:5px;padding:2px 5px;font-size:12px;overflow-wrap:anywhere}
+pre{white-space:pre-wrap;background:#171b22;color:#e9eef5;padding:18px;border-radius:12px;max-height:420px;overflow:auto}
+.hero{padding:42px;border:1px solid var(--line);background:linear-gradient(135deg,#fffdf8 55%,#dbe6ff);border-radius:28px;margin-bottom:26px}
+.eyebrow{display:block;color:var(--blue);font-weight:800;text-transform:uppercase;letter-spacing:0;font-size:11px;margin-bottom:8px}
+.lead{font-size:18px;max-width:830px}.muted,small{color:var(--muted)}
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:18px}
+.card{grid-column:span 12;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:25px;margin-top:18px;overflow:hidden}
+.half{grid-column:span 6}.third{grid-column:span 4}.stat{font-size:36px;font-weight:900;line-height:1;color:var(--blue)}
+.flow{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin:22px 0}
+.flow div{padding:15px 9px;border-radius:12px;text-align:center;background:#eef3ff;border:1px solid #cfdbfb;font-weight:700}
+.flow div:not(:last-child)::after{content:"→";float:right;color:var(--blue);transform:translateX(14px)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:10px 9px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top;overflow-wrap:anywhere}
+th{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:0}
+.table-wrap{overflow:auto}.bar-row{display:grid;grid-template-columns:92px 1fr;gap:8px;margin:12px 0;align-items:center}
+.bar{min-width:105px;color:white;padding:7px 10px;border-radius:7px;font-size:12px;font-weight:800}
+.entity{background:var(--blue)}.relation{background:var(--orange)}
+details{border-top:1px solid var(--line);padding:12px 0}summary{cursor:pointer;font-weight:700}
+.mini-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.mini-card{background:#f7f3ea;border-radius:14px;padding:16px;overflow:hidden}.mini-card strong{display:block;font-size:22px}
+.callout{border-left:5px solid var(--orange);padding:13px 16px;background:#fff2e8;border-radius:0 12px 12px 0}.ok{border-color:var(--green);background:#eaf7f4}
+.blank{opacity:.72;background:repeating-linear-gradient(135deg,#fffdf8,#fffdf8 10px,#f7f3ea 10px,#f7f3ea 20px)}
+@media(max-width:800px){.half,.third{grid-column:span 12}.flow,.mini-grid{grid-template-columns:1fr}.flow div:not(:last-child)::after{display:none}.hero{padding:25px}h1{font-size:38px}}
+</style>
+</head>
+<body><main>
+<section class="hero"><span class="eyebrow">Observable LightRAG · Patent-100 · 2026-06-15</span>
+<h1>AI 반도체 특허 100건이<br>그래프와 검색 값으로 바뀌는 과정</h1>
+<p class="lead">AI 반도체 특허 100건을 공식 LightRAG에 넣었을 때 구조화 특허 문서가 청크, 엔티티, 관계, 그래프, 벡터 저장소, 검색 컨텍스트로 바뀌는 과정을 관찰한다. 이 보고서는 정답률 중심 보고서가 아니라 실제 저장 값과 검색 값의 이동을 보여주는 관찰 보고서다.</p>
+<p class="muted">LLM: gpt-5.5 via codex-proxy · Embedding: openai/text-embedding-3-large 3072 dimensions · chunk 1200 tokens</p>
+</section>
+
+<div class="grid">
+<section class="card third"><span class="eyebrow">Final graph</span><div class="stat">1596</div><p>고유 엔티티 노드</p></section>
+<section class="card third"><span class="eyebrow">Final graph</span><div class="stat">2203</div><p>고유 관계 엣지</p></section>
+<section class="card third"><span class="eyebrow">Official merge</span><div class="stat">123</div><p>둘 이상의 청크에서 합쳐진 엔티티</p></section>
+
+<section class="card"><h2>실험 목적과 관찰 질문</h2>
+<p>목적은 Patent-100에서 LightRAG의 내부 값 변화를 확인하는 것이다. 특히 특허 수가 늘어난 뒤 기술 entity/relation 중심 graph가 만들어졌는지, 메타데이터 node가 억제됐는지, 검색 mode별 context가 어떻게 달라졌는지를 본다.</p>
+<div class='table-wrap'><table><thead><tr><th>관찰 질문</th><th>의미</th></tr></thead><tbody><tr><td>특허 문서는 LightRAG 안에서 어떤 저장 값으로 바뀌는가?</td><td>chunk, entity, relation, vector store 생성 흐름 확인</td></tr><tr><td>반복 등장하는 기술 구성요소는 어떻게 병합되는가?</td><td>동일 entity/relation의 chunk 출처 누적 확인</td></tr><tr><td>특허 특화 prompt는 메타데이터 hub를 줄였는가?</td><td>metadata relation ratio와 excluded entity ratio 확인</td></tr><tr><td>검색 mode에 따라 context 값은 어떻게 달라지는가?</td><td>naive/local/global/hybrid 차이 확인</td></tr><tr><td>최종 답변은 어떤 특허 chunk에 연결되는가?</td><td>answer와 source evidence 연결성 확인</td></tr></tbody></table></div></section>
+
+<section class="card"><h2>데이터가 움직인 경로</h2>
+<div class="flow"><div>patent_rawdata</div><div>100 documents</div><div>162 chunks</div><div>LLM extraction</div><div>graph + vectors</div><div>retrieval context</div></div>
+<div class="callout ok"><strong>전처리 범위:</strong> 특허 1건은 <code>patent_id</code>, 출원번호, 제목, 요약, AI 목적/솔루션, 대표청구항, 중/소분류, IPC/CPC, 출원인/권리자, 국가, 출원연도를 포함한 구조화 텍스트로 변환했다.</div>
+<details><summary>실제 첫 입력 chunk 보기: <code>16-632673-chunk-000</code></summary><p>문서 유형: AI 반도체 특허 patent_id: 16-632673 출원번호: 16-632673 공개번호: 2021-0098300 등록번호: 11502003 발명의 명칭: Image processing method 요약: A novel image processing method is provided.In a display device in which a video signal is individually supplied to a screen divided into two, the entire screen is subjected to up-conversion processing after being divided, and another up-conversion processing is performed for a boundary portion of the screen divided into two. The divided up-conversion processing for the entire screen and the up-conversion processing for the boundary portion are performed in parallel with the use of a plurality of arithmetic units. The divided up-conversion processing for the entire screen and the up-conversion processing for the boundary portion can be performed using different algorithms. AI요약(목적): 저해상도의 영상 데이터로부터 고해상도의 영상 데이터를 생성하는 영상 처리 방법을 제공한다. AI요약(솔루션): 화면에는 두 부분이 있습니다. 한 부분에는 신호를 보내는 선이 있고 다른 부분에는 데이터를 보내는 선이 있습니다. 첫 번째 부분은 한 영역에 신호를 보내고 두 번째 부분은 다른 영역에 신호를 보냅니다. 데이터를 더 작은 부분으로 나누고 각 부분의 강도를 조정하면 화면에 더 선명한 이미지가 표시됩니다. AI요약(목적+솔루션): [목적] 저해상도의 영상 데이터로부터 고해상도의 영상 데이터를 생성하는 영상 처리 방법을 제공한다. [솔루션] 화면에는 두 부분이 있습니다. 한 부분에는 신호를 보내는 선이 있고 다른 부분에는 데이터를 보내는 선이 있습니다. 첫 번째 부분은 한 영역에 신호를 보내고 두 번째 부분은 다른 영역에 신호를 보냅니다. 데이터를 더 작은 부분으로 나누고 각 부분의 강도를 조정하면 화면에 더 선명한 이미지가 표시됩니다. 대표청구항: [청구항1] 1. An image processing method for generating image data to be displayed on a display device,wherein the display device comprises a display unit comprising a plurality of pixels, a scan line driver circuit, a first signal line driver circuit, and a second signal line driver circuit,wherein the display unit comprises a first display region and a second display region,wherein the display unit comprises a boundary region comprising a part of the first display region and a part of t ...[truncated]</p></details>
+</section>
+
+<section class="card half"><h2>AI 반도체 특허 데이터는 어떤 정보로 구성되는가</h2>
+<div class='table-wrap'><table><thead><tr><th>특허 요소</th><th>예시</th><th>LightRAG 변환</th></tr></thead><tbody><tr><td>기본 식별자</td><td>patent_id, 출원번호, 공개번호, 등록번호</td><td>entity로 뽑지 않도록 prompt에서 제외</td></tr><tr><td>기술 제목/요약</td><td>Hardware architecture for neural network</td><td>chunk 원문과 기술 entity 후보</td></tr><tr><td>AI 목적/솔루션</td><td>연산 병렬성, 데이터 이동 비용 절감</td><td>operation, performance relation</td></tr><tr><td>대표청구항</td><td>input register, multiplication block</td><td>TechComponent와 relation</td></tr><tr><td>분류/국가/상태</td><td>IPC/CPC, US, 등록</td><td>metadata hub 방지를 위해 제외 대상</td></tr></tbody></table></div>
+<p class="muted">이 데이터는 NBA 기사보다 구조화 필드가 많다. 그래서 prompt에서 특허번호, IPC/CPC, 국가, 법적상태를 entity로 뽑지 말라고 명시해야 graph가 기술 중심으로 유지된다.</p></section>
+
+<section class="card half"><h2>LightRAG 내부에서 데이터는 어떻게 변환되는가</h2>
+<div class='table-wrap'><table><thead><tr><th>단계</th><th>입력</th><th>처리</th><th>출력</th></tr></thead><tbody><tr><td>1. Document Insert</td><td>구조화 특허 텍스트</td><td>100건 insert</td><td>doc status 100</td></tr><tr><td>2. Chunking</td><td>긴 특허 텍스트</td><td>1200 token 단위 분할</td><td>162 chunks</td></tr><tr><td>3. Entity Extraction</td><td>chunk 텍스트</td><td>특허 prompt 기반 LLM 추출</td><td>1596 entities</td></tr><tr><td>4. Relation Extraction</td><td>chunk + entity</td><td>기술 관계 추출</td><td>2203 relations</td></tr><tr><td>5. Merge</td><td>동일 이름/entity pair</td><td>chunk_ids와 profile 병합</td><td>multi-source entity 123</td></tr><tr><td>6. Vectorization</td><td>chunk/entity/relation</td><td>OpenRouter embedding</td><td>3종 vector store</td></tr><tr><td>7. Retrieval</td><td>15개 query</td><td>naive/local/global/hybrid</td><td>60/60 successful answers</td></tr></tbody></table></div></section>
+
+<section class="card"><h2>20 pilot → 100 fresh 변화</h2>
+<p class="muted">NBA 템플릿의 5→10→25 누적 실행은 우리 Patent-100 실험에서는 수행하지 않았다. 대신 실제로 존재하는 20건 prompt pilot과 100건 fresh index를 표시하고, 수행하지 않은 5/10/25 row는 빈칸으로 둔다.</p>
+<div class='table-wrap'><table><thead><tr><th>stage</th><th>documents</th><th>chunks</th><th>entities</th><th>relations</th><th>multi-source entities</th><th>multi-source relations</th><th>status</th></tr></thead><tbody><tr><td>5 docs</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>미실행</td></tr><tr><td>10 docs</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>미실행</td></tr><tr><td>20 pilot</td><td>20</td><td>31</td><td>346</td><td>454</td><td>11</td><td>1</td><td>완료</td></tr><tr><td>25 docs</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>미실행</td></tr><tr><td>100 fresh</td><td>100</td><td>162</td><td>1596</td><td>2203</td><td>123</td><td>24</td><td>완료</td></tr></tbody></table></div>
+<div style="margin-top:22px">
+        <div class="bar-row"><span>20 pilot</span>
+          <div class="bar entity" style="width:21.7%">346 entities</div>
+          <div class="bar relation" style="width:20.6%">454 relations</div>
+        </div>
+
+        <div class="bar-row"><span>100 fresh</span>
+          <div class="bar entity" style="width:100.0%">1596 entities</div>
+          <div class="bar relation" style="width:100.0%">2203 relations</div>
+        </div>
+        </div>
+<p class="muted">20건 pilot은 prompt 검증 목적이고, 100건 fresh는 최종 비교 실험용 index다. 두 실행은 같은 데이터 누적 run이 아니라 별도 working dir에서 실행됐다.</p></section>
+
+<section class="card half"><h2>청크 실제 값</h2>
+<details open><summary><code>16-632673-chunk-000</code> · 1139 tokens</summary>
+<p>문서 유형: AI 반도체 특허 patent_id: 16-632673 출원번호: 16-632673 공개번호: 2021-0098300 등록번호: 11502003 발명의 명칭: Image processing method 요약: A novel image processing method is provided.In a display device in which a video signal is individually supplied to a screen divided into two, the entire screen is subjected to up-conversion processing after being divided, and another up-conversion processing is performed for a boundary portion of the screen divided into two. The divided up-conversion processing for the entire screen and the up-conversion processing for the boundary portion are performed in parallel with the use of a plurality of arithmetic units. The divided up-conversion processing for the entire screen and the up-conversion processing for the boundary portion can be performed using different algorithms. AI요약(목적): 저해상도의 영상 데이터로부터 고해상도의 영상 데이터를 생성하는 영상 처리 방법을 제공한다. AI요약(솔루션): 화면에는 두 부분이 있습니다. 한 부분에는 신호를 보내는 선이 있고 다른 부분에는 데이터를 보내는 선이 있습니다. 첫 번째 부분은 한 영역에 신호를 보내고 두 번째 부분은 다른 영역에 신호를 보냅니다. 데이터를 더 작은 부분으로 나누고 각 부분의 강도를 조정하면 화면에 더 선명한 이미지가 표시됩니다. AI요약(목적+솔루션): [목적] 저해상도의 영상 데이터로부터 고해상도의 영상 데이터를 생성하는 영상 처리 방법을 제공한다. [솔루션] 화면에는 두 부분이 있습니다. 한 부분에는 신호를 보내는 선이 있고 다른 부분에는 데이터를 보내는 선이 있습니다. 첫 번째 부분은 한 영역에 신호를 보내고 두 번째 부분은 다른 영역에 신호를 보냅니다. 데이터를 더 작은 부분으로 나누고 각 부분의 강도를 조정하면 화면에 더 선명한 이미지가 표시됩니다. 대표청구항: [청구항1] 1. An image processing method for generating image data to be displayed on a display device,wherein the display device comprises a display unit comprising a plurality of pixels, a scan line driver circuit, a first signal line driver circuit, and a second signal line driver circuit, ...[truncated]</p>
+<p class="muted">full_doc_id: <code>16-632673</code> · source: <code>16-632673</code></p>
+</details></section>
+
+<section class="card half"><h2>엔티티 유형 분포 · 100건</h2><div class='table-wrap'><table><thead><tr><th>type</th><th>count</th><th>share</th></tr></thead><tbody><tr><td>techcomponent</td><td>660</td><td>41.4%</td></tr><tr><td>operation</td><td>270</td><td>16.9%</td></tr><tr><td>other</td><td>208</td><td>13.0%</td></tr><tr><td>architecture</td><td>172</td><td>10.8%</td></tr><tr><td>performancemetric</td><td>105</td><td>6.6%</td></tr><tr><td>method</td><td>101</td><td>6.3%</td></tr><tr><td>material</td><td>40</td><td>2.5%</td></tr><tr><td>applicationdomain</td><td>40</td><td>2.5%</td></tr></tbody></table></div></section>
+
+<section class="card"><h2>하나의 특허는 LightRAG 안에서 어떻게 바뀌는가</h2>
+<p><code>16-632673</code> 특허 chunk에서 entity와 relation이 추출되고, 동일 이름/entity pair는 전체 graph의 기존 값과 병합된다.</p>
+<div class='table-wrap'><table><thead><tr><th>단계</th><th>실제 변화</th></tr></thead><tbody><tr><td>원문</td><td>문서 유형: AI 반도체 특허 patent_id: 16-632673 출원번호: 16-632673 공개번호: 2021-0098300 등록번호: 11502003 발명의 명칭: Image processing method 요약: A novel image processing method is provided.In a display device in which a video signal is individually supplied to a screen ...[truncated]</td></tr><tr><td>청크</td><td>16-632673-chunk-000</td></tr><tr><td>추출 엔티티</td><td>스캔 라인 구동 회로, 제1 디스플레이 영역, 산술 유닛, 고해상도 영상 데이터, 제6 영상 데이터, 제3 영상 데이터, 경계 영역 영상 데이터 생성, 업컨버전 처리, 저해상도 영상 데이터, 제1 영상 데이터, 영상 데이터 분할, 경계 영역</td></tr><tr><td>추출 관계</td><td>병렬 처리 -&gt; 업컨버전 처리; 디스플레이 유닛 -&gt; 디스플레이 장치; 디스플레이 장치 -&gt; 제1 신호선 구동 회로; 제1 디스플레이 영역 -&gt; 제1 신호선 구동 회로; 디스플레이 장치 -&gt; 스캔 라인 구동 회로; 영상 데이터 분할 -&gt; 제2 영상 데이터; 디스플레이 유닛 -&gt; 제2 디스플레이 영역; 업컨버전 처리 -&gt; 제4 영상 데이터</td></tr><tr><td>병합</td><td>동일 entity/relation pair의 chunk_ids가 누적됨</td></tr><tr><td>검색 활용</td><td>query context의 entities, relationships, chunks 중 하나로 선택될 수 있음</td></tr></tbody></table></div>
+<div class="callout ok"><strong>핵심 해석:</strong> 특허번호는 source/reference로 남고, graph node는 기술 구성요소와 연산/구조/공정 entity 중심으로 구성된다.</div></section>
+
+<section class="card"><h2>중복은 실제로 어떻게 제거됐나</h2>
+<p>이번 실행의 중복 제거는 이름과 relation pair 기준 병합이다. 프롬프트로 metadata entity를 줄였기 때문에 <code>US</code>, <code>등록</code>, IPC/CPC 같은 hub가 top hub에서 사라졌다.</p>
+<div class="callout"><strong>실제 변화:</strong> 100건 fresh storage에서 multi-source entity는 123개, multi-source relation은 24개다.</div>
+<h3 style="margin-top:22px">병합된 엔티티 예시</h3><div class='table-wrap'><table><thead><tr><th>entity</th><th>source chunks</th><th>chunk_ids</th></tr></thead><tbody><tr><td>프로세서</td><td>16</td><td>2021-0024247-chunk-000, 17-511417-chunk-000, 18-163916-chunk-000, 16-400562-chunk-000, 17-887145-chunk-000</td></tr><tr><td>메모리</td><td>13</td><td>2021-0024247-chunk-000, 2021-0024247-chunk-001, 18-334262-chunk-000, 18-163916-chunk-000, 18-493616-chunk-000</td></tr><tr><td>신경망</td><td>7</td><td>17-459782-chunk-000, 17-511417-chunk-000, 18-462872-chunk-000, 17-196922-chunk-000, 17-291315-chunk-000</td></tr><tr><td>메모리 셀 어레이</td><td>6</td><td>2023-0008349-chunk-000, 2017-0093014-chunk-000, 17-694184-chunk-000, 16-823443-chunk-000, 16-507493-chunk-000</td></tr><tr><td>반도체 기판</td><td>5</td><td>16-551328-chunk-000, 17-326095-chunk-000, 13-925471-chunk-000, 15-173995-chunk-000, 13-096297-chunk-000</td></tr><tr><td>호스트</td><td>5</td><td>18-230375-chunk-000, 17-694184-chunk-000, 17-579995-chunk-000, 15-143248-chunk-000, 2023-0133502-chunk-000</td></tr><tr><td>반도체 패키지</td><td>5</td><td>2023-0108318-chunk-000, 17-829552-chunk-000, 18-243437-chunk-000, 2023-0179661-chunk-000, 17-142133-chunk-000</td></tr><tr><td>입력 데이터</td><td>4</td><td>17-459782-chunk-000, 17-771143-chunk-000, 2017-0036715-chunk-000, 16-599306-chunk-000</td></tr></tbody></table></div>
+<h3 style="margin-top:24px">병합된 관계 예시</h3><div class='table-wrap'><table><thead><tr><th>edge</th><th>source chunks</th><th>chunk_ids</th></tr></thead><tbody><tr><td>메모리 -&gt; 학습된 딥러닝 모델</td><td>2</td><td>2021-0024247-chunk-000, 2021-0024247-chunk-001</td></tr><tr><td>인공지능 가속기 -&gt; 제1 데이터 버퍼</td><td>2</td><td>17-459782-chunk-000, 17-196922-chunk-000</td></tr><tr><td>인공지능 가속기 -&gt; 제2 데이터 버퍼</td><td>2</td><td>17-459782-chunk-000, 17-196922-chunk-000</td></tr><tr><td>제1 데이터 버퍼 -&gt; 제1 입력 시프트 레지스터</td><td>2</td><td>17-459782-chunk-000, 17-196922-chunk-000</td></tr><tr><td>제2 데이터 버퍼 -&gt; 제2 입력 시프트 레지스터</td><td>2</td><td>17-459782-chunk-000, 17-196922-chunk-000</td></tr><tr><td>2차원 시프트 레지스터 -&gt; 제1 입력 시프트 레지스터</td><td>2</td><td>17-459782-chunk-000, 17-196922-chunk-000</td></tr><tr><td>곱셈 블록 회로 -&gt; 컨볼루션 연산</td><td>2</td><td>17-459782-chunk-000, 17-196922-chunk-000</td></tr><tr><td>인공지능 가속기 -&gt; 컨볼루션 연산</td><td>2</td><td>17-459782-chunk-000, 17-196922-chunk-000</td></tr></tbody></table></div></section>
+
+<section class="card"><h2>텍스트에서 그래프로 바뀐 구조</h2>
+<div class="mini-grid">
+<article class="mini-card"><span class="eyebrow">Top hubs</span><div class='table-wrap'><table><thead><tr><th>entity</th><th>degree</th><th>type</th></tr></thead><tbody><tr><td>프로세서</td><td>42</td><td>techcomponent</td></tr><tr><td>메모리</td><td>22</td><td>techcomponent</td></tr><tr><td>메모리 셀 어레이</td><td>22</td><td>techcomponent</td></tr><tr><td>반도체 패키지</td><td>16</td><td>architecture</td></tr><tr><td>제어 로직 회로</td><td>14</td><td>techcomponent</td></tr><tr><td>메모리 장치</td><td>14</td><td>architecture</td></tr><tr><td>반도체 기판</td><td>13</td><td>material</td></tr><tr><td>목적 함수</td><td>12</td><td>operation</td></tr></tbody></table></div></article>
+<article class="mini-card"><span class="eyebrow">Graph quality</span><div class='table-wrap'><table><thead><tr><th>metric</th><th>value</th></tr></thead><tbody><tr><td>metadata relation ratio</td><td>0.01</td></tr><tr><td>technical relation ratio</td><td>0.9401</td></tr><tr><td>excluded entity ratio</td><td>0.0044</td></tr><tr><td>degree &gt;= 50 hub count</td><td>0</td></tr></tbody></table></div></article>
+<article class="mini-card"><span class="eyebrow">Why graph matters</span><p>특허 문장 안의 회로, 메모리 구조, 연산 방식, 성능 지표가 연결되므로 chunk-only 검색보다 기술 관계를 명시적으로 관찰할 수 있다.</p></article>
+</div></section>
+
+<section class="card"><h2>LLM 추출 전후</h2>
+<p>각 chunk에 대해 entity/relation 추출 응답을 캐시하고, 그 결과가 full_entities, full_relations, graphml, vector DB에 반영된다.</p>
+<details open><summary><code>kv_store_llm_response_cache</code> 추출 응답 일부</summary>
+<p><strong>입력 청크</strong><br>문서 유형: AI 반도체 특허 patent_id: 16-632673 출원번호: 16-632673 공개번호: 2021-0098300 등록번호: 11502003 발명의 명칭: Image processing method 요약: A novel image processing method is provided.In a display device in which a video signal is individually supplied to a screen divided into two, the entire screen is subjected to up-conversion processing after being divided, a ...[truncated]</p>
+<pre>entity&lt;|#|&gt;영상 처리 방법&lt;|#|&gt;Method&lt;|#|&gt;영상 처리 방법은 디스플레이 장치에 표시될 영상 데이터를 생성하고 저해상도 영상 데이터로부터 고해상도 영상 데이터를 생성하는 방법이다. entity&lt;|#|&gt;디스플레이 장치&lt;|#|&gt;Architecture&lt;|#|&gt;디스플레이 장치는 두 부분으로 분할된 화면에 비디오 신호를 개별적으로 공급받고 생성된 영상 데이터를 표시하는 장치이다. entity&lt;|#|&gt;디스플레이 유닛&lt;|#|&gt;TechComponent&lt;|#|&gt;디스플레이 유닛은 복수의 픽셀, 제1 디스플레이 영역, 제2 디스플레이 영역, 경계 영역을 포함하는 표시 구성요소이다. entity&lt;|#|&gt;픽셀&lt;|#|&gt;TechComponent&lt;|#|&gt;픽셀은 디스플레이 유닛에 복수로 포함되어 영상 데이터를 표시하는 기본 표시 요소이다. entity&lt;|#|&gt;스캔 라인 구동 회로&lt;|#|&gt;TechComponent&lt;|#|&gt;스캔 라인 구동 회로는 디스플레이 장치에 포함되는 표시 구동 회로이다. entity&lt;|#|&gt;제1 신호선 구동 회로&lt;|#|&gt;TechComponent&lt;|#|&gt;제1 신호선 구동 회로는 제1 디스플레이 영역에 신호를 공급하도록 구성된 회로이다. entity&lt;|#|&gt;제2 신호선 구동 회로&lt;|#|&gt;TechComponent&lt;|#|&gt;제2 신호선 구동 회로는 제2 디스플레이 영역에 신호를 공급하도록 구성된 회로이다. entity&lt;|#|&gt;제1 디스플레이 영역&lt;|#|&gt;TechComponent&lt;|#|&gt;제1 디스플레이 영역은 디스플레이 유닛을 구성하는 첫 번째 표시 영역이다. entity&lt;|#|&gt;제2 디스플레이 영역&lt;|#|&gt;TechComponent&lt;|#|&gt;제2 디스플레이 영역은 디스플레이 유닛을 구성하는 두 번째 표시 영역이다. entity&lt;|#|&gt;경계 영역&lt;|#|&gt;TechComponent&lt;|#|&gt;경계 영역은 제1 디스플레이 영역의 일부와 제2 디스플레이 영역의 일부를 포함하는 화면 경계 부분이다. entity&lt;|#|&gt;영상 데이터 분할&lt;|#|&gt;Operation&lt;|#|&gt;영상 데이터 분할은 제1 영상 데이터를 n개의 제2 영상 데이터로 나누는 처리이다. entity&lt;|#|&gt;업컨버전 처리&lt;|#|&gt;Operation&lt;|#|&gt;업컨버전 처리는 분할된 영상 데이터 또는 경계 영역 영상 데이터의 해상도를 증가시키는 처리이다. entity&lt;|#|&gt;경계 영역 영상 데이터 생성&lt;|#|&gt;Operation&lt;|#|&gt;경계 영역 영상 데이터 생성은 경계 영역에 대응하는 제3 영상 데이터를 생성하는 처리이다. entity&lt;|#|&gt;병렬 처리&lt;|#|&gt;Operation&lt;|#|&gt;병렬 처리는 전체 화면의 분할 업컨버전 처리와 경계 부분의 업컨버전 처리를 동시에 수행하는 처리 방식이다. entity&lt;|#|&gt;산술 유닛&lt;|#|&gt;TechComponent&lt;|#|&gt;산술 유닛은 분할 업컨버전 처리와 경계 부분 업컨버전 처리를 병렬로 수행하는 데 사용되는 연산 구성요소이다. entity&lt;|#|&gt;고해상도 영상 데이터&lt;|#|&gt;Other&lt;|#|&gt;고해상도 영상 데이터는 저해상도 영상 데이터로부터 생성되어 디스플레이 장치에 표시되는 출력 영상 데이터이다. relation&lt;|#|&gt;영상 처리 방법&lt;|#|&gt;디스플레이 장치&lt;|#|&gt;영상 데이터 생성, 표시&lt;|#|&gt;영상 처리 방법은 디스플레이 장치에 표시될 영상 데이터를 생성한다. relation&lt;|#|&gt;디스플레이 장치&lt;|#|&gt;디스플레이 유닛&lt;|#|&gt;구성요소, 표시&lt;|#|&gt;디스플레이 장치는 복수의 픽셀을 포함하는 디스플레이 유닛을 포함한다. relation&lt;|#|&gt;디스플레이 유닛&lt;|#|&gt;픽셀&lt;|#|&gt;구성요소, 표시 요소&lt;|#|&gt;디스플레이 유닛은 복수의 픽셀을 포함한다. relation&lt;|#|&gt;디스플레이 장치&lt;|#|&gt;스캔 라인 구동 회로&lt;|#|&gt;구성요소, 구동 회로&lt;|#|&gt;디스플레이 장치는 스캔 라인 구동 회로를 포함한다. relation&lt;|#|&gt;디스플레이 장치&lt;|#|&gt;제1 신호선 구동 회로&lt;|#|&gt;구성요소, 신호 공급&lt;|#|&gt;디스플레이 장치는 제1 신호선 구동 회로를 포함한다. relation&lt;|#|&gt;디스플레이 장치&lt;|#|&gt;제2 신호선 구동 회로&lt;|#|&gt;구성요소, 신호 공급&lt;|#|&gt;디스플레이 장치는 제2 신호선 구동 회로를 포함한다. relation&lt;|#|&gt;디스플레이 유닛&lt;|#|&gt;제1 디스플레이 영역&lt;|#|&gt;구성요소, 화면 분할&lt;|#|&gt;디스플레이 유닛은 제1 디스플레이 영역을 포함한다. relation&lt;|#|&gt;디스플레이 유닛&lt;|#|&gt;제2 디스플레이 영역&lt;|#|&gt;구성요소, 화면 분할&lt;|#|&gt;디스플레이 유닛은 제2 디스플레이 영역을 포함한다. relation&lt;|#|&gt;디스플레이 유닛&lt;|#|&gt;경계 영역&lt;|#|&gt;구성요소, 경계 처리&lt;|#|&gt;디스플레이 유닛은 제1 디스플레이 영역 일부와 제2 디스플레이 영역 일부를 포함하는 경계 영역을 포함한다. relation&lt;|#|&gt;제1 신호선 구동 회로&lt;|#|&gt;제1 디스플레이 영역&lt;|#|&gt;신호 공급, 표시 구동&lt;|#|&gt;제1 신호선 구동 회로는 제1 디스플레이 영역에 신호를 공급한다. relation&lt;|#|&gt;제2 신호선 구동 회로&lt;|#|&gt;제2 디스플레이 영역&lt;|#|&gt;신호 공급, 표시 구동&lt;|#|&gt;제2 신호선 구동 회로는 제2 디스플레이 영역에 신호를 공급한다. relation&lt;|#|&gt;영상 처리 방법&lt;|#|&gt;영상 데이터 분할&lt;|#|&gt;수행, 데이터 분할&lt;|#|&gt;영상 ...[truncated]</pre>
+</details></section>
+
+<section class="card"><h2>벡터 값의 이동</h2>
+<div class="mini-grid">
+<article class='mini-card'><span class='eyebrow'>chunks</span><strong>162 vectors</strong><pre>{ &quot;content&quot;: &quot;문서 유형: AI 반도체 특허 patent_id: 16-632673 출원번호: 16-632673 공개번호: 2021-0098300 등록번호: 11502003 발명의 명칭: Image processing method 요약: A novel image processing method is provided.In a display device in which a video signal is individually supplied to a screen divided into two, the entire screen is subjected to up-conversion processing after being divided, a ...[truncated]&quot;, &quot;full_doc_id&quot;: &quot;16-632673&quot;, &quot;file_path&quot;: &quot;16-632673&quot;, &quot;vector&quot;: &quot;[vector omitted]&quot; }</pre></article>
+<article class='mini-card'><span class='eyebrow'>entities</span><strong>1596 vectors</strong><pre>{ &quot;entity_name&quot;: &quot;영상 처리 방법&quot;, &quot;content&quot;: &quot;영상 처리 방법 영상 처리 방법은 디스플레이 장치에 표시될 영상 데이터를 생성하고 저해상도 영상 데이터로부터 고해상도 영상 데이터를 생성하는 방법이다.&quot;, &quot;file_path&quot;: &quot;16-632673&quot;, &quot;vector&quot;: &quot;[vector omitted]&quot; }</pre></article>
+<article class='mini-card'><span class='eyebrow'>relationships</span><strong>2203 vectors</strong><pre>{ &quot;src_id&quot;: &quot;디스플레이 장치&quot;, &quot;tgt_id&quot;: &quot;영상 처리 방법&quot;, &quot;content&quot;: &quot;영상 데이터 생성,표시 디스플레이 장치 영상 처리 방법 영상 처리 방법은 디스플레이 장치에 표시될 영상 데이터를 생성한다.&quot;, &quot;file_path&quot;: &quot;16-632673&quot;, &quot;vector&quot;: &quot;[vector omitted]&quot; }</pre></article>
+</div>
+<p class="muted">원시 3072차원 벡터는 보고서에서 생략했다. 관찰 목적은 어떤 대상이 vector record가 되는지 확인하는 것이다.</p></section>
+
+<section class="card"><h2>검색 모드별 값 변화</h2>
+<p>동일 질문: <code>AI 코어 및 가속기 특허에서 신경망 연산 가속기 구조는 어떤 방식으로 연산 병렬성을 높이는가?</code></p>
+<div class='table-wrap'><table><thead><tr><th>mode</th><th>elapsed</th><th>entities</th><th>relations</th><th>chunks</th><th>source patents</th><th>high-level</th><th>low-level</th></tr></thead><tbody><tr><td>naive</td><td>58.8s</td><td>0</td><td>0</td><td>10</td><td>10</td><td></td><td></td></tr><tr><td>local</td><td>145.5s</td><td>10</td><td>69</td><td>10</td><td>26</td><td>AI 코어 및 가속기 특허, 신경망 연산 가속기 구조, 연산 병렬성 향상</td><td>AI 코어, 가속기, 특허, 신경망 연산, 연산 병렬성</td></tr><tr><td>global</td><td>130.8s</td><td>18</td><td>10</td><td>10</td><td>15</td><td>인공지능 코어 및 가속기 특허, 신경망 연산 가속기 구조, 연산 병렬성 향상</td><td>인공지능 코어, 가속기 특허, 신경망 연산, 가속기 구조, 연산 병렬성</td></tr><tr><td>hybrid</td><td>119.0s</td><td>24</td><td>36</td><td>10</td><td>20</td><td>AI 코어, 가속기 특허, 신경망 연산 가속기 구조, 연산 병렬성 향상 방식</td><td>신경망 연산, 가속기 구조, 연산 병렬성</td></tr></tbody></table></div>
+<p class="muted">naive는 graph context 없이 chunk만 가져온다. local/global/hybrid는 keyword extraction 이후 entity/relation/chunk context를 구성한다.</p></section>
+
+<section class="card"><h2>검색 모드별 의미</h2>
+<div class='table-wrap'><table><thead><tr><th>검색 모드</th><th>의미</th><th>Patent-100 질문에서의 역할</th></tr></thead><tbody><tr><td>naive</td><td>청크 벡터 중심 검색</td><td>원문과 직접 비슷한 특허 찾기</td></tr><tr><td>local</td><td>엔티티 주변 관계 중심 검색</td><td>특정 기술 구성요소 주변 관계 확인</td></tr><tr><td>global</td><td>관계/theme 중심 검색</td><td>여러 특허의 공통 기술 패턴 확인</td></tr><tr><td>hybrid</td><td>local + global 결합</td><td>기술 entity와 broader relation을 함께 사용</td></tr></tbody></table></div></section>
+
+<section class="card"><h2>질문 해석과 Keyword·검색 모드의 관계</h2>
+<div class="callout ok"><strong>질문의 의미:</strong> 신경망 연산 가속기 구조가 어떤 하드웨어 구성과 데이터 흐름으로 병렬성을 높이는지 묻는다.</div>
+<div class='table-wrap'><table><thead><tr><th>구분</th><th>의미</th><th>이번 질문의 예시</th></tr></thead><tbody><tr><td>High-Level Keywords</td><td>질문의 전체 주제</td><td>AI 코어, 가속기 특허, 신경망 연산 가속기 구조</td></tr><tr><td>Low-Level Keywords</td><td>직접 탐색할 구체 기술 대상</td><td>신경망 연산, 가속기 구조, 연산 병렬성</td></tr></tbody></table></div>
+<pre>Low-Level Keywords  -> Local 검색
+High-Level Keywords -> Global 검색
+두 검색 결과 결합   -> Hybrid 검색</pre></section>
+
+<section class="card"><h2>왜 Local 관계는 많고 Global 관계는 적은가</h2>
+<div class='table-wrap'><table><thead><tr><th>검색 모드</th><th>시작 Keyword</th><th>Top-K 대상</th><th>AA-1 결과</th></tr></thead><tbody><tr><td>Local</td><td>Low-Level</td><td>엔티티</td><td>10 entities -&gt; 69 relations -&gt; 10 chunks</td></tr><tr><td>Global</td><td>High-Level</td><td>관계</td><td>10 relations -&gt; 18 entities -&gt; 10 chunks</td></tr><tr><td>Hybrid</td><td>Both</td><td>병합 context</td><td>24 entities -&gt; 36 relations -&gt; 10 chunks</td></tr></tbody></table></div>
+<div class="callout"><strong>핵심 비교:</strong> Local은 선택된 entity의 주변 관계를 확장하므로 relation 수가 커질 수 있고, Global은 relation 자체를 top-k로 고르기 때문에 relation 수가 작게 유지된다.</div></section>
+
+<section class="card"><h2>최종 Hybrid 답변</h2><pre>## 신경망 연산 가속기 구조의 연산 병렬성 향상 방식 제공된 문맥에서 **AI 코어 및 가속기 특허의 신경망 연산 가속기 구조**는 주로 **명령 처리 구조화**, **데이터 슬라이스 단위 처리**, **행렬 연산 병렬화**, **다중 처리 요소 활용**을 통해 연산 효율과 병렬성을 높인다. 첫째, **데이터 처리 장치**는 제어 모듈 안에 **명령 캐시 유닛, 명령 처리 유닛, 저장 큐 유닛**을 두어 인공 신경망 연산과 관련된 계산 명령을 저장하고, 이를 해석해 **복수의 연산 명령**으로 분해한다. 저장 큐는 실행할 연산 명령 또는 계산 명령을 큐 순서에 따라 저장하므로, 신경망 모델 연산 시 명령 흐름을 체계화해 연산 효율을 높이는 구조로 설명된다. 둘째, 컨볼루션 기반 인공지능 가속기 구조에서는 **입력 데이터와 커널 데이터를 각각 별도의 데이터 버퍼에서 수신**하고, 이를 **슬라이스 단위로 이동**시킨다. 입력 데이터는 제1 데이터 버퍼와 2차원 시프트 레지스터를 통해 이동하고, 커널 데이터는 제2 데이터 버퍼와 입력 시프트 레지스터를 통해 전달된다. 이후 곱셈 블록 회로가 입력 데이터 슬라이스와 커널 데이터 슬라이스 사이의 컨볼루션 연산을 수행한다. 즉, 데이터를 작은 슬라이스로 나누고 버퍼·시프트 레지스터를 통해 공급함으로써 컨볼루션 연산을 효율적으로 처리한다. 셋째, 행렬 연산 중심 구조에서는 **N차원 논리 회로 배열**, 입력 데이터 라인, 가중치 행렬 입력 라인, 출력 데이터 라인을 갖춘 장치를 통해 신경망 프로세서에서 신경망 연산을 수행한다. 인공지능은 신경망 구현을 위해 많은 행렬 연산을 필요로 하며, 이러한 계산은 병렬 처리될 수 있기 때문에 특수 행렬 프로세서 회로가 성능 향상에 기여한다. 넷째, 더 직접적인 병렬 연산 구조로는 **처리 요소 배열을 갖는 매트릭스 처리 유닛**이 제시된다. 이 구조는 행렬 곱셈 명령에 따라 다수의 **병렬 fused multiply-accumulate 연산**을 수행하여 결과 행렬을 생성한다. 또한 칩렛 기반 AI 가속기에서는 여러 칩렛, 타일, 슬라이스 및 DIMC 디바이스를 사용해 행렬 계산 처리량을 높이고, 클록 사이클당 다수의 multiply-accumulate 연산을 수행하는 방식이 제시된다. 종합하면, 해당 특허군에서 신경망 연산 가속기 구조는 **연산 명령을 복수 명령으로 분해·큐잉하고, 입력/커널 데이터를 슬라이스 단위로 병렬 공급하며, 논리 회로 배열·처리 요소 배열·칩렛/타일/슬라이스 구조를 통해 행렬 곱셈 및 누산 연산을 동시에 수행하는 방식**으로 연산 병렬성과 처리 효율을 높인다. ### References - [1] 17-511417 - [2] 17-459782 - [4] 18-212648 - [5] 18-493616 - [7] 2020-7036316</pre></section>
+
+<section class="card"><h2>최종 Hybrid 답변은 근거와 잘 연결되는가</h2>
+<p>정성 평가는 별도 judge에서 수행했고, 여기서는 답변에 들어간 source chunk가 무엇인지 관찰한다.</p>
+<div class='table-wrap'><table><thead><tr><th>rank</th><th>patent</th><th>chunk_id</th><th>content excerpt</th></tr></thead><tbody><tr><td>1</td><td>17-511417</td><td>17-511417-chunk-000</td><td>문서 유형: AI 반도체 특허 patent_id: 17-511417 출원번호: 17-511417 공개번호: 2022-0050683 발명의 명칭: Apparatuses, methods, and systems for neural networks 요약: Methods and apparatuses relating to processing neural networks are described. In one embodiment, an apparatus ...[truncated]</td></tr><tr><td>2</td><td>17-459782</td><td>17-459782-chunk-000</td><td>문서 유형: AI 반도체 특허 patent_id: 17-459782 출원번호: 17-459782 공개번호: 2021-0390381 등록번호: 11727256 발명의 명칭: Hardware architecture for processing data in neural network 요약: A hardware accelerator that is efficient at performing computations related to a neural ...[truncated]</td></tr><tr><td>3</td><td>17-196922</td><td>17-196922-chunk-000</td><td>문서 유형: AI 반도체 특허 patent_id: 17-196922 출원번호: 17-196922 공개번호: 2021-0287075 등록번호: 11106972 발명의 명칭: Hardware architecture for processing data in neural network 요약: A hardware accelerator that is efficient at performing computations related to a neural ...[truncated]</td></tr><tr><td>4</td><td>18-212648</td><td>18-212648-chunk-000</td><td>문서 유형: AI 반도체 특허 patent_id: 18-212648 출원번호: 18-212648 공개번호: 2024-0427839 발명의 명칭: Methods and apparatus for matrix processing in a neural network processing system 요약: Artificial intelligence is an increasingly important sector of the computer indus ...[truncated]</td></tr><tr><td>5</td><td>18-493616</td><td>18-493616-chunk-000</td><td>문서 유형: AI 반도체 특허 patent_id: 18-493616 출원번호: 18-493616 공개번호: 2024-0241841 등록번호: 12271321 발명의 명칭: Ai accelerator apparatus using in-memory compute chiplet devices for transformer workloads 요약: An AI accelerator apparatus using in-memory compute chipl ...[truncated]</td></tr></tbody></table></div>
+<div class="callout"><strong>해석:</strong> AA-1 hybrid 답변은 retrieved chunks 10개, source patents 20개를 사용했다. 다만 답변 품질은 judge 결과상 naive 대비 명확한 우위가 크지 않았다.</div></section>
+
+<section class="card"><h2>관찰된 장점과 한계</h2>
+<div class="grid">
+<div class="card half" style="margin-top:0"><h3>LightRAG가 잘한 점</h3><div class='table-wrap'><table><thead><tr><th>항목</th><th>설명</th></tr></thead><tbody><tr><td>기술 중심 graph</td><td>technical relation ratio=0.9401</td></tr><tr><td>metadata hub 억제</td><td>metadata relation ratio=0.01, excluded entity ratio=0.0044</td></tr><tr><td>검색 context 관측 가능</td><td>mode별 entity/relation/chunk 수를 추적할 수 있음</td></tr><tr><td>source 보존</td><td>patent_id는 graph node가 아니라 file_path/source_id로 남음</td></tr></tbody></table></div></div>
+<div class="card half" style="margin-top:0"><h3>현재 실행의 한계</h3><div class='table-wrap'><table><thead><tr><th>항목</th><th>문제</th></tr></thead><tbody><tr><td>5/10/25 누적 실험</td><td>NBA 템플릿과 달리 수행하지 않아 빈칸으로 둠</td></tr><tr><td>Hybrid vs naive</td><td>judge 결과에서 hybrid가 naive를 명확히 압도하지 않음</td></tr><tr><td>Length bias</td><td>GraphRAG global normalized avg=1664.73 chars</td></tr><tr><td>정규 스키마</td><td>relation type이 표준 ontology relation으로 강제되지는 않음</td></tr></tbody></table></div></div>
+</div></section>
+
+<section class="card"><h2>관찰 결론과 주의점</h2>
+<p><strong>1.</strong> Patent-100은 LightRAG 안에서 162 chunks, 1596 entities, 2203 relations로 변환됐다.</p>
+<p><strong>2.</strong> 특허 특화 prompt 적용 후 metadata relation ratio는 0.01로 낮아졌고, technical relation ratio는 0.9401로 높게 유지됐다.</p>
+<p><strong>3.</strong> 검색 단계에서는 mode별 context가 크게 달라진다. AA-1에서 local은 69 relations, global은 10 relations, hybrid는 36 relations를 사용했다.</p>
+<p><strong>4.</strong> 답변 평가에서는 GraphRAG global이 강했지만 길이 편향이 남아 있고, LightRAG hybrid는 naive 대비 뚜렷한 우위를 보이지 않았다.</p>
+<p><strong>5.</strong> 이 보고서는 값 이동 관찰 보고서이며, 수행하지 않은 HyDE/RQ-RAG/5→10→25 누적 실험은 결과를 채우지 않았다.</p></section>
+
+<section class="card"><h2>최종 결론</h2>
+<p class="lead">AI 반도체 특허 100건은 LightRAG 내부에서 단순 텍스트 묶음이 아니라 기술 entity, relation, source chunk, vector record로 분해되어 관찰 가능한 graph-retrieval 구조로 변환됐다.</p>
+<p>다만 이 구조가 항상 chunk-only retrieval보다 나은 답변을 만든다고 단정할 수는 없다. 이번 실험의 보수적 결론은 “그래프 구축 품질은 성공했지만, 답변 품질의 이득은 질문 유형과 judge bias를 분리해서 해석해야 한다”이다.</p></section>
+
+<section class="card"><h2>재현 파일</h2>
+<p><code>/Users/dabeenkim/Documents/GitHub/HYU-lightRAG/patent_lightrag/patent_lightrag_observable_report.py</code> · 이 보고서 생성기</p>
+<p><code>/Users/dabeenkim/Documents/GitHub/HYU-lightRAG/experiments/rag_repro_100_seed20260609/lightrag_patent_prompt_100/storage</code> · LightRAG raw storage</p>
+<p><code>/Users/dabeenkim/Documents/GitHub/HYU-lightRAG/experiments/rag_repro_100_seed20260609/lightrag_patent_prompt_100/query_results_15_modes.jsonl</code> · mode별 query 결과</p>
+<p><code>/Users/dabeenkim/Documents/GitHub/HYU-lightRAG/reports/patent_lightrag_observable_report.html</code> · 생성된 observable HTML</p>
+</section>
+</div></main></body></html>

@@ -52,6 +52,22 @@ def table_explanation(text: str) -> str:
     return f"<p class='table-explain'>{html_escape(text)}</p>"
 
 
+SYSTEM_LABELS = {
+    "lightrag_naive": "NaiveRAG",
+    "lightrag_local": "LightRAG local",
+    "lightrag_global": "LightRAG global",
+    "lightrag_hybrid": "LightRAG hybrid",
+    "graphrag_basic": "GraphRAG basic",
+    "graphrag_local": "GraphRAG local",
+    "graphrag_global": "GraphRAG",
+    "Tie": "Tie",
+}
+
+
+def display_system(system: Any) -> str:
+    return SYSTEM_LABELS.get(str(system), str(system))
+
+
 def strip_trailing_whitespace(text: str) -> str:
     return "\n".join(line.rstrip() for line in text.splitlines()) + "\n"
 
@@ -137,6 +153,11 @@ def remove_print_heavy_blocks(html: str) -> str:
         "P entity key-value profile": 1000,
         "P relation key-value profile": 1000,
         "Patent-specific entity extraction prompt excerpt": 3200,
+        "R Function prompt": 3200,
+        "R Function 한국어 번역": 2200,
+        "P Function prompt": 2600,
+        "P Function prompt 한국어 번역": 2200,
+        "Prompt excerpt": 2600,
         "Query metadata": 1100,
         "Figure 2 raw JSON excerpt": 2200,
         "Appendix 7.1 manifest JSON excerpt": 2200,
@@ -287,6 +308,110 @@ def pre(title: str, value: Any, limit: int = 8000, open: bool = False) -> str:
     return f"<details{open_attr}><summary>{html_escape(title)}</summary><pre>{html_escape(text)}</pre></details>"
 
 
+def preserve_excerpt(text: str, limit: int) -> str:
+    return text if len(text) <= limit else text[: limit - 16].rstrip() + "\n...[truncated]"
+
+
+def prompt_assignment(source: str, key: str) -> str:
+    pattern = rf'PROMPTS\["{re.escape(key)}"\]\s*=\s*"""(.*?)"""'
+    match = re.search(pattern, source, re.S)
+    return match.group(1).strip() if match else ""
+
+
+def prompt_between(text: str, start: str, end: str, limit: int) -> str:
+    if start in text:
+        tail = text.split(start, 1)[1]
+        if end in tail:
+            return preserve_excerpt(start + tail.split(end, 1)[0], limit)
+    return preserve_excerpt(text, limit)
+
+
+def patent_prompt_guidance_excerpt(prompt_text: str) -> str:
+    if not prompt_text:
+        return "patent_ai_semiconductor.yml 없음"
+    return preserve_excerpt(prompt_text.split("entity_extraction_examples:", 1)[0].strip(), 1050)
+
+
+def patent_prompt_example_excerpt(prompt_text: str) -> str:
+    if not prompt_text:
+        return "patent_ai_semiconductor.yml 없음"
+    marker = "---Output---"
+    idx = prompt_text.find(marker)
+    if idx < 0:
+        return preserve_excerpt(prompt_text, 1200)
+    return preserve_excerpt(prompt_text[idx: idx + 1500], 1500)
+
+
+def rpd_prompt_blocks(prompt_text: str) -> str:
+    prompt_py = LIGHTRAG_ROOT / "lightrag" / "prompt.py"
+    source = prompt_py.read_text(encoding="utf-8") if prompt_py.exists() else ""
+    r_system = prompt_assignment(source, "entity_extraction_system_prompt")
+    r_user = prompt_assignment(source, "entity_extraction_user_prompt")
+    p_summary = prompt_assignment(source, "summarize_entity_descriptions")
+    r_prompt = f"""# R Function: entity / relation extraction prompt
+System prompt 핵심 1: output schema
+{prompt_between(r_system, "4. **Output Format:**", "6. **Output Order", 900)}
+
+System prompt 핵심 2: language / context
+{prompt_between(r_system, "7. **Context & Language:**", "8. **Completion Signal", 500)}
+
+User prompt 핵심:
+{prompt_between(r_user, "---Task---", "---Input Text---", 650)}
+
+# Patent-specific YAML guidance
+{patent_prompt_guidance_excerpt(prompt_text)}
+
+# Patent few-shot output example
+{patent_prompt_example_excerpt(prompt_text)}"""
+    r_prompt_ko = """# R Function 프롬프트 한국어 번역
+역할:
+- LLM은 Knowledge Graph Specialist로 동작한다.
+- 입력 특허 텍스트에서 명확하고 의미 있는 entity와 relation을 추출한다.
+
+Entity 추출 규칙:
+- entity_name: entity 이름을 일관된 이름으로 정한다.
+- entity_type: ---Entity Types---에 제공된 타입 중 하나로 분류한다. 맞는 타입이 없으면 Other를 사용한다.
+- entity_description: 입력 텍스트에 있는 정보만 근거로 entity의 속성과 동작을 간결하지만 충분히 설명한다.
+
+Relation 추출 규칙:
+- 이미 추출한 entity 사이의 직접적이고 의미 있는 관계만 뽑는다.
+- 하나의 문장이 여러 entity 관계를 포함하면 2개 entity 단위의 relation으로 분해한다.
+- source_entity, target_entity, relationship_keywords, relationship_description을 생성한다.
+
+특허 특화 규칙:
+- 기술 knowledge graph에 필요한 entity/relation만 추출한다.
+- 특허번호, 출원번호, 공개번호, 등록번호, IPC/CPC, 국가코드, 법적상태, 날짜, 청구항 번호, 중/소분류 코드는 entity로 추출하지 않는다.
+- relation은 추출된 기술 entity 사이에서만 만든다."""
+    p_prompt = f"""# P Function: entity/relation profile summary prompt
+{preserve_excerpt(p_summary, 1550)}
+
+# 실제 동작 조건
+- description이 1개면 LLM 호출 없이 그대로 profile description으로 저장한다.
+- 같은 entity/relation이 여러 chunk/source에서 반복되면 Description List를 JSONL로 묶어 위 prompt에 넣는다.
+- LLM 요약 결과가 vdb_entities.json / vdb_relationships.json의 content/description이 되고 embedding 대상 profile이 된다."""
+    p_prompt_ko = """# P Function 프롬프트 한국어 번역
+역할:
+- LLM은 Knowledge Graph Specialist로서 entity 또는 relation 설명 목록을 정리하고 종합한다.
+
+작업:
+- 주어진 entity 또는 relation에 대해 여러 description 조각을 하나의 포괄적이고 일관된 summary로 합친다.
+- 입력 description list는 JSON 형식이며, 각 JSON 객체는 Description 필드를 가진다.
+- 출력은 추가 설명 없이 plain text summary만 반환한다.
+
+실제 동작 조건:
+- description이 1개뿐이면 LLM을 호출하지 않고 그대로 profile description으로 저장한다.
+- 같은 entity/relation이 여러 chunk나 source patent에서 반복되면 description list를 만들고 이 P Function prompt로 LLM summary를 생성한다.
+- 생성된 summary는 vdb_entities.json 또는 vdb_relationships.json의 profile content가 되고, embedding 대상이 된다."""
+    return "".join(
+        [
+            pre("R Function prompt", r_prompt, 4200),
+            pre("R Function 한국어 번역", r_prompt_ko, 2600),
+            pre("P Function prompt", p_prompt, 2400),
+            pre("P Function prompt 한국어 번역", p_prompt_ko, 2400),
+        ]
+    )
+
+
 def short(text: Any, limit: int = 900) -> str:
     value = "" if text is None else str(text)
     return value if len(value) <= limit else value[:limit] + " ...[truncated]"
@@ -396,7 +521,19 @@ def relation_label(edge: dict[str, Any], limit: int = 22) -> str:
 
 def edge_source_patents(edge: dict[str, Any]) -> list[str]:
     file_path = str(edge.get("file_path") or "")
-    return sorted({part for part in file_path.split("<SEP>") if part})
+    patents = []
+    seen = set()
+    for part in file_path.split("<SEP>"):
+        patent_id = part.strip()
+        if not patent_id or patent_id in seen:
+            continue
+        patents.append(patent_id)
+        seen.add(patent_id)
+    return patents
+
+
+def source_patents_display(edge: dict[str, Any]) -> str:
+    return "\n<SEP>\n".join(edge_source_patents(edge))
 
 
 def relation_table(edges: list[dict[str, Any]], limit: int = 14) -> str:
@@ -409,7 +546,7 @@ def relation_table(edges: list[dict[str, Any]], limit: int = 14) -> str:
                 "Relation": relation_label(edge, 48),
                 "Target_entity": edge.get("target", ""),
                 "Description": short(edge.get("description", ""), 240),
-                "Source_patents": edge.get("file_path", ""),
+                "Source_patents": source_patents_display(edge),
                 "Patent_count": len(source_patents),
             }
         )
@@ -837,6 +974,287 @@ def collect_source_patents(row: dict[str, Any]) -> set[str]:
     return sources
 
 
+def storage_len(path: Path) -> int:
+    payload = read_json(path, {}) or {}
+    if isinstance(payload, dict) and isinstance(payload.get("data"), list):
+        return len(payload["data"])
+    if isinstance(payload, dict):
+        return len(payload)
+    if isinstance(payload, list):
+        return len(payload)
+    return 0
+
+
+def multi_source_count(path: Path) -> int:
+    payload = read_json(path, {}) or {}
+    if not isinstance(payload, dict):
+        return 0
+    return sum(1 for value in payload.values() if isinstance(value, dict) and int(value.get("count", 0) or 0) > 1)
+
+
+def chunk_observation_stats(working_dir: Path) -> dict[str, Any]:
+    chunks = read_json(working_dir / "kv_store_text_chunks.json", {}) or {}
+    if not isinstance(chunks, dict) or not chunks:
+        return {"count": 0, "min": 0, "max": 0, "avg": 0, "multi_chunk_docs": 0}
+    token_values = [int(row.get("tokens", 0) or 0) for row in chunks.values() if isinstance(row, dict)]
+    doc_counter = Counter(
+        str(row.get("full_doc_id") or row.get("file_path") or "")
+        for row in chunks.values()
+        if isinstance(row, dict)
+    )
+    return {
+        "count": len(chunks),
+        "min": min(token_values) if token_values else 0,
+        "max": max(token_values) if token_values else 0,
+        "avg": round(safe_mean([float(value) for value in token_values]), 1) if token_values else 0,
+        "multi_chunk_docs": sum(1 for value in doc_counter.values() if value > 1),
+    }
+
+
+def multi_source_sample_rows(working_dir: Path, store_name: str, label: str, limit: int = 5) -> list[dict[str, Any]]:
+    store = read_json(working_dir / store_name, {}) or {}
+    if not isinstance(store, dict):
+        return []
+    rows = []
+    for key, value in sorted(
+        store.items(),
+        key=lambda item: int(item[1].get("count", 0)) if isinstance(item[1], dict) else 0,
+        reverse=True,
+    ):
+        if not isinstance(value, dict) or int(value.get("count", 0) or 0) < 2:
+            continue
+        display = key.replace("<SEP>", " -> ")
+        chunk_ids = value.get("chunk_ids", [])
+        rows.append(
+            {
+                label: display,
+                "source_chunks": value.get("count", "—"),
+                "chunk_ids": ", ".join(map(str, chunk_ids[:4])) if isinstance(chunk_ids, list) else "—",
+            }
+        )
+        if len(rows) >= limit:
+            break
+    return rows
+
+
+def observable_mode_trace_rows(light_rows: list[dict[str, Any]], query_id: str = "AA-1") -> list[dict[str, Any]]:
+    explanations = {
+        "naive": "chunk embedding만 사용",
+        "local": "low-level keyword로 entity 주변 관계 확장",
+        "global": "high-level keyword로 relation/theme 선택",
+        "hybrid": "local + global context 병합",
+    }
+    rows = []
+    lookup = result_lookup(light_rows)
+    for mode in ["naive", "local", "global", "hybrid"]:
+        row = lookup.get((query_id, mode), {})
+        body = context_body(row)
+        metadata = row.get("data", {}).get("metadata", {}) if isinstance(row.get("data"), dict) else {}
+        keywords = metadata.get("keywords", {}) if isinstance(metadata, dict) else {}
+        processing = metadata.get("processing_info", {}) if isinstance(metadata, dict) else {}
+        processing_summary = []
+        if isinstance(processing, dict):
+            for key in [
+                "total_chunks_found",
+                "total_entities_found",
+                "total_relations_found",
+                "merged_chunks_count",
+                "final_chunks_count",
+            ]:
+                if key in processing:
+                    processing_summary.append(f"{key}={processing.get(key)}")
+        rows.append(
+            {
+                "mode": mode,
+                "meaning": explanations[mode],
+                "elapsed": format_seconds(row.get("elapsed_seconds")) if row else "—",
+                "retrieved": (
+                    f"E={len(body.get('entities', []) or [])}, "
+                    f"R={len(body.get('relationships', []) or [])}, "
+                    f"C={len(body.get('chunks', []) or [])}"
+                ),
+                "source_patents": len(collect_source_patents(row)) if row else "—",
+                "high_keywords": ", ".join(map(str, (keywords.get("high_level") or [])[:4])) if isinstance(keywords, dict) else "—",
+                "low_keywords": ", ".join(map(str, (keywords.get("low_level") or [])[:5])) if isinstance(keywords, dict) else "—",
+                "processing": ", ".join(processing_summary) if processing_summary else "—",
+            }
+        )
+    return rows
+
+
+def observable_source_evidence(light_rows: list[dict[str, Any]], query_id: str = "AA-1") -> str:
+    row = result_lookup(light_rows).get((query_id, "hybrid"), {})
+    if not row:
+        return "<p class='empty'>source evidence pending</p>"
+    body = context_body(row)
+    chunk_rows = []
+    for idx, chunk in enumerate((body.get("chunks") or [])[:4], start=1):
+        if not isinstance(chunk, dict):
+            continue
+        chunk_rows.append(
+            {
+                "rank": idx,
+                "source_patent": chunk.get("file_path") or chunk.get("full_doc_id") or chunk.get("chunk_id") or "—",
+                "chunk_id": chunk.get("chunk_id", "—"),
+                "content_excerpt": short(chunk.get("content", ""), 360),
+            }
+        )
+    summary_rows = [
+        {
+            "query_id": query_id,
+            "mode": "hybrid",
+            "retrieved": (
+                f"E={len(body.get('entities', []) or [])}, "
+                f"R={len(body.get('relationships', []) or [])}, "
+                f"C={len(body.get('chunks', []) or [])}"
+            ),
+            "source_patents": len(collect_source_patents(row)),
+            "answer_excerpt": short(clean_answer_text(row.get("answer", "")), 900),
+        }
+    ]
+    return f"""
+    {table(summary_rows, class_name="observable-answer-table")}
+    {table(chunk_rows, class_name="observable-evidence-table")}
+    """
+
+
+def observable_patent_transform_table(experiment_dir: Path, working_dir: Path) -> str:
+    chunks = read_json(working_dir / "kv_store_text_chunks.json", {}) or {}
+    full_entities = read_json(working_dir / "kv_store_full_entities.json", {}) or {}
+    full_relations = read_json(working_dir / "kv_store_full_relations.json", {}) or {}
+    if not isinstance(chunks, dict) or not chunks:
+        return "<p class='empty'>patent transform example pending</p>"
+    doc_id = ""
+    for key, value in chunks.items():
+        if isinstance(value, dict):
+            doc_id = str(value.get("full_doc_id") or value.get("file_path") or re.sub(r"-chunk-\d+$", "", key))
+            if doc_id in full_entities or doc_id in full_relations:
+                break
+    chunk_key = next((key for key in chunks if key.startswith(f"{doc_id}-chunk-")), next(iter(chunks)))
+    chunk = chunks.get(chunk_key, {}) if isinstance(chunks.get(chunk_key), dict) else {}
+    dataset_rows = read_jsonl(experiment_dir / "dataset" / "patents_100.jsonl")
+    source_doc = next((row for row in dataset_rows if str(row.get("id")) == doc_id), {})
+    entity_names = full_entities.get(doc_id, {}).get("entity_names", []) if isinstance(full_entities.get(doc_id), dict) else []
+    relation_pairs = full_relations.get(doc_id, {}).get("relation_pairs", []) if isinstance(full_relations.get(doc_id), dict) else []
+    rows = [
+        {"step": "structured patent", "observed_value": f"{doc_id} · {source_doc.get('category', '—')}/{source_doc.get('sub_category', '—')} · {short(source_doc.get('category_name', ''), 120)}"},
+        {"step": "chunk", "observed_value": f"{chunk_key} · tokens={chunk.get('tokens', '—')}"},
+        {"step": "R entities", "observed_value": ", ".join(map(str, entity_names[:12])) or "—"},
+        {"step": "R relations", "observed_value": "; ".join(f"{pair[0]} -> {pair[1]}" for pair in relation_pairs[:8] if isinstance(pair, list) and len(pair) >= 2) or "—"},
+        {"step": "D merge", "observed_value": "동일 entity name과 relation pair는 chunk_ids/source_id를 누적해 graph/VDB profile로 병합"},
+        {"step": "retrieval use", "observed_value": "patent_id는 source/reference로 남고, graph node는 기술 entity 중심으로 사용"},
+    ]
+    return table(rows, class_name="observable-transform-table")
+
+
+def observable_cumulative_rows(index_stats: dict[str, Any], graph_metrics: dict[str, Any], working_dir: Path) -> list[dict[str, Any]]:
+    pilot_stats = read_json(ROOT / "experiments" / "patent_prompt_pilot_20" / "index_stats.json", {}) or {}
+    pilot_manifest = read_json(ROOT / "experiments" / "patent_prompt_pilot_20" / "pilot_docs_manifest.json", {}) or {}
+    pilot_storage = Path(str(pilot_stats.get("working_dir") or ROOT / "experiments" / "patent_prompt_pilot_20" / "storage"))
+    return [
+        {"stage": "5 docs", "documents": "—", "chunks": "—", "entities": "—", "relations": "—", "multi-source entities": "—", "multi-source relations": "—", "status": "미실행"},
+        {"stage": "10 docs", "documents": "—", "chunks": "—", "entities": "—", "relations": "—", "multi-source entities": "—", "multi-source relations": "—", "status": "미실행"},
+        {
+            "stage": "20 pilot",
+            "documents": pilot_manifest.get("document_count", pilot_stats.get("document_count", "—")),
+            "chunks": storage_len(pilot_storage / "kv_store_text_chunks.json"),
+            "entities": pilot_stats.get("graph_nodes", "—"),
+            "relations": pilot_stats.get("graph_edges", "—"),
+            "multi-source entities": multi_source_count(pilot_storage / "kv_store_entity_chunks.json"),
+            "multi-source relations": multi_source_count(pilot_storage / "kv_store_relation_chunks.json"),
+            "status": "완료",
+        },
+        {"stage": "25 docs", "documents": "—", "chunks": "—", "entities": "—", "relations": "—", "multi-source entities": "—", "multi-source relations": "—", "status": "미실행"},
+        {
+            "stage": "100 fresh",
+            "documents": index_stats.get("document_count", "—"),
+            "chunks": storage_len(working_dir / "kv_store_text_chunks.json"),
+            "entities": graph_metrics.get("graph_nodes", "—"),
+            "relations": graph_metrics.get("graph_edges", "—"),
+            "multi-source entities": multi_source_count(working_dir / "kv_store_entity_chunks.json"),
+            "multi-source relations": multi_source_count(working_dir / "kv_store_relation_chunks.json"),
+            "status": "완료",
+        },
+    ]
+
+
+def learning_observable_addendum(
+    experiment_dir: Path,
+    manifest: dict[str, Any],
+    index_stats: dict[str, Any],
+    graph_metrics: dict[str, Any],
+    light_rows: list[dict[str, Any]],
+    working_dir: Path,
+) -> str:
+    chunk_stats = chunk_observation_stats(working_dir)
+    workflow_rows = [
+        {"paper_flow": "Document segmentation", "our_run": f"{index_stats.get('document_count', 0)} patents -> {chunk_stats['count']} chunks", "status": "완료"},
+        {"paper_flow": "Entity & relation extraction", "our_run": f"{graph_metrics.get('graph_nodes', '—')} nodes / {graph_metrics.get('graph_edges', '—')} edges", "status": "완료"},
+        {"paper_flow": "Entity/relation/chunk indexing", "our_run": f"3 vector stores, dim={index_stats.get('embedding_dim', '—')}", "status": "완료"},
+        {"paper_flow": "Dual-level retrieval", "our_run": "local/global/hybrid + naive", "status": "완료"},
+        {"paper_flow": "HyDE baseline", "our_run": "—", "status": "미실행"},
+        {"paper_flow": "RQ-RAG baseline", "our_run": "—", "status": "미실행"},
+    ]
+    return f"""
+  <h2 id="observable-flow">Learning / Observable Flow Addendum</h2>
+  <p>새로 만든 두 LightRAG 학습/관찰 보고서에서 기존 인쇄 보고서에 없던 내용만 압축해 추가했다. 이 섹션은 평가 수치를 바꾸는 결과가 아니라, Patent-100 데이터가 LightRAG 내부에서 어떤 값으로 이동했는지 설명하는 보조 해설이다.</p>
+  <h3>Observation Questions Added from Learning Reports</h3>
+  {table([
+      {"question": "특허 문서는 LightRAG 안에서 어떤 저장 값으로 바뀌는가?", "report_value": "chunk, entity, relation, vector store 생성 흐름을 추적"},
+      {"question": "반복 등장하는 기술 구성요소는 어떻게 병합되는가?", "report_value": "동일 entity/relation의 source chunk 누적을 확인"},
+      {"question": "특허 prompt는 metadata hub를 줄였는가?", "report_value": f"metadata_relation={graph_metrics.get('metadata_relation_ratio', '—')}, excluded_entity={graph_metrics.get('excluded_entity_ratio', '—')}"},
+      {"question": "검색 mode에 따라 context 값은 어떻게 달라지는가?", "report_value": "AA-1에서 naive/local/global/hybrid 값을 나란히 비교"},
+      {"question": "최종 답변은 어떤 특허 chunk에 연결되는가?", "report_value": "hybrid answer와 source evidence chunk를 함께 제시"},
+  ], class_name="observable-question-table")}
+  <h3>Paper Flow Mapping</h3>
+  {table(workflow_rows, class_name="observable-flow-table")}
+  <h3>Data Movement Path</h3>
+  {table([
+      {"stage": "patent_rawdata", "input": "AI semiconductor patent rows", "output": "structured patent text"},
+      {"stage": "chunking", "input": "structured patent text", "output": f"{chunk_stats['count']} chunks, avg {chunk_stats['avg']} tokens"},
+      {"stage": "LLM extraction", "input": "chunk + patent prompt", "output": "entity tuple + relation tuple"},
+      {"stage": "dedup/profile", "input": "same entity names and relation pairs", "output": "merged graph profiles with source ids"},
+      {"stage": "vectorization", "input": "chunk/entity/relation text", "output": "3 vector stores for retrieval"},
+      {"stage": "retrieval", "input": "query + high/low keywords", "output": "entities, relationships, chunks, references"},
+  ], class_name="observable-path-table")}
+  <h3>Patent Data Composition</h3>
+  {table([
+      {"patent_element": "기본 식별자", "examples": "patent_id, 출원번호, 공개번호, 등록번호", "LightRAG_handling": "source/reference로 남기고 entity 추출 제외"},
+      {"patent_element": "기술 제목/요약", "examples": "AI accelerator, memory architecture", "LightRAG_handling": "chunk 원문과 기술 entity 후보"},
+      {"patent_element": "AI 목적/솔루션", "examples": "연산 병렬성, 데이터 이동 비용 절감", "LightRAG_handling": "operation/performance relation 후보"},
+      {"patent_element": "대표청구항", "examples": "register, memory array, multiplication block", "LightRAG_handling": "TechComponent와 relation 추출 대상"},
+      {"patent_element": "분류/국가/상태", "examples": "IPC/CPC, US/KR, 등록", "LightRAG_handling": "metadata hub 방지를 위해 entity 제외 대상"},
+  ], class_name="observable-composition-table")}
+  <h3>20 Pilot to 100 Fresh Value Change</h3>
+  <p class="note">5/10/25 누적 실행은 수행하지 않았으므로 빈칸으로 둔다. 실제 비교 가능한 값은 20건 prompt pilot과 100건 fresh index다.</p>
+  {table(observable_cumulative_rows(index_stats, graph_metrics, working_dir), class_name="observable-cumulative-table")}
+  <h3>One Patent Transformation Example</h3>
+  {observable_patent_transform_table(experiment_dir, working_dir)}
+  <h3>AA-1 Retrieval Value Change by Mode</h3>
+  {table(observable_mode_trace_rows(light_rows, "AA-1"), class_name="observable-mode-trace-table")}
+  <h3>Why Local Relations Are Many and Global Relations Are Fewer</h3>
+  {table([
+      {"mode": "local", "starting_point": "low-level keywords -> entity search", "observed_AA_1": "10 entities -> 69 relations -> 10 chunks", "interpretation": "선택된 entity 주변 relation을 확장하므로 relation 후보가 많아질 수 있음"},
+      {"mode": "global", "starting_point": "high-level keywords -> relation/theme search", "observed_AA_1": "10 relations -> 18 entities -> 10 chunks", "interpretation": "relation 자체를 top-k로 고르므로 relation 수가 작게 유지됨"},
+      {"mode": "hybrid", "starting_point": "local + global merge", "observed_AA_1": "24 entities -> 36 relations -> 10 chunks", "interpretation": "두 context를 합치되 중복과 truncation이 적용됨"},
+  ], class_name="observable-relation-reason-table")}
+  <h3>Deduplication Samples from Observable Report</h3>
+  {table(multi_source_sample_rows(working_dir, "kv_store_entity_chunks.json", "entity"), class_name="observable-dedup-table")}
+  {table(multi_source_sample_rows(working_dir, "kv_store_relation_chunks.json", "relation"), class_name="observable-dedup-table")}
+  <h3>Final Hybrid Answer and Source Evidence</h3>
+  {observable_source_evidence(light_rows, "AA-1")}
+  <h3>Baseline Coverage from Learning Report</h3>
+  {table([
+      {"baseline_or_system": "NaiveRAG", "implementation": "LightRAG mode='naive'", "status": "완료", "reason": "graph 없이 chunk embedding retrieval만 비교"},
+      {"baseline_or_system": "LightRAG Hybrid", "implementation": "LightRAG mode='hybrid'", "status": "완료", "reason": "local/global context 병합"},
+      {"baseline_or_system": "GraphRAG", "implementation": "official microsoft/graphrag", "status": "완료", "reason": "community summary 기반 비교"},
+      {"baseline_or_system": "HyDE", "implementation": "—", "status": "미실행", "reason": "이번 실험 범위 밖"},
+      {"baseline_or_system": "RQ-RAG", "implementation": "—", "status": "미실행", "reason": "GPU/구현 비용 문제로 제외"},
+      {"baseline_or_system": "Independent vector-only RAG", "implementation": "—", "status": "미실행", "reason": "LightRAG naive와 중복되어 별도 구현 제외"},
+  ], class_name="baseline-status-table")}
+    """
+
+
 def patent_citation_count(answer: Any) -> int:
     text = "" if answer is None else str(answer)
     matches = re.findall(r"\b(?:\d{2}-\d{6}|\d{4}-\d{7})\b", text)
@@ -1070,11 +1488,11 @@ def judge_table(judge_rows: list[dict[str, Any]], left: str, right: str) -> list
         total = sum(counter.values()) or 1
         rows.append(
             {
-                "Comparison": f"{left} vs {right}",
+                "Comparison": f"{display_system(left)} vs {display_system(right)}",
                 "Metric": metric,
-                "Left system": left,
+                "Left system": display_system(left),
                 "Left win-rate": f"{counter.get(left, 0) / total * 100:.1f}%",
-                "Right system": right,
+                "Right system": display_system(right),
                 "Right win-rate": f"{counter.get(right, 0) / total * 100:.1f}%",
                 "Tie": f"{counter.get('Tie', 0) / total * 100:.1f}%",
             }
@@ -1186,17 +1604,15 @@ def win_rate_placeholder(judge_rows: list[dict[str, Any]]) -> str:
         for left, right in [
             ("lightrag_hybrid", "lightrag_naive"),
             ("lightrag_hybrid", "graphrag_global"),
-            ("lightrag_hybrid", "graphrag_local"),
             ("graphrag_global", "lightrag_naive"),
         ]:
             rows.extend(judge_table(judge_rows, left, right))
         return table(rows, class_name="judge-win-table")
     return table(
         [
-            {"Comparison": "LightRAG hybrid vs NaiveRAG", "Metric": "—", "Left system": "lightrag_hybrid", "Left win-rate": "—", "Right system": "lightrag_naive", "Right win-rate": "—", "Tie": "—"},
-            {"Comparison": "LightRAG hybrid vs GraphRAG global", "Metric": "—", "Left system": "lightrag_hybrid", "Left win-rate": "—", "Right system": "graphrag_global", "Right win-rate": "—", "Tie": "—"},
-            {"Comparison": "LightRAG hybrid vs GraphRAG local", "Metric": "—", "Left system": "lightrag_hybrid", "Left win-rate": "—", "Right system": "graphrag_local", "Right win-rate": "—", "Tie": "—"},
-            {"Comparison": "GraphRAG global vs NaiveRAG", "Metric": "—", "Left system": "graphrag_global", "Left win-rate": "—", "Right system": "lightrag_naive", "Right win-rate": "—", "Tie": "—"},
+            {"Comparison": "LightRAG hybrid vs NaiveRAG", "Metric": "—", "Left system": "LightRAG hybrid", "Left win-rate": "—", "Right system": "NaiveRAG", "Right win-rate": "—", "Tie": "—"},
+            {"Comparison": "LightRAG hybrid vs GraphRAG", "Metric": "—", "Left system": "LightRAG hybrid", "Left win-rate": "—", "Right system": "GraphRAG", "Right win-rate": "—", "Tie": "—"},
+            {"Comparison": "GraphRAG vs NaiveRAG", "Metric": "—", "Left system": "GraphRAG", "Left win-rate": "—", "Right system": "NaiveRAG", "Right win-rate": "—", "Tie": "—"},
         ],
         class_name="judge-win-table",
     )
@@ -1255,11 +1671,7 @@ def answer_length_stats(light_rows: list[dict[str, Any]], graph_rows: list[dict[
 def answer_length_table(length_stats: dict[str, dict[str, float]]) -> str:
     order = [
         "lightrag_naive",
-        "lightrag_local",
-        "lightrag_global",
         "lightrag_hybrid",
-        "graphrag_basic",
-        "graphrag_local",
         "graphrag_global",
     ]
     hybrid_chars = length_stats.get("lightrag_hybrid", {}).get("avg_chars", 0.0)
@@ -1271,7 +1683,7 @@ def answer_length_table(length_stats: dict[str, dict[str, float]]) -> str:
         ratio = stats["avg_chars"] / hybrid_chars if hybrid_chars else 0.0
         rows.append(
             {
-                "System": system,
+                "System": display_system(system),
                 "Queries": int(stats["queries"]),
                 "Avg answer chars": f"{stats['avg_chars']:.0f}",
                 "Median answer chars": f"{stats['median_chars']:.0f}",
@@ -1290,7 +1702,7 @@ def length_control_length_table(summary: dict[str, Any]) -> str:
     target = lengths.get("target", {}) if isinstance(lengths, dict) else {}
     min_chars = target.get("min_chars", "—")
     max_chars = target.get("max_chars", "—")
-    systems = ["lightrag_naive", "lightrag_hybrid", "graphrag_local", "graphrag_global"]
+    systems = ["lightrag_naive", "lightrag_hybrid", "graphrag_global"]
     rows = []
     for system in systems:
         b = before.get(system, {})
@@ -1301,7 +1713,7 @@ def length_control_length_table(summary: dict[str, Any]) -> str:
         after_avg = float(a.get("avg", 0) or 0)
         rows.append(
             {
-                "System": system,
+                "System": display_system(system),
                 "Original avg chars": f"{before_avg:.0f}" if before_avg else "—",
                 "Normalized avg chars": f"{after_avg:.0f}" if after_avg else "—",
                 "Change": f"{after_avg - before_avg:+.0f}" if before_avg and after_avg else "—",
@@ -1322,7 +1734,6 @@ def length_control_judge_table(summary: dict[str, Any]) -> str:
     pair_order = [
         "lightrag_hybrid__vs__lightrag_naive",
         "lightrag_hybrid__vs__graphrag_global",
-        "lightrag_hybrid__vs__graphrag_local",
         "graphrag_global__vs__lightrag_naive",
     ]
     rows = []
@@ -1339,12 +1750,12 @@ def length_control_judge_table(summary: dict[str, Any]) -> str:
             rows.append(
                 {
                     "Condition": stage_label,
-                    "Left": left,
-                    "Right": right,
+                    "Left": display_system(left),
+                    "Right": display_system(right),
                     "Left wins": left_wins,
                     "Right wins": right_wins,
                     "Tie": tie,
-                    "Overall winner": winner,
+                    "Overall winner": display_system(winner),
                 }
             )
     return table(rows, class_name="length-control-judge-table")
@@ -1367,10 +1778,9 @@ def query_type_pattern_table(summary: dict[str, Any]) -> str:
                 "Query type": query_type,
                 "LightRAG hybrid": overall.get("lightrag_hybrid", 0),
                 "Naive": overall.get("lightrag_naive", 0),
-                "GraphRAG global": overall.get("graphrag_global", 0),
-                "GraphRAG local": overall.get("graphrag_local", 0),
+                "GraphRAG": overall.get("graphrag_global", 0),
                 "Tie": overall.get("Tie", 0),
-                "Pattern": winner,
+                "Pattern": display_system(winner),
             }
         )
     return table(rows, class_name="query-type-table")
@@ -1493,7 +1903,7 @@ def cost_runtime_summary_table(
                 "Runtime": format_seconds(graph_query_seconds),
                 "Total attempts": "repair after partial results",
                 "Records / call proxy": f"{len(graph_rows)} records = 15 queries x 3 methods",
-                "Model path": "GraphRAG basic/local/global",
+                "Model path": "GraphRAG query methods executed; main baseline=global/community report",
             },
             {
                 "Stage": "Gemini judge",
@@ -1839,6 +2249,100 @@ def discussion_section(
     """
 
 
+def discussion_section(
+    graph_metrics: dict[str, Any],
+    judge_rows: list[dict[str, Any]],
+    length_stats: dict[str, dict[str, float]],
+    length_control_summary: dict[str, Any] | None = None,
+) -> str:
+    hybrid_chars = length_stats.get("lightrag_hybrid", {}).get("avg_chars", 0.0)
+    graph_chars = length_stats.get("graphrag_global", {}).get("avg_chars", 0.0)
+    length_ratio = graph_chars / hybrid_chars if hybrid_chars else 0.0
+    lc = length_control_summary or {}
+    normalized = (lc.get("judge_normalized_verbosity_aware") or {}) if isinstance(lc, dict) else {}
+    original = (lc.get("judge_original_verbosity_aware") or {}) if isinstance(lc, dict) else {}
+    pair_wins = normalized.get("pair_wins", {}) if isinstance(normalized, dict) else {}
+    original_pair_wins = original.get("pair_wins", {}) if isinstance(original, dict) else {}
+    lengths_after = ((lc.get("lengths") or {}).get("after") or {}) if isinstance(lc, dict) else {}
+    hybrid_naive = (pair_wins.get("lightrag_hybrid__vs__lightrag_naive") or {}).get("Overall", {})
+    hybrid_graph = (pair_wins.get("lightrag_hybrid__vs__graphrag_global") or {}).get("Overall", {})
+    graph_naive = (pair_wins.get("graphrag_global__vs__lightrag_naive") or {}).get("Overall", {})
+    original_hybrid_graph = (original_pair_wins.get("lightrag_hybrid__vs__graphrag_global") or {}).get("Overall", {})
+    query_type_wins = normalized.get("query_type_wins", {}) if isinstance(normalized, dict) else {}
+    category = (query_type_wins.get("category_specific") or {}).get("Overall", {})
+    cross = (query_type_wins.get("cross_category") or {}).get("Overall", {})
+    fact = (query_type_wins.get("fact_check") or {}).get("Overall", {})
+    graph_after = lengths_after.get("graphrag_global") or {}
+    hybrid_after = lengths_after.get("lightrag_hybrid") or {}
+    graph_after_avg = float(graph_after.get("avg", 0) or 0)
+    hybrid_after_avg = float(hybrid_after.get("avg", 0) or 0)
+    residual_ratio = graph_after_avg / hybrid_after_avg if hybrid_after_avg else 0.0
+
+    rows = [
+        {
+            "RQ": "RQ1 생성 성능",
+            "Question": "기존 RAG 방법들과 비교했을 때 답변의 질이 얼마나 우수한가?",
+            "Answer": "Patent-100의 생성 품질 평가는 GraphRAG가 가장 강했다. LightRAG hybrid는 NaiveRAG를 명확히 압도하지 못했다.",
+            "Evidence": (
+                f"길이 보정 judge: NaiveRAG {hybrid_naive.get('lightrag_naive', 0)} vs LightRAG hybrid {hybrid_naive.get('lightrag_hybrid', 0)}; "
+                f"GraphRAG {hybrid_graph.get('graphrag_global', 0)} vs LightRAG hybrid {hybrid_graph.get('lightrag_hybrid', 0)}; "
+                f"GraphRAG {graph_naive.get('graphrag_global', 0)} vs NaiveRAG {graph_naive.get('lightrag_naive', 0)}"
+            ),
+        },
+        {
+            "RQ": "RQ2 구성 요소의 기여도",
+            "Question": "이중 수준 검색과 그래프 기반 인덱싱이 품질 향상에 어떤 역할을 하는가?",
+            "Answer": "특허 특화 prompt는 기술 entity/relation 중심 graph를 만드는 데 성공했다. 다만 graph context가 항상 chunk-only retrieval보다 좋은 답변으로 이어지지는 않았다.",
+            "Evidence": (
+                f"technical relation={graph_metrics.get('technical_relation_ratio', '—')}, "
+                f"metadata relation={graph_metrics.get('metadata_relation_ratio', '—')}, "
+                f"excluded entity={graph_metrics.get('excluded_entity_ratio', '—')}"
+            ),
+        },
+        {
+            "RQ": "RQ3 사례 연구",
+            "Question": "실제 시나리오에서 LightRAG가 보여주는 구체적인 장점은 무엇인가?",
+            "Answer": "LightRAG는 entity, relation, chunk, source patent 단위로 근거를 추적하기 쉽다. 반면 broad category 질문에서는 GraphRAG community summary가 더 넓은 답변을 만들었다.",
+            "Evidence": (
+                f"category_specific: GraphRAG={category.get('graphrag_global', 0)}; "
+                f"cross_category: LightRAG hybrid={cross.get('lightrag_hybrid', 0)} vs GraphRAG={cross.get('graphrag_global', 0)}; "
+                f"fact_check: LightRAG hybrid={fact.get('lightrag_hybrid', 0)} vs NaiveRAG={fact.get('lightrag_naive', 0)}"
+            ),
+        },
+        {
+            "RQ": "RQ4 비용 및 적응성",
+            "Question": "운영 비용과 새로운 데이터 업데이트 속도는 어떠한가?",
+            "Answer": "LightRAG는 query latency와 근거 추적성 측면에서 가볍지만, 실제 indexing에서는 재시도 비용이 컸다. incremental update는 이번 결과에서 독립 조건으로 직접 평가하지 않았다.",
+            "Evidence": (
+                f"원본 답변 길이 ratio GraphRAG/LightRAG hybrid={length_ratio:.2f}x; "
+                f"정규화 후 residual ratio={residual_ratio:.2f}x; "
+                f"GraphRAG in target={graph_after.get('in_target', 0)}/{graph_after.get('count', 0)}"
+            ),
+        },
+        {
+            "RQ": "Length caveat",
+            "Question": "GraphRAG 1등 결론을 그대로 받아들여도 되는가?",
+            "Answer": "생성 품질 1등은 GraphRAG로 보는 것이 맞지만, 답변 길이 편향이 완전히 제거된 실험은 아니다.",
+            "Evidence": (
+                f"Original verbosity-aware: GraphRAG {original_hybrid_graph.get('graphrag_global', 0)} vs LightRAG hybrid {original_hybrid_graph.get('lightrag_hybrid', 0)}; "
+                f"Normalized: GraphRAG {hybrid_graph.get('graphrag_global', 0)} vs LightRAG hybrid {hybrid_graph.get('lightrag_hybrid', 0)}"
+            ),
+        },
+    ]
+    conclusion = (
+        "이번 Patent-100 실험의 생성 답변 품질 1등은 GraphRAG로 정리한다. "
+        "다만 GraphRAG 답변은 길이 보정 후에도 LightRAG보다 길어 완전한 동일 길이 비교는 아니며, "
+        "LightRAG는 승률 1등은 아니지만 entity/relation/chunk/source patent 단위의 근거 추적성과 구현 흐름 설명에 장점이 있다."
+    )
+    return f"""
+    <h2 id="discussion">Discussion and Conclusion</h2>
+    <p>논문의 RQ 구조를 따라 Patent-100 결과를 정리한다. 이 보고서에서 GraphRAG는 Microsoft GraphRAG의 global/community-report query mode를 대표 baseline으로 표시한다.</p>
+    {table(rows, class_name="discussion-table")}
+    <h3>Conclusion</h3>
+    <p>{html_escape(conclusion)}</p>
+    """
+
+
 def naive_vs_light_table(light_rows: list[dict[str, Any]], query_id: str = "C-1") -> str:
     lookup = result_lookup(light_rows)
     naive = lookup.get((query_id, "naive"), {})
@@ -1950,7 +2454,7 @@ def main() -> None:
         else "목차와 표 구조만 남김"
     )
     graph_case_note = (
-        "GraphRAG global 결과를 LightRAG hybrid와 비교한 사례다. Gemini judge decision도 함께 표시한다."
+        "GraphRAG 결과를 LightRAG hybrid와 비교한 사례다. Gemini judge decision도 함께 표시한다."
         if graph_rows
         else "GraphRAG 실행 전이므로 case study 본문은 비워둔다."
     )
@@ -2034,7 +2538,7 @@ def main() -> None:
     table.relation-table th:nth-child(2), table.relation-table td:nth-child(2) {{ width:15%; }}
     table.relation-table th:nth-child(3), table.relation-table td:nth-child(3) {{ width:16%; }}
     table.relation-table th:nth-child(4), table.relation-table td:nth-child(4) {{ width:31%; }}
-    table.relation-table th:nth-child(5), table.relation-table td:nth-child(5) {{ width:14%; }}
+    table.relation-table th:nth-child(5), table.relation-table td:nth-child(5) {{ width:14%; white-space:pre-line; }}
     table.relation-table th:nth-child(6), table.relation-table td:nth-child(6) {{ width:8%; }}
     table.relation-table th, table.relation-table td {{ overflow-wrap:anywhere; }}
     table.answer-compare-table {{ table-layout:fixed; }}
@@ -2075,6 +2579,18 @@ def main() -> None:
     table.graph-quality-table,
     table.retrieval-summary-table,
     table.context-sample-table,
+    table.observable-question-table,
+    table.observable-flow-table,
+    table.observable-path-table,
+    table.observable-composition-table,
+    table.observable-cumulative-table,
+    table.observable-transform-table,
+    table.observable-mode-trace-table,
+    table.observable-relation-reason-table,
+    table.observable-dedup-table,
+    table.observable-answer-table,
+    table.observable-evidence-table,
+    table.baseline-status-table,
     table.complexity-table,
     table.audit-table,
     table.audit-note-table,
@@ -2120,6 +2636,55 @@ def main() -> None:
     table.context-sample-table th:nth-child(1), table.context-sample-table td:nth-child(1) {{ width:15%; }}
     table.context-sample-table th:nth-child(2), table.context-sample-table td:nth-child(2) {{ width:8%; }}
     table.context-sample-table th:nth-child(3), table.context-sample-table td:nth-child(3) {{ width:77%; }}
+    table.observable-question-table th:nth-child(1), table.observable-question-table td:nth-child(1) {{ width:38%; }}
+    table.observable-question-table th:nth-child(2), table.observable-question-table td:nth-child(2) {{ width:62%; }}
+    table.observable-flow-table th:nth-child(1), table.observable-flow-table td:nth-child(1) {{ width:28%; }}
+    table.observable-flow-table th:nth-child(2), table.observable-flow-table td:nth-child(2) {{ width:52%; }}
+    table.observable-flow-table th:nth-child(3), table.observable-flow-table td:nth-child(3) {{ width:20%; }}
+    table.observable-path-table th:nth-child(1), table.observable-path-table td:nth-child(1) {{ width:16%; }}
+    table.observable-path-table th:nth-child(2), table.observable-path-table td:nth-child(2) {{ width:28%; }}
+    table.observable-path-table th:nth-child(3), table.observable-path-table td:nth-child(3) {{ width:56%; }}
+    table.observable-composition-table th:nth-child(1), table.observable-composition-table td:nth-child(1) {{ width:18%; }}
+    table.observable-composition-table th:nth-child(2), table.observable-composition-table td:nth-child(2) {{ width:34%; }}
+    table.observable-composition-table th:nth-child(3), table.observable-composition-table td:nth-child(3) {{ width:48%; }}
+    table.observable-cumulative-table th:nth-child(1), table.observable-cumulative-table td:nth-child(1) {{ width:14%; }}
+    table.observable-cumulative-table th:nth-child(2), table.observable-cumulative-table td:nth-child(2) {{ width:10%; }}
+    table.observable-cumulative-table th:nth-child(3), table.observable-cumulative-table td:nth-child(3) {{ width:10%; }}
+    table.observable-cumulative-table th:nth-child(4), table.observable-cumulative-table td:nth-child(4) {{ width:11%; }}
+    table.observable-cumulative-table th:nth-child(5), table.observable-cumulative-table td:nth-child(5) {{ width:11%; }}
+    table.observable-cumulative-table th:nth-child(6), table.observable-cumulative-table td:nth-child(6) {{ width:17%; }}
+    table.observable-cumulative-table th:nth-child(7), table.observable-cumulative-table td:nth-child(7) {{ width:17%; }}
+    table.observable-cumulative-table th:nth-child(8), table.observable-cumulative-table td:nth-child(8) {{ width:10%; }}
+    table.observable-transform-table th:nth-child(1), table.observable-transform-table td:nth-child(1) {{ width:18%; }}
+    table.observable-transform-table th:nth-child(2), table.observable-transform-table td:nth-child(2) {{ width:82%; }}
+    table.observable-mode-trace-table th:nth-child(1), table.observable-mode-trace-table td:nth-child(1) {{ width:7%; }}
+    table.observable-mode-trace-table th:nth-child(2), table.observable-mode-trace-table td:nth-child(2) {{ width:17%; }}
+    table.observable-mode-trace-table th:nth-child(3), table.observable-mode-trace-table td:nth-child(3) {{ width:9%; }}
+    table.observable-mode-trace-table th:nth-child(4), table.observable-mode-trace-table td:nth-child(4) {{ width:12%; }}
+    table.observable-mode-trace-table th:nth-child(5), table.observable-mode-trace-table td:nth-child(5) {{ width:10%; }}
+    table.observable-mode-trace-table th:nth-child(6), table.observable-mode-trace-table td:nth-child(6) {{ width:18%; }}
+    table.observable-mode-trace-table th:nth-child(7), table.observable-mode-trace-table td:nth-child(7) {{ width:14%; }}
+    table.observable-mode-trace-table th:nth-child(8), table.observable-mode-trace-table td:nth-child(8) {{ width:13%; }}
+    table.observable-relation-reason-table th:nth-child(1), table.observable-relation-reason-table td:nth-child(1) {{ width:9%; }}
+    table.observable-relation-reason-table th:nth-child(2), table.observable-relation-reason-table td:nth-child(2) {{ width:26%; }}
+    table.observable-relation-reason-table th:nth-child(3), table.observable-relation-reason-table td:nth-child(3) {{ width:22%; }}
+    table.observable-relation-reason-table th:nth-child(4), table.observable-relation-reason-table td:nth-child(4) {{ width:43%; }}
+    table.observable-dedup-table th:nth-child(1), table.observable-dedup-table td:nth-child(1) {{ width:32%; }}
+    table.observable-dedup-table th:nth-child(2), table.observable-dedup-table td:nth-child(2) {{ width:13%; }}
+    table.observable-dedup-table th:nth-child(3), table.observable-dedup-table td:nth-child(3) {{ width:55%; }}
+    table.observable-answer-table th:nth-child(1), table.observable-answer-table td:nth-child(1) {{ width:8%; }}
+    table.observable-answer-table th:nth-child(2), table.observable-answer-table td:nth-child(2) {{ width:8%; }}
+    table.observable-answer-table th:nth-child(3), table.observable-answer-table td:nth-child(3) {{ width:13%; }}
+    table.observable-answer-table th:nth-child(4), table.observable-answer-table td:nth-child(4) {{ width:11%; }}
+    table.observable-answer-table th:nth-child(5), table.observable-answer-table td:nth-child(5) {{ width:60%; }}
+    table.observable-evidence-table th:nth-child(1), table.observable-evidence-table td:nth-child(1) {{ width:6%; }}
+    table.observable-evidence-table th:nth-child(2), table.observable-evidence-table td:nth-child(2) {{ width:18%; }}
+    table.observable-evidence-table th:nth-child(3), table.observable-evidence-table td:nth-child(3) {{ width:20%; }}
+    table.observable-evidence-table th:nth-child(4), table.observable-evidence-table td:nth-child(4) {{ width:56%; }}
+    table.baseline-status-table th:nth-child(1), table.baseline-status-table td:nth-child(1) {{ width:18%; }}
+    table.baseline-status-table th:nth-child(2), table.baseline-status-table td:nth-child(2) {{ width:26%; }}
+    table.baseline-status-table th:nth-child(3), table.baseline-status-table td:nth-child(3) {{ width:11%; }}
+    table.baseline-status-table th:nth-child(4), table.baseline-status-table td:nth-child(4) {{ width:45%; }}
     table.complexity-table th:nth-child(1), table.complexity-table td:nth-child(1) {{ width:12%; }}
     table.complexity-table th:nth-child(2), table.complexity-table td:nth-child(2) {{ width:12%; }}
     table.complexity-table th:nth-child(3), table.complexity-table td:nth-child(3) {{ width:12%; }}
@@ -2244,6 +2809,7 @@ def main() -> None:
     <strong>Table of Contents</strong>
     <ol>
       <li><a href="#models">Model Roles and Current Status</a></li>
+      <li><a href="#observable-flow">Learning / Observable Flow Addendum</a></li>
       <li><a href="#indexing">3.1 Graph-based Text Indexing</a></li>
       <li><a href="#graph-viz">Graph Visualization Before 3.2</a></li>
       <li><a href="#retrieval">3.2 Dual-level Retrieval Paradigm</a></li>
@@ -2290,6 +2856,8 @@ def main() -> None:
       {"Track": "Gemini judge", "Status": judge_status, "Evidence": judge_evidence},
   ], class_name="status-table")}
 
+  {learning_observable_addendum(experiment_dir, manifest, index_stats, graph_metrics, light_rows, working_dir)}
+
   <h2 id="indexing">3.1 Graph-based Text Indexing</h2>
   <p>특허 1건을 구조화 텍스트로 변환한 뒤 chunking, R(entity/relation extraction), P(profile/key-value generation), D(deduplication)를 거쳐 graph와 vector DB를 만든다.</p>
   <h3>Structured Patent Documents</h3>
@@ -2298,6 +2866,7 @@ def main() -> None:
   {prompt_rule_table()}
   {rpd_examples(working_dir)}
   {pre("Patent-specific entity extraction prompt excerpt", prompt_text[:7000], 8000)}
+  {rpd_prompt_blocks(prompt_text)}
 
   <h2 id="graph-viz">Graph Visualization Before 3.2</h2>
   {graph_quality_table(graph_metrics)}
@@ -2337,30 +2906,30 @@ def main() -> None:
 	  <h3 id="table-1" class="print-page-break">Table 1: Win rates (%) of baselines vs LightRAG</h3>
   <p class="note">{html_escape(judge_note)}</p>
   {win_rate_placeholder(judge_rows)}
-  {table_explanation("Table 1은 Gemini judge가 pairwise로 고른 winner 비율이다. 원본 답변 기준으로는 GraphRAG global이 강하지만, 이 승률은 답변 길이 차이의 영향을 받을 수 있으므로 바로 성능 우위로 단정하지 않고 아래 길이 통계와 함께 해석한다.")}
+  {table_explanation("Table 1은 Gemini judge가 pairwise로 고른 winner 비율이다. 원본 답변 기준으로는 GraphRAG가 강하지만, 이 승률은 답변 길이 차이의 영향을 받을 수 있으므로 아래 길이 통계와 함께 해석한다.")}
 	  <h3 id="answer-length" class="print-page-break">Answer Length Statistics for Table 1 Interpretation</h3>
   <p class="note">GraphRAG 답변에 섞인 런타임 warning 문구를 제거한 cleaned answer 기준이다. 이 표는 LLM-as-judge의 verbosity bias 가능성을 해석하기 위한 보조 지표다.</p>
   {answer_length_table(length_stats)}
-  {table_explanation("답변 길이 표는 judge 승률의 confound를 확인하기 위한 보조 결과다. GraphRAG global 답변이 LightRAG hybrid보다 훨씬 길면 Comprehensiveness, Diversity, Empowerment rubric에서 구조적으로 유리할 수 있다.")}
+  {table_explanation("답변 길이 표는 judge 승률의 confound를 확인하기 위한 보조 결과다. GraphRAG 답변이 LightRAG hybrid보다 훨씬 길면 Comprehensiveness, Diversity, Empowerment rubric에서 구조적으로 유리할 수 있다.")}
 	  <h3 id="length-control" class="print-page-break">Length Normalization + Verbosity-aware Judge</h3>
   <p class="note">답변 길이 편향을 줄이기 위해 같은 근거를 유지한 채 1100-1300자 목표로 답변을 재작성하고, Gemini judge prompt에 verbosity penalty를 명시했다. 일부 GraphRAG 답변은 근거 보존 때문에 목표 길이를 초과했으므로 완전한 동일 길이 실험은 아니며, 잔여 길이 차이를 함께 해석한다.</p>
   {length_control_audit_table(length_control_summary)}
   {table_explanation("이 audit 표는 길이 정규화와 verbosity-aware judge가 실제로 끝까지 수행됐는지 확인한다. 60개 pairwise 평가가 모두 성공해야 원본 judge 결과와 보정 judge 결과를 비교할 수 있다.")}
   {length_control_length_table(length_control_summary)}
-  {table_explanation("길이 정규화 표는 원본 답변과 보정 답변의 평균 길이 변화를 보여준다. GraphRAG global은 압축 후에도 목표 길이에 완전히 들어오지 않았기 때문에, 보정 결과도 완전한 동일 길이 조건이 아니라 잔여 길이 차이가 남은 결과로 읽어야 한다.")}
+  {table_explanation("길이 정규화 표는 원본 답변과 보정 답변의 평균 길이 변화를 보여준다. GraphRAG는 압축 후에도 목표 길이에 완전히 들어오지 않았기 때문에, 보정 결과도 완전한 동일 길이 조건이 아니라 잔여 길이 차이가 남은 결과로 읽어야 한다.")}
   {length_control_judge_table(length_control_summary)}
-  {table_explanation("verbosity-aware judge 표는 원본 답변과 길이 정규화 답변에서 winner가 어떻게 바뀌는지 보여준다. GraphRAG global은 hybrid 대비 여전히 강하지만 naive 대비 우위는 줄어들어, community summary 효과와 길이 효과가 함께 작용한 것으로 해석한다.")}
+  {table_explanation("verbosity-aware judge 표는 원본 답변과 길이 정규화 답변에서 winner가 어떻게 바뀌는지 보여준다. GraphRAG는 hybrid 대비 여전히 강하지만 naive 대비 우위는 줄어들어, community summary 효과와 길이 효과가 함께 작용한 것으로 해석한다.")}
 	  <h3 id="query-type" class="print-page-break">Normalized Verbosity-aware Judge by Query Type</h3>
   <p class="note">아래 표는 query type별 Overall winner count다. 하나의 query가 여러 pairwise 비교에 등장하므로 count는 query 수와 같지 않고, type별 경향을 보기 위한 breakdown이다.</p>
   {query_type_pattern_table(length_control_summary)}
-  {table_explanation("Query type breakdown은 전체 평균만 보면 놓치는 패턴을 보여준다. category-specific broad query는 GraphRAG global이 강하고, cross-category query는 LightRAG hybrid가 더 강해 graph context의 효용이 질문 유형별로 달라진다.")}
+  {table_explanation("Query type breakdown은 전체 평균만 보면 놓치는 패턴을 보여준다. category-specific broad query는 GraphRAG가 강하고, cross-category query는 LightRAG hybrid가 더 강해 graph context의 효용이 질문 유형별로 달라진다.")}
 	  <h3 id="table-2" class="print-page-break">Table 2: Performance of ablated LightRAG retrieval modes</h3>
   {table(mode_ablation_display_rows(auto_metrics, light_mode_rows), class_name="mode-ablation-table")}
   {table_explanation("Table 2는 LightRAG 내부 mode ablation이다. naive는 graph 없이 chunk embedding만 쓰고, local/global/hybrid는 entity/relation context를 추가하므로, graph retrieval이 latency와 source coverage를 얼마나 바꾸는지 확인하는 표다.")}
 	  <h3 id="table-3" class="print-page-break">Table 3: Case Study: GraphRAG vs LightRAG</h3>
   <p class="note">{html_escape(graph_case_note)}</p>
   {graph_case_blank() if not graph_rows else case_table(light_rows, graph_rows, judge_rows, "X-1", "global")}
-	  {table_explanation("Table 3은 aggregate win-rate만으로 보이지 않는 답변 양식 차이를 읽기 위한 사례다. GraphRAG global은 community summary를 통해 더 넓은 맥락을 제시하고, LightRAG hybrid는 검색된 entity/relation/chunk 근거에 더 직접적으로 묶이는 경향이 있다.")}
+	  {table_explanation("Table 3은 aggregate win-rate만으로 보이지 않는 답변 양식 차이를 읽기 위한 사례다. GraphRAG는 community summary를 통해 더 넓은 맥락을 제시하고, LightRAG hybrid는 검색된 entity/relation/chunk 근거에 더 직접적으로 묶이는 경향이 있다.")}
 		  <h3 id="figure-2" class="print-page-break">Figure 2: Cost comparison in tokens/API calls</h3>
 	  {cost_runtime_summary_table(index_stats, light_rows, graph_rows, graph_stats, judge_rows, length_control_summary)}
 	  {pre("Figure 2 raw JSON excerpt", cost_raw_excerpt(index_stats, graph_metrics, graph_stats, graph_mode_rows, judge_summary, length_control_summary), 5000)}
@@ -2369,10 +2938,10 @@ def main() -> None:
 	  <h3 id="table-5" class="print-page-break">Table 5: Case Study: NaiveRAG vs LightRAG</h3>
   {naive_vs_light_table(light_rows, "C-1")}
   {table_explanation("Table 5는 LightRAG hybrid가 chunk-only naive 대비 어떤 추가 근거를 제공하는지 보는 사례다. 이번 실험에서는 hybrid가 항상 naive를 압도하지 않았으므로, 이 표는 graph context의 장점과 중복 가능성을 동시에 점검하는 용도다.")}
-	  <h3 id="additional-case" class="print-page-break">Additional Case Study: LightRAG Hybrid vs GraphRAG Global</h3>
-  <p class="note">category-specific broad query에서 GraphRAG global이 강하게 나온 사례다. 긴 community summary가 압축 후에도 핵심 근거를 유지하는지 확인하기 위한 읽기용 예시다.</p>
+	  <h3 id="additional-case" class="print-page-break">Additional Case Study: LightRAG Hybrid vs GraphRAG</h3>
+  <p class="note">category-specific broad query에서 GraphRAG가 강하게 나온 사례다. 긴 community summary가 압축 후에도 핵심 근거를 유지하는지 확인하기 위한 읽기용 예시다.</p>
   {graph_case_blank() if not graph_rows else case_table(light_rows, graph_rows, judge_rows, "AA-1", "global")}
-  {table_explanation("추가 case study는 GraphRAG global이 특히 강한 category-specific broad query를 보여준다. 이 사례는 GraphRAG의 장점을 설명하는 동시에, 긴 답변이 judge에 유리하게 작용했을 가능성을 같이 확인하기 위한 예시다.")}
+  {table_explanation("추가 case study는 GraphRAG가 특히 강한 category-specific broad query를 보여준다. 이 사례는 GraphRAG의 장점을 설명하는 동시에, 긴 답변이 judge에 유리하게 작용했을 가능성을 같이 확인하기 위한 예시다.")}
 
   {discussion_section(graph_metrics, judge_rows, length_stats, length_control_summary)}
 
@@ -2385,8 +2954,9 @@ def main() -> None:
 	  <h2 id="appendix-7-2">Appendix 7.2: Retrieval-Augmented Generation Example</h2>
   <p class="note">3.2 본문의 retrieval context 예시를 Appendix에도 남긴다. 7.3.3은 중복을 피하기 위해 keyword extraction 결과만 별도로 요약한다.</p>
   {render_query_flow(light_rows)}
-	  <h2 id="appendix-7-3-1">Appendix 7.3.1: Graph Generation Prompt and Outputs</h2>
+  <h2 id="appendix-7-3-1">Appendix 7.3.1: Graph Generation Prompt and Outputs</h2>
   {pre("Prompt excerpt", prompt_text[:7000], 8000)}
+  {rpd_prompt_blocks(prompt_text)}
   {rpd_examples(working_dir)}
 	  <h2 id="appendix-7-3-2">Appendix 7.3.2: Query Generation</h2>
   <p>15개 쿼리는 모델 없이 직접 설계한 고정 평가셋이다.</p>
@@ -2396,7 +2966,7 @@ def main() -> None:
 	  <h2 id="appendix-7-3-4">Appendix 7.3.4: RAG Evaluation</h2>
   <p class="note">{html_escape('Gemini 3.5 Flash judge를 실행했고 60/60 pairwise 결과를 정규화해 사용했다.' if judge_rows else 'Gemini 3.5 Flash judge는 아직 실행하지 않았다. 아래는 실행 후 채울 평가 구조다.')}</p>
   {table([
-      {"Judge item": "Pairwise comparisons", "Planned value": "LightRAG hybrid vs NaiveRAG; LightRAG hybrid vs GraphRAG global/local; GraphRAG global vs NaiveRAG"},
+      {"Judge item": "Pairwise comparisons", "Planned value": "LightRAG hybrid vs NaiveRAG; LightRAG hybrid vs GraphRAG; GraphRAG vs NaiveRAG"},
       {"Judge item": "Rubrics", "Planned value": "Comprehensiveness, Diversity, Empowerment, Technical correctness, Hallucination risk, Overall"},
       {"Judge item": "A/B ordering", "Planned value": "query별로 answer A/B 순서 교차"},
       {"Judge item": "Output schema", "Planned value": "{metric: {winner, score_a, score_b, rationale}, overall_summary}"},
